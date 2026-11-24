@@ -21,9 +21,40 @@ struct AllSectionsCollapsedView: View {
 
 struct EmptyListView: View {
     let reason: EmptyReason
+    /// Favoris without an account: legacy's prompt, with its button instead of a refresh (#824); nil on every other list.
+    var prompt: SignInPrompt?
     let refresh: () async -> Void
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
+    @State private var loginTarget: LoginTarget?
+    @State private var showsAccounts = false
 
     var body: some View {
+        if let prompt {
+            signInView(prompt)
+        } else {
+            emptyView
+        }
+    }
+
+    private func signInView(_ prompt: SignInPrompt) -> some View {
+        ContentUnavailableView {
+            Label(prompt.title, systemImage: prompt.systemImage)
+        } description: {
+            Text(prompt.message)
+        } actions: {
+            Button(prompt.action) {
+                // As the account button: a damaged account store is repaired in the accounts, not by adding another.
+                if accounts?.storeProblem == nil { loginTarget = .newAccount } else { showsAccounts = true }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .sheet(item: $loginTarget) { target in
+            if let accounts { LoginView(target: target, accounts: accounts) }
+        }
+        .sheet(isPresented: $showsAccounts) { AccountsView() }
+    }
+
+    private var emptyView: some View {
         ContentUnavailableView {
             Label(title, systemImage: "tray")
         } description: {
