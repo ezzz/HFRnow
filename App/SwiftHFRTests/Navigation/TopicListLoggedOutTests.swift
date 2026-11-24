@@ -23,25 +23,45 @@ struct TopicListLoggedOutTests {
         dataSource.favoritesHandler = { _ in FavoritesPage(notice: "Aucun sujet que vous avez lu n'est connu") }
         let list = model(source, loggedIn: false, dataSource: dataSource)
         await list.loadIfNeeded()
-        #expect(list.signInPrompt == SignInPrompt(
+        #expect(list.signInPrompt(current: nil) == SignInPrompt(
             title: "Connectez-vous pour accéder aux favoris",
             message: "Ajoutez un pseudo pour charger vos favoris et vos drapeaux.",
             systemImage: "star.slash",
-            action: "Ajouter un pseudo"
+            action: "Ajouter un pseudo",
+            target: .newAccount
         ))
+    }
+
+    private func row(_ status: AccountSessionStatus) -> AccountRow {
+        AccountRow(id: "user1", displayName: "User1", isMain: true, avatar: nil, status: status)
+    }
+
+    @Test func anExpiredCurrentAccountSignsInAgainLikeTheAccountButton() async {
+        let list = model(.favorites, loggedIn: false)
+        await list.loadIfNeeded()
+        let prompt = list.signInPrompt(current: row(.expired))
+        #expect(prompt?.action == "Se reconnecter")
+        #expect(prompt?.target == .existing(id: "user1", displayName: "User1"))
+        #expect(prompt?.message == "Votre session a expiré : reconnectez-vous pour charger vos favoris et vos drapeaux.")
+    }
+
+    @Test func aCurrentAccountThatIsNotExpiredStillGetsTheAddPrompt() async {
+        let list = model(.favorites, loggedIn: false)
+        await list.loadIfNeeded()
+        #expect(list.signInPrompt(current: row(.valid))?.target == .newAccount)
     }
 
     @Test func favorisWithAnAccountHasNoPrompt() async {
         let list = model(.favorites, loggedIn: true)
         await list.loadIfNeeded()
-        #expect(list.signInPrompt == nil)
+        #expect(list.signInPrompt(current: nil) == nil)
         #expect(list.loader.value?.emptyReason == .nothing)
     }
 
     @Test func aForumListKeepsItsOwnWallWithoutTheFavorisPrompt() async {
         let list = model(.forum(.forum(13), title: "Discussions"), loggedIn: false)
         await list.loadIfNeeded()
-        #expect(list.signInPrompt == nil)
+        #expect(list.signInPrompt(current: nil) == nil)
     }
 
     @Test func theFilterNoteWithoutAccountHasLegacyTitleAndSubtitle() async {
