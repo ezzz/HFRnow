@@ -122,7 +122,7 @@ struct ReaderDisplaySettingsTests {
         func swipe(_ across: CGFloat, down: CGFloat = 0, predicted: CGFloat, page: Int = 2, max: Int = 5) -> PageSwipe? {
             PageSwipe.of(
                 translation: CGSize(width: across, height: down), predictedEnd: CGSize(width: predicted, height: down),
-                page: page, maxPage: max
+                page: page, maxPage: max, startedInHorizontalScroller: false
             )
         }
         #expect(swipe(-150, predicted: -300) == .next)

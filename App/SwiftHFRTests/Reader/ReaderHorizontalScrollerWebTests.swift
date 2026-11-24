@@ -15,6 +15,7 @@ struct ReaderHorizontalScrollerWebTests: ReaderWebTesting {
         <div id="scroller" style="overflow-x:auto;width:100px"><span id="deep" style="display:inline-block;width:3000px">x</span></div>
         <div id="short" style="overflow-x:auto;width:300px"><span id="small">y</span></div>
         <table class="fixed" id="block"><tr><td><span id="wide" style="display:inline-block;width:3000px">z</span></td></tr></table>
+        <div id="visible" style="overflow-x:visible;width:100px"><span id="spill" style="display:inline-block;width:3000px">v</span></div>
         <p id="plain">texte</p>
         """
 
@@ -47,6 +48,17 @@ struct ReaderHorizontalScrollerWebTests: ReaderWebTesting {
         #expect(await until { controller.touchStartedInScroller })
         try await touch("small", in: controller) // overflow-x: auto but nothing to scroll
         #expect(await until { !controller.touchStartedInScroller }, "a block with no overflow must not own the touch")
+    }
+
+    /// A box wider than itself that does not scroll (`overflow-x: visible`) is no scroller: only `overflow-x` auto or scroll counts.
+    @Test func aWideChildInAnOverflowVisibleBoxIsNotAScroller() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(document(token: 1, content: content))
+        #expect(await until { recorder.ready == [1] })
+        try await touch("deep", in: controller)
+        #expect(await until { controller.touchStartedInScroller })
+        try await touch("spill", in: controller)
+        #expect(await until { !controller.touchStartedInScroller }, "a box that does not scroll must not own the touch")
     }
 
     @Test func aNewDocumentStartsWithNoScrollerTouch() async throws {

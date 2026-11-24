@@ -225,6 +225,16 @@ final class ReaderWebController: NSObject {
         return handle(decoded.message, in: document)
     }
 
+    /// The boolean messages: the page's end on screen (#820) and whether the last touch began in a sideways block (#672).
+    private func flagReported(_ message: ReaderBridgeMessage, token: Int) -> Any? {
+        switch message {
+        case .edge(let atBottom): return pageEndReported(atBottom, token: token)
+        case .scroller(let inside): touchStartedInScroller = inside
+        default: break
+        }
+        return nil
+    }
+
     /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
     /// first); this one is internal only so tests can drive the actions without a web view round trip.
     func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
@@ -240,10 +250,7 @@ final class ReaderWebController: NSObject {
         case .position(let post):
             positionReported(post, token: document.token)
             return nil
-        case .edge(let atBottom): return pageEndReported(atBottom, token: document.token)
-        case .scroller(let inside):
-            touchStartedInScroller = inside
-            return nil
+        case .edge, .scroller: return flagReported(message, token: document.token)
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
             return nil

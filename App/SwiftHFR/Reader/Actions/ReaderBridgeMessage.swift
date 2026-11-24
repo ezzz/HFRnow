@@ -90,12 +90,6 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         case "videolink":
             guard let url = object["url"] as? String, url.utf8.count <= maximumLinkLength else { throw .invalidPayload }
             return .videoLink(url: url)
-        case "edge":
-            guard let atBottom = boolean(object["bottom"]) else { throw .invalidPayload }
-            return .edge(atBottom: atBottom)
-        case "scroller":
-            guard let inside = boolean(object["inside"]) else { throw .invalidPayload }
-            return .scroller(inside: inside)
         default:
             return try messageAboutAPost(ofType: type, in: object)
         }
@@ -117,6 +111,20 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         case "position":
             guard let post = positivePost(in: object) else { throw .invalidPayload }
             return .position(post: post)
+        default:
+            return try flagMessage(ofType: type, in: object)
+        }
+    }
+
+    /// The names whose payload is one real boolean: the page's end on screen (#820) and a touch in a sideways block (#672).
+    private static func flagMessage(ofType type: String, in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        switch type {
+        case "edge":
+            guard let atBottom = boolean(object["bottom"]) else { throw .invalidPayload }
+            return .edge(atBottom: atBottom)
+        case "scroller":
+            guard let inside = boolean(object["inside"]) else { throw .invalidPayload }
+            return .scroller(inside: inside)
         default:
             throw .unknownType
         }
