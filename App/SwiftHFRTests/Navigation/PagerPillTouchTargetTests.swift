@@ -55,7 +55,7 @@ struct PagerPillTouchTargetTests {
         #expect(measured.width >= Self.minimum && measured.height >= Self.minimum, "measured \(measured)")
     }
 
-    /// The look does not change: the visible capsule is the text plus its 12 / 6 pt padding, shorter than the hit frame around it.
+    /// The label's own capsule hugs its text (text plus 12 / 6 pt padding), shorter than the hit frame the pill puts around it.
     @Test(arguments: [DynamicTypeSize.xSmall, .large])
     func theVisibleCapsuleStillHugsItsText(size: DynamicTypeSize) async throws {
         let menu = PagerPageMenu(current: 2, total: 9)
@@ -65,8 +65,23 @@ struct PagerPillTouchTargetTests {
         #expect(label.height < Self.minimum, "the capsule must not grow to the hit frame: \(label)")
     }
 
-    /// The system bottom bar draws the glass behind the pill: the pill adds no capsule of its own there.
-    @Test func theBottomBarPillDrawsNoGlassOfItsOwn() {
-        #expect(PagerToolbar.bottomBarPillDrawsGlass == false)
+    /// The bar's item group draws the glass behind the pill (a second capsule would nest); the strip has none, so the pill draws it.
+    /// Both placements of `PagerToolbar` read this function.
+    @Test func thePillDrawsItsOwnGlassOnlyInTheStrip() {
+        #expect(PagerToolbar.pillDrawsGlass(in: .bottomBar) == false)
+        #expect(PagerToolbar.pillDrawsGlass(in: .inset) == true)
+    }
+
+    /// Operator 2026-11-24: the strip's arrows are as tall as its pill, 44 pt, hit region and glass capsule alike (the glass
+    /// button style wraps the laid-out frame).
+    @Test(arguments: [DynamicTypeSize.xSmall, .large])
+    func theStripArrowsAre44PointsInTheGlassStyle(size: DynamicTypeSize) async throws {
+        let step = PagerToolbar.Step(enabled: true, action: {})
+        let pager = PagerToolbar(first: step, previous: step, next: step, last: step, status: .pageOf(2, 9), jump: { _ in })
+        let arrow = pager.stripArrow("Page suivante", "chevron.right", pager.next).labelStyle(.iconOnly).buttonStyle(.glass)
+        let measured = try await measure(arrow, dynamicType: size)
+        // Exactly the pill's 44 pt (a little slack for rounding), not more: a taller arrow would no longer match the pill.
+        #expect((Self.minimum...(Self.minimum + 1)).contains(measured.width), "measured \(measured)")
+        #expect((Self.minimum...(Self.minimum + 1)).contains(measured.height), "measured \(measured)")
     }
 }
