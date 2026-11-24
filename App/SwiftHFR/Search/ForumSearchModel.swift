@@ -190,6 +190,8 @@ final class ForumSearchModel {
     /// result on screen.
     func open(_ topic: TopicSummary, at opening: TopicOpening) {
         requestedOpening = (topic.id, opening)
+        // The pushed readers go with it: a stack that only changes identity keeps what a link pushed on top (#1089).
+        currentReader?.model.closeLinkedReaders()
         currentReader = nil
         readerGeneration += 1
         selected = topic

@@ -235,6 +235,8 @@ final class MessageListModel {
     /// for the conversation on screen.
     func open(_ thread: PrivateMessageThread, at opening: TopicOpening) {
         requestedOpening = (thread.id, opening)
+        // The pushed readers go with it: a stack that only changes identity keeps what a link pushed on top (#1089).
+        currentReader?.model.closeLinkedReaders()
         currentReader = nil
         readerGeneration += 1
         selected = thread

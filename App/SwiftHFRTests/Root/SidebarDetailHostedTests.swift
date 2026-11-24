@@ -35,7 +35,7 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
             categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
             favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
                                        startupSource: TopicSource(mode: .flagsAndFavorites)),
-            messages: MessageListModel(source: FakePrivateMessages()),
+            messages: MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, topicPages: pages),
             store: InMemorySettingsStore(), initial: initial
         )
         let services = ReaderServices(
@@ -169,6 +169,28 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         let shown = await settle(window) { stack(topped: "Sujet 1 p2", in: window) == ["Sujet 1 p2"] }
         #expect(shown, "\(stacks(in: window))")
         #expect(stack(topped: "Sujet 1 p4", in: window) == nil)
+    }
+
+    /// #1311, #1089: the same for a Messages row menu: « Dernière page » of the conversation on screen while a link's reader is
+    /// pushed over it leaves only the new reader.
+    @Test func anMPRowMenuPageOfTheConversationOnScreenDropsThePushedReader() async throws {
+        let hosted = try host(initial: .tab(.messages))
+        defer { hosted.window.isHidden = true }
+        let (window, messages) = (hosted.window, hosted.root.messages)
+        let id = TopicID(category: .privateMessages, topic: 4242)
+        // Logged in: a logged-out list's load closes the open conversation (#1124).
+        let thread = messageThread(4242)
+        messages.selected = thread
+        let first = try #require(messages.reader(for: thread))
+        #expect(await settle(window) { first.page != nil && stack(topped: "Sujet 4242 p1", in: window) != nil })
+        first.follow(ReaderTarget(source: .topic(id), page: 4))
+        let linked = try #require(first.linkedReader)
+        #expect(await settle(window) { linked.page != nil && stack(topped: "Sujet 4242 p4", in: window)?.count == 2 })
+
+        messages.open(thread, at: TopicOpening(target: ReaderTarget(source: .topic(id), page: 2)))
+        let shown = await settle(window) { stack(topped: "Sujet 4242 p2", in: window) == ["Sujet 4242 p2"] }
+        #expect(shown, "\(stacks(in: window))")
+        #expect(stack(topped: "Sujet 4242 p4", in: window) == nil)
     }
 
     /// The split views on screen and their styles.

@@ -1,8 +1,8 @@
 import HFRModels
 import SwiftUI
 
-/// The page-number prompt of a row menu ("Page numéro…", legacy `pagePickerSheet`), shared by the MP list and the search results.
-/// The topic list has its own copy (`TopicListView`).
+/// The page-number prompt of a row menu ("Page numéro…", legacy `pagePickerSheet`), shared by the topic list, the MP list and the
+/// search results.
 struct TopicPagePrompt: ViewModifier {
     /// The row being asked about; nil closes the prompt.
     @Binding var topic: TopicSummary?
@@ -25,6 +25,10 @@ struct TopicPagePrompt: ViewModifier {
     }
 }
 
+// Port of HFRswift/Swift/Common.swift (TopicListRowView.quickActionsMenuContent, `:3558-3600`) @ 87fe0d1c, for the MP rows
+// (`MPListView.swift:845`) and the search results (`ForumSearchView.swift:346-360`). Differences: GAP-028, GAP-110, GAP-130; an
+// entry that cannot run is left out instead of shown (#1162), « Page numéro… » asks in an alert (legacy: a sheet), and « Copier
+// le lien » announces « Lien copié » to VoiceOver.
 /// The quick-action entries of a row menu (MP list, search results), legacy order; what cannot run is left out (#1162).
 struct TopicRowMenu: View {
     let topic: TopicSummary

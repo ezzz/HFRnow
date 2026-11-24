@@ -83,7 +83,34 @@ struct TopicRowMenuTests {
         #expect(model.reader(for: thread)?.requested == ReaderTarget(source: .topic(id), page: 457))
     }
 
+    /// #1089: the stack only changes identity when the conversation stays selected, so what a link pushed must be closed.
+    @Test func anMPEntryOnTheConversationOnScreenClosesItsPushedReaders() async throws {
+        let thread = try #require(try Self.mpThreads().first { $0.summary.pageCount == 457 })
+        let id = try #require(thread.summary.topicID)
+        let model = MessageListModel(
+            source: FakePrivateMessages(), isLoggedIn: { true }, topicPages: FakeTopicPages { _ in readerPage(page: 1) }
+        )
+        model.selected = thread
+        let shown = try #require(model.reader(for: thread))
+        shown.follow(ReaderTarget(source: .topic(id), page: 4))
+        #expect(shown.linkedReader != nil)
+        model.open(thread, at: try #require(TopicQuickActions.lastPage(of: thread.summary)))
+        #expect(shown.linkedReader == nil)
+    }
+
     // MARK: Search results
+
+    @Test func aSearchEntryOnTheResultOnScreenClosesItsPushedReaders() async throws {
+        let row = try #require(try Self.searchRows().first)
+        let id = try #require(row.topicID)
+        let model = ForumSearchModel(source: FakeSearchSource(), topicPages: FakeTopicPages { _ in readerPage(page: 1) })
+        model.selected = row
+        let shown = try #require(model.reader(for: row))
+        shown.follow(ReaderTarget(source: .topic(id), page: 4))
+        #expect(shown.linkedReader != nil)
+        model.open(row, at: try #require(TopicQuickActions.firstPage(of: row)))
+        #expect(shown.linkedReader == nil)
+    }
 
     /// Legacy order: "Dernière correspondance" first, then the five.
     @Test func aSearchResultOffersTheSixEntriesInLegacyOrder() throws {
