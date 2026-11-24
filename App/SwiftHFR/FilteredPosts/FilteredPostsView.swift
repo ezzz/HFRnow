@@ -141,6 +141,7 @@ struct FilteredPostsView: View {
         // A blocked or allowed author: the batch is built again with the lists as they are now, where it was scrolled to. The
         // first value (the menus made with the first document) is no change.
         .onChange(of: menus?.listsRevision) { old, _ in if old != nil { rebuild(model.result) } }
+        .signInToBlockSheet(isPresented: Binding(get: { menus?.wantsSignIn ?? false }, set: { menus?.wantsSignIn = $0 }))
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }

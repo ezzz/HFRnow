@@ -97,6 +97,15 @@ final class UserProfileModel: Identifiable {
     /// Whether the button of `kind` is shown (the blocklist needs an account).
     func offers(_ kind: PseudoListKind) -> Bool { listPseudo != nil && (lists?.isAvailable(kind) ?? false) }
 
+    /// Whether « Connectez-vous pour bloquer » stands in for the blocklist button: no account, a member to act on (LOT-159 D3).
+    var offersSignInToBlock: Bool { listPseudo != nil && !(lists?.isAvailable(.blocklist) ?? true) }
+
+    /// The button was tapped: the sheet opens the login; the view clears it when it closes.
+    var wantsSignIn = false
+
+    /// « Connectez-vous pour bloquer » was tapped.
+    func requestSignIn() { if offersSignInToBlock { wantsSignIn = true } }
+
     /// Reads whether the member is in each list.
     func refreshListState() async {
         guard let lists, let pseudo = listPseudo else { return }

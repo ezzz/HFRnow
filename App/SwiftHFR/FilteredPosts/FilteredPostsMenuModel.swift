@@ -19,6 +19,8 @@ final class FilteredPostsMenuModel: MenuFeedbackShowing {
     private(set) var menuFeedbackSerial = 0
     /// Bumped when an action changed the pseudo lists: the sheet builds its document again, so a blocked author's posts hide.
     private(set) var listsRevision = 0
+    /// « Connectez-vous pour bloquer » was picked: the sheet opens the login (LOT-159 D3); the view clears it when it closes.
+    var wantsSignIn = false
     /// "Alerter": the mail to the moderators (LOT-135's fallback), with its confirmation alert.
     private(set) var alerts: ModeratorAlertModel?
 
@@ -42,8 +44,9 @@ final class FilteredPostsMenuModel: MenuFeedbackShowing {
         self.alerts = alerts
         var handlers: [any MessageActionHandler] = [LinkActionHandler(copy: copy, confirm: confirm), alerts.handler]
         if let lists {
-            handlers += PseudoListActionHandler.pair(
-                manager: lists, confirm: confirm, rebuild: { [weak self] in self?.listsRevision += 1 }
+            handlers += PseudoListActionHandler.all(
+                manager: lists, confirm: confirm, rebuild: { [weak self] in self?.listsRevision += 1 },
+                openLogin: { [weak self] in self?.wantsSignIn = true }
             )
         }
         registry = MessageActionRegistry(handlers)
@@ -99,7 +102,7 @@ final class FilteredPostsMenuModel: MenuFeedbackShowing {
     }
 
     /// The entries never offered on the user's own post (legacy's policy: alert and lists are for another member).
-    private static let othersOnly: Set<MessageMenuAction.Kind> = [.alert, .blocklist, .allowlist]
+    private static let othersOnly: Set<MessageMenuAction.Kind> = [.alert, .blocklist, .allowlist, .signInToBlock]
 
     /// The page the message was read on, with its `#t<numreponse>` anchor (HFR-PROTOCOL R5, `HFREndpoint.topicPage`); nil when
     /// the batch does not say which page.

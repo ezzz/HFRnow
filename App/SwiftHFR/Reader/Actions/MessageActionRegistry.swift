@@ -31,7 +31,7 @@ struct MessageActionRegistry {
     }
 
     /// The actions of the author menu (legacy avatar popup); every other action belongs to the message menu.
-    private static let authorKinds: Set<MessageMenuAction.Kind> = [.profile, .privateMessage, .blocklist, .allowlist]
+    private static let authorKinds: Set<MessageMenuAction.Kind> = [.profile, .privateMessage, .blocklist, .allowlist, .signInToBlock]
 
     /// Whether any action of `source`'s menu is implemented (no button for a menu that could never open).
     func offers(_ source: MessageMenuSource) -> Bool {

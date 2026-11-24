@@ -29,6 +29,7 @@ struct UserProfileView: View {
                 .task { await model.onAppear() }
                 // A blocklist toggle here can be an account's first one (LOT-131): the sheet covers the root's questions.
                 .blocklistSyncQuestions()
+                .signInToBlockSheet(isPresented: Bindable(model).wantsSignIn)
                 .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         }
     }
@@ -132,6 +133,10 @@ private struct ProfileHeaderSection: View {
                 Button { Task { await model.toggle(.blocklist) } } label: {
                     Label(model.isBlocked ? "Retirer de la liste noire" : "Ajouter à la liste noire", systemImage: "hand.raised")
                 }
+            }
+            if model.offersSignInToBlock {
+                Button { model.requestSignIn() } label: { Label(SignInToBlock.title, systemImage: "person.crop.circle.badge.plus") }
+                    .accessibilityHint(SignInToBlock.hint)
             }
             if model.offers(.allowlist) {
                 Button { Task { await model.toggle(.allowlist) } } label: {
