@@ -55,6 +55,24 @@ struct VisibilityPolicyTests {
         #expect(VisibilityPolicy.none.isNeutral)
     }
 
+    /// The account key is the raw `md_user` value, URL-encoded (HFR-PROTOCOL §5, `W03`), while pages print the pseudo (#1293).
+    @Test func anEncodedAccountKeyMatchesItsOwnPostsAndQuotes() {
+        let encoded = VisibilityPolicy(ownPseudo: "user%20two", blocklist: ["user4"])
+        #expect(!encoded.isNeutral)
+        #expect(encoded.post(by: "user two") == .own)
+        #expect(encoded.post(by: "USER TWO") == .own)
+        #expect(encoded.quote(by: "user two") == .ofMe)
+        #expect(encoded.post(by: "user4") == .blocked)
+        #expect(encoded.post(by: "user three") == .normal)
+        // Form-encoded spaces, and a plain key still matches as is.
+        #expect(VisibilityPolicy(ownPseudo: "user+two").post(by: "user two") == .own)
+        #expect(VisibilityPolicy(ownPseudo: "user2").post(by: "user2") == .own)
+        // A key that does not decode as UTF-8 (accents are pending capture, #140) is compared raw only.
+        #expect(VisibilityPolicy(ownPseudo: "caf%E9").post(by: "café") == .normal)
+        #expect(VisibilityPolicy(ownPseudo: "caf%E9").post(by: "caf%E9") == .own)
+        #expect(encoded.withoutOwnHighlights().post(by: "user two") == .normal)
+    }
+
     // MARK: Quote markup
 
     /// A quote as HFR writes it (R26): one row, one cell, the header then the body.
@@ -139,6 +157,12 @@ struct VisibilityPolicyTests {
             policy: policy
         )
         #expect(articleClasses(document) == ["message me", "message whitelist", "message mode", "message blocked", "message"])
+    }
+
+    @Test func anEncodedAccountKeyGivesItsPostsTheMeClass() {
+        let encoded = VisibilityPolicy(ownPseudo: "user%20two")
+        let document = html([message("user two", number: 1), message("Inconnu", number: 2)], policy: encoded)
+        #expect(articleClasses(document) == ["message me", "message"])
     }
 
     @Test func aBlockedMessageIsCollapsedButItsBodyAndMenuStayForRevealAndAlert() {
