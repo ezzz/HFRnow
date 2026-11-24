@@ -23,13 +23,13 @@ struct FloatingCardSourceTests {
     }
 
     /// The 1-based lines of `text` that copy the card: the literal shape, or a material or glass at the 12-pt radius on the same
-    /// line or the line before it (a modifier split after `in:`). `120` and `12.5` are other radii.
+    /// line or the line before it (a modifier split after `in:`). `120` and `12.5` are other radii; `12.0` is the same one.
     static func cardCopies(in text: String) -> [Int] {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         return lines.indices.compactMap { index in
             let line = lines[index]
-            if line.contains(/RoundedRectangle\(cornerRadius: 12(?![0-9.])/) { return index + 1 }
-            guard line.contains(/cornerRadius: 12(?![0-9.])/) else { return nil }
+            if line.contains(/RoundedRectangle\(cornerRadius: 12(\.0+)?(?![0-9.])/) { return index + 1 }
+            guard line.contains(/cornerRadius: 12(\.0+)?(?![0-9.])/) else { return nil }
             let context = (index > 0 ? lines[index - 1] : "") + line
             return context.contains("Material") || context.contains("glassEffect") ? index + 1 : nil
         }
@@ -55,6 +55,7 @@ struct FloatingCardSourceTests {
         ".background(\n    .regularMaterial, in: .rect(cornerRadius: 12)\n)",
         ".glassEffect(.regular, in:\n    .rect(cornerRadius: 12))",
         ".clipShape(RoundedRectangle(cornerRadius: 12))",
+        ".background(.regularMaterial, in: .rect(cornerRadius: 12.0))"
     ])
     func aCopyIsCaught(_ source: String) {
         #expect(Self.cardCopies(in: source) != [])
@@ -65,7 +66,7 @@ struct FloatingCardSourceTests {
         ".glassEffect(.regular, in: .rect(cornerRadius: 12.5))",
         ".background(.regularMaterial, in: RoundedRectangle(cornerRadius: 120))",
         ".clipShape(.rect(cornerRadius: 12))",
-        ".background(.regularMaterial, in: .capsule)\n.clipShape(.rect(cornerRadius: 10))",
+        ".background(.regularMaterial, in: .capsule)\n.clipShape(.rect(cornerRadius: 10))"
     ])
     func anotherShapeIsNot(_ source: String) {
         #expect(Self.cardCopies(in: source) == [])
