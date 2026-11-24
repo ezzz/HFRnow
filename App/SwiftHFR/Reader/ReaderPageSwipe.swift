@@ -3,6 +3,9 @@ import CoreGraphics
 // Port of HFRswift/Swift/MessagesView.swift (the topic view's `DragGesture`, `master` @21173e7 lines 5295-5320; the key is
 // absent from 2440d79). Differences: the decision is a pure function; legacy skipped the swipe while a text selection was
 // active (`isMessageTextInteractionActive`) and in its post filter mode, neither exists in this reader yet (GAP-071, M5).
+// #672 (legacy `MessagesView.swift:1102-1142, 5398-5428` @ 87fe0d1c): no swipe from a touch that starts in a block scrolling
+// sideways. Deliberate difference: that covers `[code]` here (`table.code td` scrolls, `reader.css:196`), where legacy's
+// `[code]` lines do not scroll, so a fling on one still turned its page.
 
 /// The page change a horizontal drag asks for.
 enum PageSwipe: Equatable, Sendable {
@@ -20,8 +23,13 @@ enum PageSwipe: Equatable, Sendable {
     static let maximumVerticalRatio: CGFloat = 0.5
 
     /// What a drag that ended at `translation`, predicted to stop at `predictedEnd`, asks for; nil for a drag that is not a
-    /// page swipe or has no page to go to (`page` is 1-based).
-    static func of(translation: CGSize, predictedEnd: CGSize, page: Int, maxPage: Int) -> PageSwipe? {
+    /// page swipe or has no page to go to (`page` is 1-based). A drag that `startedInHorizontalScroller` (a [fixed], [code] or
+    /// wide block the finger scrolled sideways, #672) is never one: legacy `guard !isTouchInHorizontalScroller`
+    /// (`MessagesView.swift:5398-5402` @ 87fe0d1c).
+    static func of(
+        translation: CGSize, predictedEnd: CGSize, page: Int, maxPage: Int, startedInHorizontalScroller: Bool
+    ) -> PageSwipe? {
+        guard !startedInHorizontalScroller else { return nil }
         let horizontal = translation.width
         let vertical = translation.height
         let impulse = predictedEnd.width - horizontal

@@ -32,6 +32,9 @@ final class ReaderWebController: NSObject {
     /// The message menu, a callout at the tapped "+" (#594), and the pull past the page's end (#820).
     let messageMenu = ReaderMessageEditMenu(), pullWatcher = ReaderPullWatcher()
     var events = Events()
+    /// The last touch started inside a block that scrolls sideways (#672): the page swipe ignores its drag. Reset by the next
+    /// touch (legacy) and by a new document, so the first swipe after a page change works.
+    private(set) var touchStartedInScroller = false
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
     /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
     var dismissesKeyboardInteractively = false {
@@ -159,6 +162,7 @@ final class ReaderWebController: NSObject {
         resetWatch.stop()
         self.document = document
         readyToken = nil
+        touchStartedInScroller = false
         reloadedAfterFailure = false
         imageRequests.removeAll()
         consented.removeAll()
@@ -221,6 +225,16 @@ final class ReaderWebController: NSObject {
         return handle(decoded.message, in: document)
     }
 
+    /// The boolean messages: the page's end on screen (#820) and whether the last touch began in a sideways block (#672).
+    private func flagReported(_ message: ReaderBridgeMessage, token: Int) -> Any? {
+        switch message {
+        case .edge(let atBottom): return pageEndReported(atBottom, token: token)
+        case .scroller(let inside): touchStartedInScroller = inside
+        default: break
+        }
+        return nil
+    }
+
     /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
     /// first); this one is internal only so tests can drive the actions without a web view round trip.
     func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
@@ -236,7 +250,7 @@ final class ReaderWebController: NSObject {
         case .position(let post):
             positionReported(post, token: document.token)
             return nil
-        case .edge(let atBottom): return pageEndReported(atBottom, token: document.token)
+        case .edge, .scroller: return flagReported(message, token: document.token)
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
             return nil

@@ -275,6 +275,21 @@
   let touches = 0;
   ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
     window.addEventListener(name, () => { touches += 1; }, { passive: true, capture: true }));
+  // A touch that starts inside a block the member can scroll sideways ([fixed], [code], a wide table: `overflow-x` auto or
+  // scroll, content wider than the box) belongs to that block, not to the page swipe (legacy `horizontalScrollTouch`,
+  // MessagesView.swift:1102-1142 @ 87fe0d1c, #672). Reported on a change only, at `touchstart`: the app resets it at the next
+  // touch, not at `touchend`, whose message could reach it before the drag ends (legacy's reason).
+  const scrolls = (element) => element !== document.body && element !== document.documentElement
+    && element.scrollWidth > element.clientWidth + 1 && ["auto", "scroll"].includes(getComputedStyle(element).overflowX);
+  let lastInside = null;
+  window.addEventListener("touchstart", (event) => {
+    let element = event.target instanceof Element ? event.target : null;
+    while (element && element !== document.body && !scrolls(element)) { element = element.parentElement; }
+    const inside = element !== null && element !== document.body && scrolls(element);
+    if (inside === lastInside) { return; }
+    lastInside = inside;
+    channel.postMessage({ type: "scroller", token, inside });
+  }, { passive: true, capture: true });
   const afterAgreement = (from, scroll) => {
     const touchesWhenAsked = touches;
     let frames = 0;
