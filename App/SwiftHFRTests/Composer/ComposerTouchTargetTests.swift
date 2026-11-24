@@ -29,7 +29,7 @@ struct ComposerTouchTargetTests {
         let hosted = Hosted()
         let view = content
             .fixedSize()
-            .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { hosted.frame = $0 }
+            .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { hosted.frame = $0 })
             .environment(\.dynamicTypeSize, dynamicType)
             .appTypography(TextScale(percent: percent), density: .regular)
         let window = UIWindow(windowScene: scene)
