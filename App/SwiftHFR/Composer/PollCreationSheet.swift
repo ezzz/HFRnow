@@ -113,14 +113,10 @@ struct PollCreationSheet: View {
                     TextField("Réponse \(number)", text: text(of: answer.id), axis: .vertical)
                         .lineLimit(1...3)
                     if answers.count > 2 {
-                        Button(role: .destructive) {
+                        PollAnswerRemoveButton(number: number) {
                             answers.removeAll { $0.id == answer.id }
                             maxChoices = min(maxChoices, max(1, draft.filledAnswers.count))
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Supprimer la réponse \(number)")
                     }
                 }
             }
@@ -147,5 +143,19 @@ struct PollCreationSheet: View {
             question: question, answers: answers.map(\.text), maxChoices: maxChoices, allowsVisitors: allowsVisitors,
             closingDate: hasClosingDate ? closingDate : nil
         )
+    }
+}
+
+/// The ⊖ that removes an answer row, in a 44 pt hit region (#1156).
+struct PollAnswerRemoveButton: View {
+    let number: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(role: .destructive, action: action) {
+            Image(systemName: "minus.circle.fill").minimumHitRegion()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Supprimer la réponse \(number)")
     }
 }

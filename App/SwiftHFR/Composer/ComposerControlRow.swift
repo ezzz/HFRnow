@@ -92,10 +92,10 @@ struct ComposerControlRow: View {
         }
     }
 
-    /// A cell's side: the density's, at least the HIG's 44 pt inside the card (#895: a compact density's 40 pt cell is too
-    /// small a hit area); legacy's row keeps its cells.
+    /// A cell's side: the density's, at least the HIG's 44 pt in both chromes (#895 in the card; #1156 outside it: a compact
+    /// density's 40 pt cell, or 28 pt at a 70 % text size, is too small a hit area).
     static func cellSize(_ cell: CGFloat, inCard: Bool) -> CGFloat {
-        inCard ? max(cell, ComposerHeader.hitSize) : cell
+        max(cell, ComposerHeader.hitSize)
     }
 
     /// The size of a tool of this row: the one the top bar's buttons read too (#1126).
