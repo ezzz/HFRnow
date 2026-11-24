@@ -10,94 +10,6 @@ import UIKit
 @MainActor
 @Suite(.serialized)
 struct SidebarDetailHostedTests: ReaderWebTesting {
-    private struct Hosted {
-        let window: UIWindow
-        let root: RootModel
-        let pages: FakeTopicPages
-        let environment: AppEnvironment
-    }
-
-    /// Page `target.page` of the topic `target` names, titled "Sujet <topic> p<page>" so a stack shows which reader it holds.
-    nonisolated private static func page(for target: ReaderTarget) -> ReaderPage {
-        guard case .topic(let topic) = target.source else { return readerPage(page: target.page) }
-        var page = readerPage(page: target.page, title: "Sujet \(topic.topic) p\(target.page)")
-        page.topicID = topic
-        return page
-    }
-
-    private func host(initial: SidebarDestination = .tab(.favorites)) throws -> Hosted {
-        let data = FakeDataSource()
-        data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
-        let pages = FakeTopicPages { target in Self.page(for: target) }
-        let forums = ForumListModel(dataSource: data)
-        let root = RootModel(
-            forums: forums,
-            categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
-            favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
-                                       startupSource: TopicSource(mode: .flagsAndFavorites)),
-            messages: MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, topicPages: pages),
-            store: InMemorySettingsStore(), initial: initial
-        )
-        let services = ReaderServices(
-            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
-            settings: ReaderSettings(
-                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
-            ),
-            profiles: FakeUserProfiles([])
-        )
-        let environment = AppEnvironment(
-            session: HFRSession(), dataSource: data, visibility: ForumVisibility(), currentAccountName: nil, topicPages: pages,
-            reader: services, privateMessages: FakePrivateMessages(), composer: nil, filteredPosts: .unavailable,
-            favoriteStores: FavoritesStores(
-                layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()),
-                superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()), account: nil
-            ),
-            flagActions: nil, memberAvatars: nil,
-            pseudoListsSnapshot: PseudoListsSnapshot(store: PseudoListStore(persistence: InMemoryPseudoListPersistence()), account: nil),
-            blocklistChanges: nil, privateMessageCount: nil
-        )
-        let view = RootSidebarView(model: root, environment: environment)
-            .environment(makeModel(store: InMemoryCredentialStore()))
-        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
-        let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 1366, height: 1024)
-        // CI tests on an iPhone simulator, whose window stays compact whatever its frame: the split needs the regular width an
-        // iPad window has (as `TabSplitWidthTests`).
-        let host = UIHostingController(rootView: view)
-        host.traitOverrides.horizontalSizeClass = .regular
-        window.rootViewController = host
-        window.isHidden = false
-        window.layoutIfNeeded()
-        return Hosted(window: window, root: root, pages: pages, environment: environment)
-    }
-
-    /// The title stacks of the navigation controllers on screen, outermost first: a pushed reader is a second title.
-    private func stacks(in window: UIWindow) -> [[String]] {
-        var result: [[String]] = []
-        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
-        while !queue.isEmpty {
-            let controller = queue.removeFirst()
-            if let navigation = controller as? UINavigationController, navigation.viewIfLoaded?.window != nil {
-                result.append(navigation.viewControllers.map { $0.navigationItem.title ?? "" })
-            }
-            queue.append(contentsOf: controller.children)
-            if let presented = controller.presentedViewController { queue.append(presented) }
-        }
-        return result
-    }
-
-    /// The stack whose top shows `title`, nil when no stack on screen shows it on top.
-    private func stack(topped title: String, in window: UIWindow) -> [String]? {
-        stacks(in: window).first { $0.last == title }
-    }
-
-    private func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
-        await until({
-            window.layoutIfNeeded()
-            return condition()
-        }, timeout: .seconds(30))
-    }
-
     /// #512 (legacy on iPad, video of 2026-11-07): after a link pushed a reader in the detail column and an edit was sent from it,
     /// tapping other Favoris rows left the pushed reader on screen while the rows turned read. On SwiftHFR the reader column's
     /// stack takes its identity from the selection, so the newly selected topic replaces the whole stack, pushed reader included.
@@ -193,17 +105,6 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         #expect(stack(topped: "Sujet 4242 p4", in: window) == nil)
     }
 
-    /// The split views on screen and their styles.
-    private func splitStyles(in window: UIWindow) -> [UISplitViewController.Style] {
-        var styles: [UISplitViewController.Style] = []
-        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
-        while !queue.isEmpty {
-            let controller = queue.removeFirst()
-            if let split = controller as? UISplitViewController, split.viewIfLoaded?.window != nil { styles.append(split.style) }
-            queue.append(contentsOf: controller.children)
-        }
-        return styles
-    }
 
     /// #685: Bookmarks and Alertes Qualitay list their topics in the content column and open them in the detail column, as
     /// Favoris (legacy `IPadSidebarDestination.usesTopicList`, `MainWindow.swift:1326-1333`, `iPadSidebarRoot` `:1849-1873`
@@ -317,6 +218,111 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         let replacement = try #require(hosted.root.detailReaders[.qualityAlerts])
         #expect(await settle(column) { replacement.page != nil })
         #expect(stack(topped: "Sujet 9 p1", in: column) == nil, "the column's list pushed the reader: \(stacks(in: column))")
+    }
+
+}
+
+// MARK: - Helpers
+
+extension SidebarDetailHostedTests {
+    private struct Hosted {
+        let window: UIWindow
+        let root: RootModel
+        let pages: FakeTopicPages
+        let environment: AppEnvironment
+    }
+
+    /// Page `target.page` of the topic `target` names, titled "Sujet <topic> p<page>" so a stack shows which reader it holds.
+    nonisolated private static func page(for target: ReaderTarget) -> ReaderPage {
+        guard case .topic(let topic) = target.source else { return readerPage(page: target.page) }
+        var page = readerPage(page: target.page, title: "Sujet \(topic.topic) p\(target.page)")
+        page.topicID = topic
+        return page
+    }
+
+    private func host(initial: SidebarDestination = .tab(.favorites)) throws -> Hosted {
+        let data = FakeDataSource()
+        data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
+        let pages = FakeTopicPages { target in Self.page(for: target) }
+        let forums = ForumListModel(dataSource: data)
+        let root = RootModel(
+            forums: forums,
+            categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
+            favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
+                                       startupSource: TopicSource(mode: .flagsAndFavorites)),
+            messages: MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, topicPages: pages),
+            store: InMemorySettingsStore(), initial: initial
+        )
+        let services = ReaderServices(
+            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
+            settings: ReaderSettings(
+                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
+            ),
+            profiles: FakeUserProfiles([])
+        )
+        let environment = AppEnvironment(
+            session: HFRSession(), dataSource: data, visibility: ForumVisibility(), currentAccountName: nil, topicPages: pages,
+            reader: services, privateMessages: FakePrivateMessages(), composer: nil, filteredPosts: .unavailable,
+            favoriteStores: FavoritesStores(
+                layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()),
+                superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()), account: nil
+            ),
+            flagActions: nil, memberAvatars: nil,
+            pseudoListsSnapshot: PseudoListsSnapshot(store: PseudoListStore(persistence: InMemoryPseudoListPersistence()), account: nil),
+            blocklistChanges: nil, privateMessageCount: nil
+        )
+        let view = RootSidebarView(model: root, environment: environment)
+            .environment(makeModel(store: InMemoryCredentialStore()))
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1366, height: 1024)
+        // CI tests on an iPhone simulator, whose window stays compact whatever its frame: the split needs the regular width an
+        // iPad window has (as `TabSplitWidthTests`).
+        let host = UIHostingController(rootView: view)
+        host.traitOverrides.horizontalSizeClass = .regular
+        window.rootViewController = host
+        window.isHidden = false
+        window.layoutIfNeeded()
+        return Hosted(window: window, root: root, pages: pages, environment: environment)
+    }
+
+    /// The title stacks of the navigation controllers on screen, outermost first: a pushed reader is a second title.
+    private func stacks(in window: UIWindow) -> [[String]] {
+        var result: [[String]] = []
+        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
+        while !queue.isEmpty {
+            let controller = queue.removeFirst()
+            if let navigation = controller as? UINavigationController, navigation.viewIfLoaded?.window != nil {
+                result.append(navigation.viewControllers.map { $0.navigationItem.title ?? "" })
+            }
+            queue.append(contentsOf: controller.children)
+            if let presented = controller.presentedViewController { queue.append(presented) }
+        }
+        return result
+    }
+
+    /// The stack whose top shows `title`, nil when no stack on screen shows it on top.
+    private func stack(topped title: String, in window: UIWindow) -> [String]? {
+        stacks(in: window).first { $0.last == title }
+    }
+
+    private func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
+        await until({
+            window.layoutIfNeeded()
+            return condition()
+        }, timeout: .seconds(30))
+    }
+
+    /// The split views on screen and their styles.
+    private func splitStyles(in window: UIWindow) -> [UISplitViewController.Style] {
+        var styles: [UISplitViewController.Style] = []
+        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
+        while !queue.isEmpty {
+            let controller = queue.removeFirst()
+            if let split = controller as? UISplitViewController, split.viewIfLoaded?.window != nil { styles.append(split.style) }
+            queue.append(contentsOf: controller.children)
+        }
+        return styles
     }
 
     private func hostAlone(_ view: some View) throws -> UIWindow {
