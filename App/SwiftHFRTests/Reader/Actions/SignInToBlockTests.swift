@@ -41,6 +41,26 @@ struct SignInToBlockTests {
         #expect(opened.count == 0)
     }
 
+    // What the reader registers (`TopicReaderView` calls `pseudoListHandlers`): fails if it stops passing the sign-in handler or
+    // does not reach the reader's login flag.
+    @Test func theReaderRegistersTheSignInHandlerAndAsksItsViewForTheLogin() async {
+        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: FakeTopicPages())
+        let loggedOut = MessageActionRegistry(reader.pseudoListHandlers(
+            lists: PseudoListManager(store: store, account: nil), confirm: { _ in }, rebuild: {}
+        ))
+        #expect(loggedOut.entries(for: context(), source: .avatar) == [.signInToBlock, .allowlist])
+        #expect(!reader.asksLogin)
+        #expect(await loggedOut.perform(.signInToBlock, with: context()))
+        #expect(reader.asksLogin)
+        let loggedIn = MessageActionRegistry(reader.pseudoListHandlers(
+            lists: PseudoListManager(store: store, account: "moi"), confirm: { _ in }, rebuild: {}
+        ))
+        #expect(loggedIn.entries(for: context(), source: .avatar) == [.blocklist, .allowlist])
+        #expect(TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: FakeTopicPages())
+            .pseudoListHandlers(lists: nil, confirm: { _ in }, rebuild: {}).isEmpty)
+    }
+
     @Test func theSignInEntryBelongsToTheAuthorMenuOnly() {
         let registry = registry(account: nil, opened: Counter())
         #expect(!registry.entries(for: context(), source: .message).contains(.signInToBlock))

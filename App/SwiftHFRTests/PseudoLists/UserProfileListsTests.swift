@@ -49,7 +49,6 @@ struct UserProfileListsTests {
         #expect(!model.offers(.blocklist) && !model.offers(.allowlist))
     }
 
-    // LOT-159 (Fable r1290 #1): the account key as HFR sets it, URL-encoded (every byte, so the raw key never matches).
     // LOT-159 D3 (#1297): logged out, the profile says to sign in to block, and asks its sheet to open the login.
     @Test func loggedOutTheProfileSaysToSignInToBlockAndOpensTheLogin() async throws {
         let (model, _) = try await model(account: nil)
@@ -74,6 +73,7 @@ struct UserProfileListsTests {
         #expect(!model.offersSignInToBlock)
     }
 
+    // LOT-159 (Fable r1290 #1): the account key as HFR sets it, URL-encoded (every byte, so the raw key never matches).
     @Test func theAccountsOwnProfileOffersNoListWithAURLEncodedKey() async throws {
         let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
         let encoded = profile.pseudo.utf8.map { String(format: "%%%02X", $0) }.joined()

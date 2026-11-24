@@ -166,11 +166,15 @@ None new: the menu model is tested on batches built by `FilteredPostsModel.resul
   readers (D5), and writing there needs an HFR account. The row opens the topic directly,
   so it reads, but the contact is reachable only through the forum.
 - **D3 — blocking logged out (operator, 2026-11-24, #1297).** The blocklist stays per account (LOT-118), with no guest list, so a
-  logged-out reader can report (mail) but not block. Instead of finding no "Blacklist" entry, every author menu (the reader's
+  logged-out reader can report (mail) but not block. Legacy does offer "Blacklist" logged out and reports success while keeping
+  nothing: `MessagesView.swift:213-216` adds it with no account check, and `BlackList.m:37-47` adds to the throwaway array that
+  `getBlackListForActiveCompte` returns without a current pseudo (`:92-94`) @ 87fe0d1c; a legacy bug fixed on purpose. Instead
+  of that false success, every author menu (the reader's
   and the filtered posts sheet's) and the profile sheet show « Connectez-vous pour bloquer », which opens the login
   (`SignInToBlockActionHandler`, `UserProfileModel.offersSignInToBlock`; VoiceOver reads the title, the profile button adds a
   hint). "Blacklist" stays hidden; "Whitelist" keeps its LOT-118 rule (global, offered logged out too); "Alerter" is unchanged;
-  logged in, nothing changes. Legacy shows nothing there: a deliberate difference (GAP-1297). Tests:
+  logged in, nothing changes. After the login the root is rebuilt and the block the reader asked for is not applied (deliberate:
+  the account's list has to be read first; the reader taps Blacklist again). GAP-1297. Tests:
   `SignInToBlockTests`, `FilteredPostsMenuModelTests.loggedOutTheAuthorMenuSaysToSignInToBlockAndOpensTheLogin`,
   `UserProfileListsTests.loggedOutTheProfileSaysToSignInToBlockAndOpensTheLogin`.
 - **D2 — terms (operator, 2026-11-24).** No terms agreement: parity with legacy (the charter is a page, R13).

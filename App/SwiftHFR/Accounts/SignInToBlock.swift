@@ -1,7 +1,10 @@
 import SwiftUI
 
-// No legacy counterpart: legacy offers Blacklist to an account only (`MessagesView.swift:1683-1717` @ 2440d79) and says nothing
-// when logged out. Differences: GAP-1297, LOT-159 D3 (operator, 2026-11-24, #1297).
+// Port of HFRswift/Swift/MessagesView.swift (the author menu's `.blacklist` entry, `:213-216`; toggleAvatarBlacklist /
+// toggleProfileBlacklist `:4470-4484`) @ 87fe0d1c. Differences: GAP-1297, LOT-159 D3 (operator, 2026-11-24, #1297): legacy offers
+// Blacklist with no account check and, logged out, reports success while keeping nothing (`BlackList.m:37-47` adds to the throwaway
+// array `getBlackListForActiveCompte` returns when there is no current pseudo, `:92-94`); here « Connectez-vous pour bloquer »
+// takes its place and opens the login.
 /// The words of the logged-out stand-in for the blocklist entries.
 enum SignInToBlock {
     static let title = "Connectez-vous pour bloquer"
@@ -32,6 +35,19 @@ extension PseudoListActionHandler {
         login: @escaping @MainActor () -> Void
     ) -> [any MessageActionHandler] {
         pair(manager: manager, confirm: confirm, rebuild: rebuild) + [SignInToBlockActionHandler(manager: manager, openLogin: login)]
+    }
+}
+
+extension TopicReaderModel {
+    /// The list handlers of the reader's author menu: Blacklist, Whitelist and, logged out, « Connectez-vous pour bloquer », which
+    /// asks the reader for the login (`asksLogin`). One place the view calls, so a test can see what the reader registers.
+    func pseudoListHandlers(
+        lists: PseudoListManager?, confirm: @escaping @MainActor (String) -> Void, rebuild: @escaping @MainActor () -> Void
+    ) -> [any MessageActionHandler] {
+        guard let lists else { return [] }
+        return PseudoListActionHandler.all(
+            manager: lists, confirm: confirm, rebuild: rebuild, login: { [weak self] in self?.asksLogin = true }
+        )
     }
 }
 
