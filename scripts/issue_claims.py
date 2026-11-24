@@ -23,14 +23,16 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tooling" / "common"))
+import pr_refs  # noqa: E402  (tooling/common/pr_refs.py: one grammar for the check, the sweep and the ledger)
 
 SESSION_ID = re.compile(r"^[a-z]+/[A-Za-z0-9._-]{1,64}$")
 COMMAND = re.compile(r"^/(claim|release)(?:[ \t]+(\S+))?[ \t]*$")
 MEMBERS = {"OWNER", "MEMBER", "COLLABORATOR"}
-ISSUE_LINK = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)\b", re.IGNORECASE)
 CLAIM_LINE = re.compile(r"^Claim:[ \t]*(\S+)[ \t]*$", re.MULTILINE)
 EXEMPT_AUTHORS = {"dependabot[bot]"}
-HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 DIRECT_PR_LINE = re.compile(r"^Direct-PR:[ \t]*(.*?)[ \t]*$", re.MULTILINE | re.IGNORECASE)
 DIRECT_PR_LABEL = "direct-pr"
 CLAIMED_LABEL = "status: claimed"
@@ -146,12 +148,12 @@ def pr_errors(body: str, author: str, issues: dict[int, dict], claims: dict[int,
 
 def normalized(body: str | None) -> str:
     """PR body without CR (the web editor sends CRLF) and without HTML comments (template hints are not links)."""
-    return HTML_COMMENT.sub("", (body or "").replace("\r\n", "\n").replace("\r", "\n"))
+    return pr_refs.normalized(body)
 
 
 def linked_issues(body: str) -> list[int]:
-    """Issue numbers linked with a closing keyword or `Refs`, in order, without duplicates."""
-    return list(dict.fromkeys(int(n) for n in ISSUE_LINK.findall(normalized(body))))
+    """Issues the PR must be claimed under: its closing refs, or its `Refs` when it has none (tooling/common/pr_refs.py)."""
+    return pr_refs.linked_issues(body)
 
 
 # MARK: - GitHub REST

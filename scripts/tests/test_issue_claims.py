@@ -77,7 +77,7 @@ class PullRequestCheckTests(unittest.TestCase):
 
     def test_unclaimed_closed_missing_and_pull_request(self):
         issues = {1: OPEN, 2: {"state": "closed"}, 4: {"state": "open", "pull_request": {}}}
-        errors = self.check("Closes #1, closes #2, closes #3, refs #4\nClaim: cloud/a", issues, {})
+        errors = self.check("Closes #1, closes #2, closes #3, closes #4\nClaim: cloud/a", issues, {})
         self.assertEqual(len(errors), 4)
         self.assertTrue(any("not claimed" in e for e in errors))
         self.assertTrue(any("#2 is closed" in e for e in errors))
@@ -112,7 +112,7 @@ class PullRequestCheckTests(unittest.TestCase):
         self.assertEqual(self.check("Bumps x", {}, {}, author="dependabot[bot]"), [])
 
     def test_linked_issues_dedupes_and_keeps_order(self):
-        self.assertEqual(ic.linked_issues("Fixes #3. Closes #1, resolves #3, refs #2"), [3, 1, 2])
+        self.assertEqual(ic.linked_issues("Fixes #3. Closes #1, resolves #3, refs #2"), [3, 1])  # a `Refs` only counts without a closing ref (#1198)
         self.assertEqual(ic.linked_issues("see #4, PR#5"), [])
 
 

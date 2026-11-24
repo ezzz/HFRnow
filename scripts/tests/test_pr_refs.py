@@ -1,0 +1,47 @@
+"""One grammar for the `Closes #N` / `Refs #N` lines of a PR body (#1198): the claim check, the sweep and the ledger agree."""
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "tooling" / "roadmap"))
+sys.path.insert(0, str(ROOT / "tooling" / "docs"))
+sys.path.insert(0, str(ROOT / "tooling" / "common"))
+
+import pr_refs  # noqa: E402
+import issue_claims  # noqa: E402
+import ledger  # noqa: E402
+
+PR = 999  # the ledger falls back to the PR number when the body names no issue
+
+# body -> (issues the PR closes, issues it links: what the claim check requires)
+BODIES = {
+    "LOT-012 · Closes #45": ([45], [45]),
+    "- Closes #77": ([77], [77]),
+    "**Closes #12**": ([12], [12]),
+    "Closed #9": ([9], [9]),
+    "Fixes #123": ([123], [123]),
+    "Refs #893 for the device check.\n\nCloses #50": ([50], [50]),
+    "Closes #50, #51": ([50, 51], [50, 51]),
+    "Closes #7\r\nClaim: mac/x": ([7], [7]),
+    "Refs #12\n": ([], [12]),
+    "Closes #4\nCloses #4": ([4], [4]),
+    "Also fixes #12 in passing": ([], []),
+    "<!-- Closes #1 -->\nDirect-PR: typo fix": ([], []),
+    "No link here": ([], []),
+}
+
+
+class PrRefsAgreeTests(unittest.TestCase):
+    def test_pr_refs_agree(self):
+        for body, (closes, linked) in BODIES.items():
+            with self.subTest(body=body):
+                self.assertEqual(issue_claims.linked_issues(body), linked, "claim check")
+                self.assertEqual(pr_refs.closing_issues(body), closes, "sweep: closes")
+                primary = linked[0] if linked else PR
+                self.assertEqual(ledger.issue_number(body, PR), primary, "ledger")
+
+
+if __name__ == "__main__":
+    unittest.main()
