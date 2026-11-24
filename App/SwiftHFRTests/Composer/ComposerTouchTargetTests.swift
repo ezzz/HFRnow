@@ -30,8 +30,9 @@ struct ComposerTouchTargetTests {
         let view = content
             .fixedSize()
             .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { hosted.frame = $0 })
-            .environment(\.dynamicTypeSize, dynamicType)
             .appTypography(TextScale(percent: percent), density: .regular)
+            // Outside `appTypography`, whose `ScaledFont` reads the size from the environment it is given (#1298).
+            .environment(\.dynamicTypeSize, dynamicType)
         let window = UIWindow(windowScene: scene)
         window.frame = scene.effectiveGeometry.coordinateSpace.bounds
         let controller = UIHostingController(rootView: view)
@@ -58,16 +59,34 @@ struct ComposerTouchTargetTests {
         #expect(hosted.frame.width <= 44 && hosted.frame.height <= 44, "measured \(hosted.frame.size)")
     }
 
+    nonisolated private static let pollCases: [(DynamicTypeSize, Int)] =
+        [(.large, 100), (.accessibility5, 100), (.xSmall, 100), (.large, 70), (.xxxLarge, 100)]
+
     /// The ⊖ takes its own glyph's room in the row (the text field keeps its width) at every text size, and its region (the
-    /// glyph plus the overhang each side) is 44 pt at least.
-    @Test(arguments: [(DynamicTypeSize.large, 100), (.accessibility5, 100), (.xSmall, 100), (.large, 70), (.xxxLarge, 100)])
+    /// glyph plus the overhang each side) is 44 pt at least; a glyph wider than 44 pt has no overhang.
+    @Test(arguments: pollCases)
     func thePollAnswerRemoveButtonKeepsItsLayoutAndHasA44PointRegion(size: DynamicTypeSize, percent: Int) async throws {
         let glyph = try await host(Image(systemName: "minus.circle.fill"), dynamicType: size, percent: percent).frame
         let hosted = try await host(PollAnswerRemoveButton(number: 3) {}, dynamicType: size, percent: percent)
         #expect(abs(hosted.frame.width - glyph.width) < 0.5 && abs(hosted.frame.height - glyph.height) < 0.5,
                 "layout \(hosted.frame.size) against the glyph's \(glyph.size)")
-        #expect(glyph.width + 2 * PollAnswerRemoveButton.overhang(of: glyph.width) >= Self.minimum)
-        #expect(glyph.height + 2 * PollAnswerRemoveButton.overhang(of: glyph.height) >= Self.minimum)
+        for side in [glyph.width, glyph.height] {
+            let overhang = PollAnswerRemoveButton.overhang(of: side)
+            #expect(abs(overhang - max(0, (Self.minimum - side) / 2)) < 0.01, "overhang \(overhang) for a glyph of \(side)")
+            #expect(side + 2 * overhang >= Self.minimum - 0.01, "region \(side + 2 * overhang)")
+            if side > Self.minimum { #expect(overhang == 0, "a glyph of \(side) needs no overhang") }
+        }
+    }
+
+    /// The five cases really reach the glyph: five different sizes, and accessibility5 runs the overhang-0 branch (#1298).
+    @Test func thePollAnswerCasesMeasureFiveGlyphSizesAndAccessibility5ExceedsTheRegion() async throws {
+        var sizes: [CGFloat] = []
+        for (size, percent) in Self.pollCases {
+            let glyph = try await host(Image(systemName: "minus.circle.fill"), dynamicType: size, percent: percent).frame
+            sizes.append(glyph.width)
+            if size == .accessibility5 { #expect(glyph.width > Self.minimum, "accessibility5 glyph \(glyph.width)") }
+        }
+        #expect(Set(sizes.map { ($0 * 100).rounded() }).count == Self.pollCases.count, "glyph widths \(sizes)")
     }
 
     /// The control row's and the formatting toolbar's cells: legacy's bar clamps the hit region too (compact density and the
