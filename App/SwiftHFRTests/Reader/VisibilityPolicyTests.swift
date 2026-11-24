@@ -64,7 +64,7 @@ struct VisibilityPolicyTests {
         #expect(encoded.quote(by: "user two") == .ofMe)
         #expect(encoded.post(by: "user4") == .blocked)
         #expect(encoded.post(by: "user three") == .normal)
-        // Form-encoded spaces, and a plain key still matches as is.
+        // `keyForms` also reads `+` as a space: a tolerance only, no capture shows `+` in `md_user` (#140). A plain key matches as is.
         #expect(VisibilityPolicy(ownPseudo: "user+two").post(by: "user two") == .own)
         #expect(VisibilityPolicy(ownPseudo: "user2").post(by: "user2") == .own)
         // A key that does not decode as UTF-8 (accents are pending capture, #140) is compared raw only.

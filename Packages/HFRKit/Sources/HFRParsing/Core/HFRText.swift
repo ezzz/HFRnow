@@ -22,6 +22,14 @@ public enum HFRText {
         return String(String.UnicodeScalarView(scalars)).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// `key` (an account key, the URL-encoded `md_user` value, HFR-PROTOCOL §5, `W03`) as stored and percent-decoded, so it can be
+    /// compared with the pseudo a page prints. `+` is read as a space as a tolerance (no capture shows it in `md_user`). A key that
+    /// does not decode as UTF-8 stays raw only: how HFR encodes an accented pseudo is not captured (#140).
+    public static func accountKeyForms(of key: String) -> [String] {
+        let decoded = key.replacing("+", with: " ").removingPercentEncoding
+        return decoded.map { $0 == key ? [key] : [key, $0] } ?? [key]
+    }
+
     /// Key to compare two pseudos: normalized and lowercased (`BlackList.m:130-141`).
     public static func pseudoComparisonKey(_ pseudo: String) -> String {
         normalizedPseudo(pseudo).lowercased()
