@@ -33,7 +33,8 @@ struct ReaderSeparatorStyleTests {
         let chip = try rule(".separator1::after", in: sheet)
         #expect(chip.contains("color: var(--text)"), "readable on any accent hue: never the background colour on the accent")
         #expect(!chip.contains("color: var(--background)"))
-        #expect(chip.contains("font-size: 0.7em"), "follows the body size and `--text-scale`")
+        #expect(chip.contains("font-size: var(--fs-70)"), "follows the body size and `--text-scale`, floored (#1237)")
+        #expect(sheet.contains("--fs-70: max(calc(0.7 * var(--text-scale, 1) * 1rem)"))
         #expect(try rule(".separator1::after", in: sheet).contains("content: \"Nouveau\""))
         #expect(sheet.components(separatedBy: "content: \"Nouveau\"").count == 2, "one chip rule, on the line only")
     }
