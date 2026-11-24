@@ -17,6 +17,12 @@ enum RootTab: Int, CaseIterable, Hashable, Sendable {
         hasSearch ? [.categories, .favorites, .messages, .search, .more] : [.categories, .favorites, .messages, .more]
     }
 
+    /// The tab at `index` of the bar, nil for an index the bar does not have.
+    static func atBarIndex(_ index: Int, hasSearch: Bool) -> RootTab? {
+        let order = barOrder(hasSearch: hasSearch)
+        return order.indices.contains(index) ? order[index] : nil
+    }
+
     /// Tab title (legacy `MainWindow.swift:1698-1725`).
     var title: String {
         switch self {

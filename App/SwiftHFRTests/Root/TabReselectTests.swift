@@ -57,11 +57,13 @@ struct TabReselectTests {
         #expect(rig.recorder.played == [.impact(.light)])
     }
 
-    @Test func favoritesReloadsTheCategoryPushedOverIt() async {
+    // Legacy's Favoris list alone listens (`Favorites.swift:785-794` @ 87fe0d1c): the category pushed over it listens to the
+    // Catégories tab's re-selection (`MainWindow.swift:893-900`).
+    @Test func favoritesDoesNotReloadTheCategoryPushedOverIt() async {
         let rig = rig()
         rig.root.favorites.openedCategory = .forum(.forum(13), title: "Hardware")
         await rig.root.reselect(.favorites)
-        #expect(rig.lists.requests.contains("topics:13:1"))
+        #expect(!rig.lists.requests.contains("topics:13:1"))
         #expect(rig.lists.requests.contains { $0.hasPrefix("favorites:") })
     }
 
@@ -106,6 +108,15 @@ struct TabReselectTests {
         let rig = rig()
         #expect(rig.root.selectFromSidebar(.tab(.favorites)) == nil)
         #expect(rig.root.selectedDestination == .tab(.favorites))
+        #expect(rig.recorder.played.isEmpty)
+    }
+
+    @Test func aSidebarTapOnPlusSelectsItsEntryAlthoughPlusIsTheSelectedTab() {
+        let rig = rig()
+        rig.root.selectedDestination = .tab(.more)
+        // The sidebar shows Plus as Réglages: that row is not the selected destination, so it is a selection.
+        #expect(rig.root.selectFromSidebar(.plus(.settings)) == nil)
+        #expect(rig.root.selectedDestination == .plus(.settings))
         #expect(rig.recorder.played.isEmpty)
     }
 }

@@ -51,11 +51,16 @@ struct RootTabsView: View {
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)
         // Re-selecting the current tab reloads its list with a haptic (GAP-007, UXD-04, #426).
         .background {
-            TabBarReselectionObserver { index in
-                let order = RootTab.barOrder(hasSearch: hasSearchTab)
-                guard order.indices.contains(index) else { return }
-                Task { await model.reselect(order[index]) }
-            }
+            TabBarReselectionObserver(
+                onReselect: { index in
+                    guard let tab = RootTab.atBarIndex(index, hasSearch: hasSearchTab) else { return }
+                    Task { await model.reselect(tab) }
+                },
+                onSelect: { index in
+                    guard let tab = RootTab.atBarIndex(index, hasSearch: hasSearchTab) else { return }
+                    model.selectedTab = tab
+                }
+            )
             .frame(width: 0, height: 0)
         }
         // EXPERIMENTAL(searchTab, #896): the selection follows the option and the Plus search entry.

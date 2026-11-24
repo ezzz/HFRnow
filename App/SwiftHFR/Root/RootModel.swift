@@ -336,19 +336,21 @@ final class RootModel {
         if minimize != minimizesTabBarOnScroll { minimizesTabBarOnScroll = minimize }
     }
 
-    /// The tab the user tapped again reloads its lists with a light haptic (legacy `.rootTabReselected`, `MainWindow.swift:1399-1416`
-    /// @ 87fe0d1c; GAP-007, UXD-04, #426): Catégories its forum list and the topic list on screen, Favoris its list and the category
-    /// pushed over it, Messages its page. Plus and Recherche have nothing to reload. The reader is not reloaded (GAP-008, UXD-02).
+    /// The tab the user tapped again reloads its list with a light haptic (UXD-04, GAP-007, #426). Legacy posts `.rootTabReselected`
+    /// from the tab bar (`MainWindow.swift:2444-2494` @ 87fe0d1c) and each list listens: Catégories' forum list (`:229-238`, haptic
+    /// and load) and its topic list (`:893-900`), Favoris' list (`Favorites.swift:785-794`), Messages' (`MPListView.swift:658-667`).
+    /// Plus and Recherche have nothing to reload; the reader is not reloaded (GAP-008, UXD-02). Differences: one haptic, at the start
+    /// (legacy plays one at the start and one at the end of a refresh, `Common.swift:108-114`; the pull to refresh plays one, #1207).
     func reselect(_ tab: RootTab) async {
         switch tab {
         case .categories:
             haptics.impact(.light)
             async let forumList: Void = categories.forums.reload()
-            async let topicLists: Void = categories.reloadShownTopicLists()
-            _ = await (forumList, topicLists)
+            async let topicList: Void = categories.reloadSelectedTopicList()
+            _ = await (forumList, topicList)
         case .favorites:
             haptics.impact(.light)
-            await favorites.reloadShownTopicLists()
+            await favorites.reloadSelectedTopicList()
         case .messages:
             haptics.impact(.light)
             await messages.refresh()
@@ -357,11 +359,11 @@ final class RootModel {
         }
     }
 
-    /// A tap on a row of the split root's sidebar: the row already shown is a re-selection (the list does not tell a tap on the
-    /// selected row from none), another row is selected. Returns the reload the re-selection started, nil for a selection.
+    /// A tap on a row of the split root's sidebar: the destination already selected is a re-selection, another row is selected (Plus
+    /// is shown as Réglages, which is not the selected `.tab(.more)`). Returns the reload the re-selection started, nil otherwise.
     @discardableResult
     func selectFromSidebar(_ destination: SidebarDestination) -> Task<Void, Never>? {
-        guard destination == sidebarDestination else {
+        guard destination == selectedDestination else {
             selectedDestination = destination
             return nil
         }
