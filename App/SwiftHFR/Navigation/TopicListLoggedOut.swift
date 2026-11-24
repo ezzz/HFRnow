@@ -2,7 +2,7 @@
 // `:476-478`) and HFRswift/Swift/MainWindow.swift (ForumTopicsListView, filter note `:699-707`) @ 87fe0d1c. Differences: legacy
 // draws both as inline rows, left-aligned (`.headline` + `.subheadline`; the note `.footnote`), SwiftHFR as a centred
 // `ContentUnavailableView` for the prompt (the shared `EmptyStateView`, #1306) and a left-aligned row for the note; legacy's
-// "Ajouter un pseudo" opens its add-account sheet, here the login sheet for a new account; an account whose session expired
+// "Ajouter un pseudo" opens its add-account sheet, here the login sheet for a new account; a current account (any status)
 // gets "Se reconnecter", as the account button, a state legacy's prompt does not have (#824, GAP-037).
 
 /// The sign-in prompt of Favoris without an account: a title, one line and one button (no refresh: there is nothing to refresh).
@@ -11,7 +11,7 @@ struct SignInPrompt: Equatable {
     let message: String
     let systemImage: String
     let action: String
-    /// What the button opens: a new account, or the expired current one.
+    /// What the button opens: a new account, or the current one.
     let target: LoginTarget
 }
 
@@ -24,14 +24,18 @@ struct FilterNote: Equatable {
 
 extension TopicListModel {
     /// Favoris and Drapeaux without a usable account (legacy `if !isLoggedIn`, `Favorites.swift:667`); nil on forum lists, which
-    /// keep their own wall, and once an account is signed in. Like the account button: no account at all adds one, an expired
+    /// keep their own wall, and once an account is signed in. Like the account button: no account at all adds one, any
     /// current account signs in again (`AccountMenuButton.swift:53-56`).
     func signInPrompt(current: AccountRow?) -> SignInPrompt? {
         guard source.isFavoritesList, case .signInRequired? = loader.value?.emptyReason else { return nil }
-        if let current, current.status == .expired {
+        if let current {
+            // Whatever the status: a current account the page was not fetched with needs its session back, not a second pseudo.
+            let message = current.status == .expired
+                ? "Votre session a expiré : reconnectez-vous pour charger vos favoris et vos drapeaux."
+                : "Reconnectez-vous pour charger vos favoris et vos drapeaux."
             return SignInPrompt(
                 title: "Connectez-vous pour accéder aux favoris",
-                message: "Votre session a expiré : reconnectez-vous pour charger vos favoris et vos drapeaux.",
+                message: message,
                 systemImage: "star.slash",
                 action: "Se reconnecter",
                 target: .existing(id: current.id, displayName: current.displayName)

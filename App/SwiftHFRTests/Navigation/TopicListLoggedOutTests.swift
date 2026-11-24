@@ -1,4 +1,5 @@
 import HFRModels
+import HFRNetwork
 @testable import SwiftHFR
 import Testing
 
@@ -45,10 +46,22 @@ struct TopicListLoggedOutTests {
         #expect(prompt?.message == "Votre session a expiré : reconnectez-vous pour charger vos favoris et vos drapeaux.")
     }
 
-    @Test func aCurrentAccountThatIsNotExpiredStillGetsTheAddPrompt() async {
+    @Test(arguments: [
+        AccountSessionStatus.restored, .checking, .valid, .checkFailed(.offline)
+    ])
+    func anyOtherCurrentAccountSignsInAgainToo(status: AccountSessionStatus) async {
         let list = model(.favorites, loggedIn: false)
         await list.loadIfNeeded()
-        #expect(list.signInPrompt(current: row(.valid))?.target == .newAccount)
+        let prompt = list.signInPrompt(current: row(status))
+        #expect(prompt?.action == "Se reconnecter")
+        #expect(prompt?.target == .existing(id: "user1", displayName: "User1"))
+        #expect(prompt?.message == "Reconnectez-vous pour charger vos favoris et vos drapeaux.")
+    }
+
+    @Test func noAccountAtAllAddsOne() async {
+        let list = model(.favorites, loggedIn: false)
+        await list.loadIfNeeded()
+        #expect(list.signInPrompt(current: nil)?.target == .newAccount)
     }
 
     @Test func favorisWithAnAccountHasNoPrompt() async {
