@@ -14,8 +14,8 @@ struct LegacyHapticsTests {
 
     let light = HapticFeedback.Kind.impact(.light)
 
-    func haptics(on: Bool = true, _ recorder: Recorder) -> HapticFeedback {
-        HapticFeedback(store: InMemorySettingsStore(["haptics": .bool(on)])) { recorder.played.append($0) }
+    func haptics(enabled: Bool = true, _ recorder: Recorder) -> HapticFeedback {
+        HapticFeedback(store: InMemorySettingsStore(["haptics": .bool(enabled)])) { recorder.played.append($0) }
     }
 
     // MARK: Favoris empty state
@@ -45,7 +45,7 @@ struct LegacyHapticsTests {
 
     @Test func theFavorisButtonsAreSilentWithHapticsOff() async {
         let recorder = Recorder()
-        let options = FavoritesOptionsModel(settings: InMemorySettingsStore(), haptics: haptics(on: false, recorder))
+        let options = FavoritesOptionsModel(settings: InMemorySettingsStore(), haptics: haptics(enabled: false, recorder))
         options.showCollapsedSectionsFromEmptyState()
         await options.expandAllFromEmptyState()
         #expect(options.showsCollapsedSections)
@@ -57,8 +57,8 @@ struct LegacyHapticsTests {
 extension LegacyHapticsTests {
     // MARK: Search results
 
-    private func search(_ source: FakeSearchSource, _ recorder: Recorder, on: Bool = true) -> ForumSearchModel {
-        let model = ForumSearchModel(source: source, haptics: haptics(on: on, recorder))
+    private func search(_ source: FakeSearchSource, _ recorder: Recorder, enabled: Bool = true) -> ForumSearchModel {
+        let model = ForumSearchModel(source: source, haptics: haptics(enabled: enabled, recorder))
         model.text = "pâtes"
         return model
     }
@@ -102,7 +102,7 @@ extension LegacyHapticsTests {
 
     @Test func searchResultsAreSilentWithHapticsOff() async {
         let recorder = Recorder()
-        let model = search(FakeSearchSource(), recorder, on: false)
+        let model = search(FakeSearchSource(), recorder, enabled: false)
         await model.search()
         await model.goToNextPage()
         #expect(model.loader.value != nil)
@@ -164,7 +164,7 @@ extension LegacyHapticsTests {
     @Test func aRefreshIsSilentWithHapticsOff() async {
         let reader = await shownReader(FakeTopicPages())
         let recorder = Recorder()
-        let hap = haptics(on: false, recorder)
+        let hap = haptics(enabled: false, recorder)
         await ReaderRefresh.run(model: reader, controller: nil) { hap.impact(.light) }
         #expect(recorder.played.isEmpty)
     }
