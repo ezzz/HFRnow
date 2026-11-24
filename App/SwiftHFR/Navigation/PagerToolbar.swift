@@ -86,7 +86,10 @@ struct PagerToolbar {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
         case .pageOf(let number, let total, let isExact):
-            PagerPageMenuPill(current: number, total: total, isExact: isExact, isLoading: isLoading, onJump: jump, drawsGlass: Self.pillDrawsGlass(in: placement))
+            PagerPageMenuPill(
+                current: number, total: total, isExact: isExact, isLoading: isLoading, onJump: jump,
+                drawsGlass: Self.pillDrawsGlass(in: placement)
+            )
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }
