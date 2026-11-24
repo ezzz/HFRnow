@@ -18,11 +18,13 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
                         <div class="container"><table class="oldcitation"><tr class="none">
                         <td><b class="s1">cite :</b><p>cité</p></td></tr></table></div>
                         <table class="code"><tr><td><b class="s1">Code :</b><br />let x = 1</td></tr></table>
+                        <table class="fixed"><tr><td>H<sub>2</sub>O</td></tr></table>
                         <p>texte H<sub>2</sub>O x<sup>2</sup></p>
                         """,
                     signatureHTML: """
                         <br />ma signature <button type="button" class="image-tap">Afficher l'image</button>
                         <a class="image-link" href="https://example.invalid/i.png">https://example.invalid/i.png</a>
+                        <table class="code"><tr><td><b class="s1">Code :</b><br />x</td></tr></table> H<sub>2</sub>O
                         """
                 )
             )
@@ -54,18 +56,22 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
         ("code header", "table.code b.s1", 0.85 * 0.85 * 15 / 17),
         ("signature image button", ".signature button.image-tap", 0.85 * 0.85 * 15 / 17),
         ("signature image link", ".signature .image-link", 0.85 * 0.85 * 15 / 17),
-        ("sub", ".content sub", 15 / 17.0 / 1.2),
-        ("sup", ".content sup", 15 / 17.0 / 1.2)
+        ("sub", ".content > p sub", 15 / 17.0 / 1.2),
+        ("sup", ".content sup", 15 / 17.0 / 1.2),
+        ("sub in a code block", ".content table.fixed sub", 0.85 * 15 / 17 / 1.2),
+        ("sub in the signature", ".signature > sub", 0.85 * 15 / 17 / 1.2),
+        ("code header in the signature", ".signature table.code b.s1", 0.85 * 0.85 * 0.85 * 15 / 17)
     ]
 
     /// The computed font size (px) of each element, then the root's. The video nodes are added where the builder puts them
     /// (children of the article, after the message text).
-    private var probe: String {
+    private func probe(rootPixels: Int?) -> String {
         let list = elements.map { element in
             let selector = element.selector.replacingOccurrences(of: "::after", with: "")
             return "['\(selector)', \(element.selector.hasSuffix("::after"))]"
         }
         return """
+            \(rootPixels.map { "document.documentElement.style.fontSize = '\($0)px';" } ?? "")
             const article = document.querySelector('article.message');
             article.insertAdjacentHTML('beforeend', '<div class="videos"><button type="button" class="video">Video</button></div>'
                 + '<div class="videolinks"><a class="video-card" href="https://example.invalid/v"><span class="video-pill">YouTube</span></a></div>');
@@ -76,40 +82,51 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
             """
     }
 
-    private func sizes(percent: Int, token: Int) async -> [Double] {
+    /// `rootPixels` stands for a Dynamic Type size (the host stays at its default in a test): 14 is xSmall's body.
+    private func sizes(percent: Int, rootPixels: Int?, token: Int) async -> [Double] {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.textScale = TextScale(percent: percent)
         controller.show(floorDocument(token: token))
         guard await until({ recorder.ready == [token] }) else { return [] }
-        let json = (try? await evaluate(probe, in: controller)) as? String ?? "[]"
+        let json = (try? await evaluate(probe(rootPixels: rootPixels), in: controller)) as? String ?? "[]"
         return (try? JSONDecoder().decode([Double].self, from: Data(json.utf8))) ?? []
     }
+
+    /// Default Dynamic Type, and xSmall (a context's 100 % size is then under 11 px, which a floored parent must not leak into
+    /// its children).
+    private let roots: [Int?] = [nil, 14]
 
     /// The rule of `TextScale.pointSize`: below 100 % a size is at least `min(its size at 100 %, 11)`, and never above its size at
     /// 100 %. A text already under 11 px at 100 % keeps that size (no jump up to 11).
     @Test func at70PercentEveryTextHoldsTheFloorAndNeverGrows() async {
-        let seen = await sizes(percent: 70, token: 1)
-        #expect(seen.count == elements.count + 1, "seen: \(seen)")
-        guard seen.count == elements.count + 1 else { return }
-        let root = seen[elements.count]
-        for (element, size) in zip(elements, seen) {
-            let unscaled = element.ratio * root
-            #expect(size >= min(unscaled, 11) - 0.01, "\(element.name) computes to \(size) px at 70 %, under the floor")
-            #expect(size <= unscaled + 0.01, "\(element.name) computes to \(size) px at 70 %, above its \(unscaled) px at 100 %")
+        for (index, root) in roots.enumerated() {
+            let seen = await sizes(percent: 70, rootPixels: root, token: 10 + index)
+            #expect(seen.count == elements.count + 1, "seen: \(seen)")
+            guard seen.count == elements.count + 1 else { continue }
+            let rootSize = seen[elements.count]
+            for (element, size) in zip(elements, seen) {
+                let unscaled = element.ratio * rootSize
+                #expect(size >= min(unscaled, 11) - 0.01, "\(element.name) computes to \(size) px at 70 %, root \(rootSize): under the floor")
+                #expect(size <= unscaled + 0.01, "\(element.name) computes to \(size) px at 70 %, root \(rootSize): above its \(unscaled) px at 100 %")
+            }
         }
     }
 
     @Test func at100AndAboveTheSizesAreTheUnscaledOnesTimesThePercentage() async {
-        for (percent, token) in [(100, 2), (130, 3)] {
-            let seen = await sizes(percent: percent, token: token)
-            guard seen.count == elements.count + 1 else {
-                Issue.record("seen: \(seen)")
-                continue
-            }
-            let root = seen[elements.count], scale = Double(percent) / 100
-            for (element, size) in zip(elements, seen) {
-                let expected = element.ratio * root * scale
-                #expect(abs(size - expected) < 0.05, "\(element.name) at \(percent) %: \(size), expected \(expected)")
+        var token = 20
+        for root in roots {
+            for percent in [100, 130] {
+                token += 1
+                let seen = await sizes(percent: percent, rootPixels: root, token: token)
+                guard seen.count == elements.count + 1 else {
+                    Issue.record("seen: \(seen)")
+                    continue
+                }
+                let rootSize = seen[elements.count], scale = Double(percent) / 100
+                for (element, size) in zip(elements, seen) {
+                    let expected = element.ratio * rootSize * scale
+                    #expect(abs(size - expected) < 0.05, "\(element.name) at \(percent) %, root \(rootSize): \(size), expected \(expected)")
+                }
             }
         }
     }

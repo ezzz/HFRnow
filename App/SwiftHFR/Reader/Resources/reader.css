@@ -50,8 +50,6 @@
      bigger (operator, #1237), the same `min(size at 100 %, 11 px)` as the others. */
   --fs-7225-content: max(calc(0.7225 * var(--content-em)), min(calc(0.7225 * 15 / 17 * 1rem), var(--floor)));
   --fs-614-content: max(calc(0.614125 * var(--content-em)), min(calc(0.614125 * 15 / 17 * 1rem), var(--floor)));
-  /* sub and sup: `font-size: smaller` is the parent over 1.2 in WebKit; the unscaled size is the parent's over the scale. */
-  --fs-smaller: max(calc(1em / 1.2), min(calc(1em / 1.2 / var(--text-scale, 1)), var(--floor)));
   /* The grey silhouette of a member without an avatar (legacy `avatar_male_gray_*`, `style-liste-light.css:203-205`). */
   --silhouette: #aeaeb2;
   --silhouette-background: #e5e5ea;
@@ -211,7 +209,16 @@ b.s1 { font-size: var(--fs-85-content); color: var(--secondary); }
 b.s1 a { color: var(--text); font-weight: 700; }
 table.code b.s1, table.fixed b.s1, .signature b.s1 { font-size: var(--fs-7225-content); }
 .signature table.code b.s1, .signature table.fixed b.s1 { font-size: var(--fs-614-content); }
-sub, sup { font-size: var(--fs-smaller); }
+.content { --context-100: calc(15 / 17 * 1rem); }
+.signature { --context-100: calc(0.85 * 15 / 17 * 1rem); }
+table.code, table.fixed { --code-100: calc(0.85 * var(--context-100, 1rem)); }
+/* sub and sup: `font-size: smaller` is the parent over 1.2 in WebKit. The floor reads the context's size at 100 % (--context-100 and
+   --code-100, from rem constants), never the possibly floored parent, so a child is never bigger than at 100 %. Written here, not as a
+   :root variable, because a var() in a custom property resolves where the property is declared. */
+sub, sup { font-size: max(calc(1em / 1.2), min(calc(var(--context-100, 1rem) / 1.2), var(--floor))); }
+table.code sub, table.fixed sub, table.code sup, table.fixed sup {
+  font-size: max(calc(1em / 1.2), min(calc(var(--code-100, 1rem) / 1.2), var(--floor)));
+}
 
 /* Code: monospace, scroll sideways instead of widening the page. */
 table.code, table.fixed { font-size: var(--fs-85-content); }
