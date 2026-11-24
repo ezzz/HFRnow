@@ -75,7 +75,9 @@ struct MessageMenuOwnPostCaptureTests {
     @Test(arguments: captures)
     func theAuthorMenu(_ capture: String) throws {
         for context in try Self.contexts(of: capture) {
-            let expected = Self.ownPosts.contains(context.numreponse) ? ["Profil"] : ["Profil", "MP", "Blacklist", "Whitelist"]
+            // The policy lists candidates; the registry keeps Blacklist logged in, the sign-in entry logged out (#1297).
+            let others = ["Profil", "MP", "Blacklist", "Connectez-vous pour bloquer", "Whitelist"]
+            let expected = Self.ownPosts.contains(context.numreponse) ? ["Profil"] : others
             #expect(Self.titles(context, .avatar) == expected, "post \(context.numreponse)")
         }
     }
