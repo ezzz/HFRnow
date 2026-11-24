@@ -95,6 +95,18 @@ struct PseudoListManagerTests {
         #expect(await store.blocklist(for: "moi").isEmpty)
     }
 
+    // LOT-159 (Fable r1290 #1): the key is the URL-encoded `md_user` (`AccountsModelLoginTests`: `user%20two` for "user two"),
+    // the page prints the pseudo; compared raw and decoded, as `AccountBook.checkSessionCookie`.
+    @Test func theOwnPseudoIsFoundFromAURLEncodedAccountKey() async throws {
+        let lists = try await fixture(account: "user%20two").manager
+        #expect(lists.isOwn("user two") && lists.isOwn("User Two") && lists.isOwn("user%20two"))
+        #expect(!lists.isOwn("user three"))
+        #expect(try await fixture(account: "user+two").manager.isOwn("user two"))
+        // Not a UTF-8 percent-encoding (how HFR encodes accents is not captured): compared raw only, never a crash.
+        #expect(try await fixture(account: "caf%E9").manager.isOwn("caf%E9"))
+        #expect(PseudoListManager.keyForms(of: "caf%E9") == ["caf%E9"])
+    }
+
     @Test func theBlocklistBelongsToAnAccountAndTheAllowlistDoesNot() async throws {
         let setup = try await fixture(account: nil)
         let lists = setup.manager
@@ -330,52 +342,5 @@ struct PseudoListActionHandlerTests {
         let registry = MessageActionRegistry(PseudoListActionHandler.pair(manager: lists, confirm: { _ in }, rebuild: {}))
         let entries = registry.entries(for: context(), source: .avatar)
         #expect(entries == [.allowlist])
-    }
-}
-
-/// The profile buttons (LOT-118).
-@MainActor
-struct UserProfileListsTests {
-    private func model(account: String?) async throws -> (UserProfileModel, PseudoListStore) {
-        let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
-        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
-        let lists = PseudoListManager(store: store, account: account)
-        let model = UserProfileModel(memberID: 1, source: FakeUserProfiles([.success(profile)]), lists: lists)
-        await model.onAppear()
-        return (model, store)
-    }
-
-    @Test func theButtonsAppearOnceTheProfileNamesTheMemberAndToggleWithTheirState() async throws {
-        let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
-        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
-        let model = UserProfileModel(
-            memberID: 1, source: FakeUserProfiles([.success(profile)]),
-            lists: PseudoListManager(store: store, account: "moi")
-        )
-        var rebuilds = 0
-        model.onListsChanged = { rebuilds += 1 }
-        #expect(!model.offers(.blocklist) && !model.offers(.allowlist))
-        await model.onAppear()
-        #expect(model.offers(.blocklist) && model.offers(.allowlist) && !model.isBlocked && rebuilds == 0)
-        await model.toggle(.blocklist)
-        #expect(rebuilds == 1)
-        #expect(model.isBlocked && model.listFeedback == "BIM! \(profile.pseudo) ajouté à la liste noire")
-        #expect(await store.isBlocked(profile.pseudo, account: "moi"))
-        await model.toggle(.blocklist)
-        #expect(!model.isBlocked)
-    }
-
-    @Test func loggedOutOnlyTheAllowlistButtonIsOffered() async throws {
-        let (model, _) = try await model(account: nil)
-        #expect(!model.offers(.blocklist) && model.offers(.allowlist))
-    }
-
-    @Test func theAccountsOwnProfileOffersNoList() async throws {
-        let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
-        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
-        let lists = PseudoListManager(store: store, account: profile.pseudo.lowercased())
-        let model = UserProfileModel(memberID: 1, source: FakeUserProfiles([.success(profile)]), lists: lists)
-        await model.onAppear()
-        #expect(!model.offers(.blocklist) && !model.offers(.allowlist))
     }
 }

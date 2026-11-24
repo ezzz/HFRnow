@@ -49,9 +49,22 @@ struct ReaderStateOverlay: View {
     }
 }
 
+/// A screen whose message menus confirm their actions with a short text: the reader and the filtered posts (LOT-159).
+@MainActor
+protocol MenuFeedbackShowing: AnyObject {
+    /// The confirmation on screen, nil when none.
+    var menuFeedback: String? { get }
+    /// Bumped by each confirmation, so a repeated text is shown again.
+    var menuFeedbackSerial: Int { get }
+    /// Hides the confirmation `serial` stands for, unless a newer one replaced it.
+    func clearMenuFeedback(serial: Int)
+}
+
+extension TopicReaderModel: MenuFeedbackShowing {}
+
 /// The confirmation of the last message-menu action, for two seconds.
 struct ReaderMenuFeedbackBanner: View {
-    let model: TopicReaderModel
+    let model: any MenuFeedbackShowing
 
     var body: some View {
         if let feedback = model.menuFeedback {
