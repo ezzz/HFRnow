@@ -53,10 +53,13 @@ extension TopicReaderModel {
 
 private struct SignInToBlockSheet: ViewModifier {
     @Binding var isPresented: Bool
-    @Environment(AccountsModel.self) private var accounts
+    /// Optional: a screen hosted without the app's accounts (a test, a preview) must still build; the sheet then shows nothing.
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
 
     func body(content: Content) -> some View {
-        content.sheet(isPresented: $isPresented) { LoginView(target: .newAccount, accounts: accounts) }
+        content.sheet(isPresented: $isPresented) {
+            if let accounts { LoginView(target: .newAccount, accounts: accounts) }
+        }
     }
 }
 
