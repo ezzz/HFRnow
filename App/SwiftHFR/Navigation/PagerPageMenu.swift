@@ -65,6 +65,10 @@ struct PagerPageMenuPill: View {
     var isLoading = false
     /// Called with the menu entry chosen or the page typed; nil makes the pill a plain label.
     let onJump: (@MainActor (PagerJump) -> Void)?
+    /// Whether the pill draws its own glass capsule. False inside the system bottom bar, whose item group supplies the glass (#1155).
+    var drawsGlass = true
+    /// The hit region the HIG asks of a button (Buttons): the pill's laid-out frame is the region (#1155).
+    static let hitSize: CGFloat = 44
     @State private var isEntering = false
     @State private var entry = ""
 
@@ -101,14 +105,37 @@ struct PagerPageMenuPill: View {
     }
 
     private func pill(_ menu: PagerPageMenu) -> some View {
+        PagerPillLabel(menu: menu, isLoading: isLoading, drawsGlass: drawsGlass)
+            // The hit region is the frame around the visible capsule, so the capsule keeps hugging its text (#1155).
+            .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
+            .contentShape(.rect)
+            .accessibilityLabel(
+                isLoading ? "Chargement"
+                    : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
+            )
+    }
+}
+
+/// What the pill shows: the text or spinner in a glass capsule that hugs it (no capsule when the system bar draws one).
+struct PagerPillLabel: View {
+    let menu: PagerPageMenu
+    var isLoading = false
+    var drawsGlass = true
+
+    var body: some View {
         Group {
             if isLoading { ProgressView().accessibilityLabel("Chargement") } else { Text(menu.label).monospacedDigit() }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
-        .glassEffect(.regular, in: .capsule)
-        .accessibilityLabel(
-            isLoading ? "Chargement"
-                : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
-        )
+        .modifier(PagerPillGlass(isOn: drawsGlass))
+    }
+}
+
+/// The pill's own glass capsule, or nothing when the system bar already draws one behind the item (#1155).
+private struct PagerPillGlass: ViewModifier {
+    let isOn: Bool
+
+    func body(content: Content) -> some View {
+        if isOn { content.glassEffect(.regular, in: .capsule) } else { content }
     }
 }

@@ -50,7 +50,7 @@ struct PagerToolbar {
         let isMenu = usesPageMenu
         ToolbarItemGroup(placement: .bottomBar) {
             if isMenu {
-                statusView
+                statusView(in: .bottomBar)
             } else {
                 Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled)
                 Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
@@ -61,7 +61,7 @@ struct PagerToolbar {
             if isMenu {
                 Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
             } else {
-                statusView
+                statusView(in: .bottomBar)
             }
         }
         ToolbarSpacer(isMenu ? .fixed : .flexible, placement: .bottomBar)
@@ -73,16 +73,23 @@ struct PagerToolbar {
         }
     }
 
+    /// Whether the « page x / y » pill draws its own glass capsule in `placement`: the system bottom bar's item group already draws
+    /// one behind it (a second would nest), the strip above the tab bar has none (#1155). Both placements read this.
+    static func pillDrawsGlass(in placement: PagerPlacement) -> Bool { placement == .inset }
+
     private var usesPageMenu: Bool {
         if case .pageOf = status { true } else { false }
     }
 
     @ViewBuilder
-    private var statusView: some View {
+    private func statusView(in placement: PagerPlacement) -> some View {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
         case .pageOf(let number, let total, let isExact):
-            PagerPageMenuPill(current: number, total: total, isExact: isExact, isLoading: isLoading, onJump: jump)
+            PagerPageMenuPill(
+                current: number, total: total, isExact: isExact, isLoading: isLoading, onJump: jump,
+                drawsGlass: Self.pillDrawsGlass(in: placement)
+            )
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }
@@ -104,27 +111,40 @@ struct PagerToolbar {
         if usesPageMenu {
             // The menu carries first and last: the pill on the left, then the two arrow pills.
             HStack {
-                statusView
+                statusView(in: .inset)
                 Spacer()
-                Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
-                Button("Page suivante", systemImage: "chevron.right", action: next.action).disabled(!next.enabled)
+                stripArrow("Page précédente", "chevron.left", previous)
+                stripArrow("Page suivante", "chevron.right", next)
             }
         } else {
             classicRow(full: full)
         }
     }
 
+    /// One icon button of the strip: the hit region and the glass capsule are both 44 pt (HIG, Buttons; operator 2026-11-24, #1155),
+    /// because the glass button style wraps the laid-out frame. Nil draws nothing (a list with no "last" step).
+    @ViewBuilder
+    func stripArrow(_ title: LocalizedStringKey, _ systemImage: String, _ step: Step?) -> some View {
+        if let step {
+            Button(action: step.action) {
+                Label(title, systemImage: systemImage)
+                    // The glass style pads the label by about 24 pt across and 14 pt down (measured, iOS 27.2): this inner minimum
+                    // makes the whole capsule, and so the hit region, 44 pt.
+                    .frame(minWidth: 20, minHeight: 30)
+            }
+            .disabled(!step.enabled)
+        }
+    }
+
     private func classicRow(full: Bool) -> some View {
         HStack {
-            if full { Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled) }
-            Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
+            if full { stripArrow("Première page", "backward.end", first) }
+            stripArrow("Page précédente", "chevron.left", previous)
             Spacer()
-            statusView
+            statusView(in: .inset)
             Spacer()
-            Button("Page suivante", systemImage: "chevron.right", action: next.action).disabled(!next.enabled)
-            if full, let last {
-                Button("Dernière page", systemImage: "forward.end", action: last.action).disabled(!last.enabled)
-            }
+            stripArrow("Page suivante", "chevron.right", next)
+            if full { stripArrow("Dernière page", "forward.end", last) }
         }
     }
 }
