@@ -140,19 +140,7 @@ struct TopicListView: View {
         } message: {
             Text(model.actionFailure ?? "")
         }
-        .alert(
-            "Page numéro", isPresented: Binding(get: { pagePrompt != nil }, set: { if !$0 { pagePrompt = nil } }),
-            presenting: pagePrompt
-        ) { topic in
-            TextField("Page", text: $pageText).keyboardType(.numberPad)
-            Button("Annuler", role: .cancel) {}
-            Button("Aller") {
-                let number = Int(pageText.trimmingCharacters(in: .whitespaces)) ?? 0
-                if let opening = TopicQuickActions.page(number, of: topic) { open?(topic, opening) }
-            }
-        } message: { topic in
-            Text("Entre 1 et \(topic.pageCount)")
-        }
+        .modifier(TopicPagePrompt(topic: $pagePrompt, text: $pageText) { topic, opening in open?(topic, opening) })
     }
 
     /// Whether a flagged row is a pill: not in Favoris and Drapeaux, legacy's one Favoris view (`Favorites.swift:1134` @ 87fe0d1c).
