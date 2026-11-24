@@ -30,6 +30,17 @@ BODIES = {
     "Also fixes #12 in passing": ([], []),
     "<!-- Closes #1 -->\nDirect-PR: typo fix": ([], []),
     "No link here": ([], []),
+    # #1289 review, round 1: prose is not a reference
+    "**Why `Refs #152` and not `Closes #152`:** UXD-08 split it.\nThe issue's \"last lot, Closes #152\" line predates the split.": ([], []),
+    "Refs #594 (partial: fixed here). Closes #594 only once that check shows Citer.": ([], [594]),
+    "This keeps legacy, fixes #12 only partly.": ([], []),
+    "The crash came from the cache. Fixes #12 will need a capture.": ([], []),
+    "Fixes #3. Closes #1, resolves #3.": ([3, 1], [3, 1]),
+    "```\nCloses #3\n```\nRefs #5": ([], [5]),
+    "Refs #237 #160": ([], [237, 160]),
+    "Closes #106 #107 and #108": ([106, 107, 108], [106, 107, 108]),
+    "LOT-012 — Closes #45": ([45], [45]),
+    "LOT-012 – Closes #46": ([46], [46]),
 }
 
 

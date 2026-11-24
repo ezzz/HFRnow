@@ -6,30 +6,34 @@ Issue and claim check accepts is one the sweep closes and the ledger folds.
 Grammar (AGENTS.md §8 writes the line as `Closes #N`): a reference starts a line, after optional decoration (list
 marker, quote, bold or code marks, a `LOT-XXX ·` prefix), with a closing keyword (`close`, `closes`, `closed`, `fix`,
 `fixes`, `fixed`, `resolve`, `resolves`, `resolved`) or `Refs`/`Ref`, then `#N`, optionally followed by more numbers
-(`Closes #50, #51`). A reference may also open a new clause after `.`, `;`, `,` or `|` (`Closes #1, closes #2`). Case
-does not matter. A keyword inside a sentence (`also fixes #12 in passing`) is prose, not a reference. HTML
-comments (template hints) and CR are ignored. Standard library only.
+(`Closes #50, #51`). Numbers may be separated by commas, `and`, `&` or spaces. A reference may also open a new clause after `.`, `;`,
+`,` or `|` (`Closes #1, closes #2`), but then its clause must end right after the numbers (end of line or one of
+`.,;:()|·` or a markdown mark): `Fixes #12 will need a capture` and `the "Closes #152" line` are prose. Case does not
+matter; `LOT-XXX` may be followed by a dot, dash or em/en dash. HTML comments, fenced code blocks and CR are ignored. Standard library only.
 """
 from __future__ import annotations
 
 import re
 
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+FENCE = re.compile(r"^[ \t]*(```|~~~).*?^[ \t]*\1[^\n]*$", re.DOTALL | re.MULTILINE)
 LINE = re.compile(
     r"(?:^[ \t>*_`+-]*"                                 # list marker, quote, bold or code marks
-    r"(?:LOT-\d+[ \t]*[·,;:|-][ \t]*[*_`]*)?"          # `LOT-012 · Closes #45`
-    r"|(?<=[.;,|·])[ \t]+)"                             # or a new clause: `Closes #1, closes #2`
-    r"(close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)"    # keyword
-    r"[ \t]+#(\d+)\b"
-    r"((?:[ \t]*(?:,|&|and)[ \t]*#\d+\b)*)",            # `, #51`
+    r"(?:LOT-\d+[ \t]*[·,;:|—–-][ \t]*[*_`]*)?"        # `LOT-012 · Closes #45`
+    r"|(?P<mid>(?<=[.;,|·])[ \t]+))"                    # or a new clause: `Closes #1, closes #2`
+    r"(?P<kw>close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)"    # keyword
+    r"[ \t]+#(?P<n>\d+)\b"
+    r"(?P<more>(?:(?:[ \t]*(?:,|&|and)[ \t]*|[ \t]+)#\d+\b)*)",   # `, #51` or ` #51`
     re.IGNORECASE | re.MULTILINE,
 )
 EXTRA = re.compile(r"#(\d+)")
+CLAUSE_END = re.compile(r"[ \t]*(?:$|[.,;:()|·*_`])", re.MULTILINE)  # what may follow a reference that does not open its line
 
 
 def normalized(body: str | None) -> str:
-    """Body without CR (the web editor sends CRLF) and without HTML comments (template hints are not links)."""
-    return HTML_COMMENT.sub("", (body or "").replace("\r\n", "\n").replace("\r", "\n"))
+    """Body without CR (the web editor sends CRLF), HTML comments (template hints) and fenced code blocks (quoted examples)."""
+    text = HTML_COMMENT.sub("", (body or "").replace("\r\n", "\n").replace("\r", "\n"))
+    return FENCE.sub("", text)
 
 
 def _unique(numbers) -> list[int]:
@@ -38,11 +42,14 @@ def _unique(numbers) -> list[int]:
 
 def _refs(body: str | None, closing: bool) -> list[int]:
     found = []
-    for match in LINE.finditer(normalized(body)):
-        if match.group(1).lower().startswith("ref") == closing:
+    text = normalized(body)
+    for match in LINE.finditer(text):
+        if match.group("mid") and not CLAUSE_END.match(text, match.end()):
+            continue  # prose: `Fixes #12 will need a capture`
+        if match.group("kw").lower().startswith("ref") == closing:
             continue
-        found.append(int(match.group(2)))
-        found.extend(int(n) for n in EXTRA.findall(match.group(3)))
+        found.append(int(match.group("n")))
+        found.extend(int(n) for n in EXTRA.findall(match.group("more")))
     return _unique(found)
 
 
