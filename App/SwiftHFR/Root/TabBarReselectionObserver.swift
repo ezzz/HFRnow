@@ -69,11 +69,11 @@ struct TabBarReselectionObserver: UIViewControllerRepresentable {
             found.delegate = self
         }
 
-        override func responds(to selector: Selector!) -> Bool {
+        override func responds(to selector: Selector?) -> Bool {
             super.responds(to: selector) || previousDelegate?.responds(to: selector) == true
         }
 
-        override func forwardingTarget(for selector: Selector!) -> Any? {
+        override func forwardingTarget(for selector: Selector?) -> Any? {
             previousDelegate?.responds(to: selector) == true ? previousDelegate : super.forwardingTarget(for: selector)
         }
 

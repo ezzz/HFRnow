@@ -43,10 +43,14 @@ struct TabReselectHostedTests {
 
     // MARK: The tab bar controller's delegate
 
+    private struct PlainTabBar {
+        let controller: UITabBarController
+        let host: TabBarReselectionObserver.HostController
+        let tabs: [UITab]
+    }
+
     /// A plain tab bar controller with a delegate of its own, as SwiftUI's is, and the observer's host inside its first tab.
-    private func plainTabBar(
-        delegate: OriginalDelegate
-    ) -> (controller: UITabBarController, host: TabBarReselectionObserver.HostController, tabs: [UITab]) {
+    private func plainTabBar(delegate: OriginalDelegate) -> PlainTabBar {
         let host = TabBarReselectionObserver.HostController()
         let tabs = (0..<3).map { index in
             UITab(title: "T\(index)", image: nil, identifier: "t\(index)") { _ in
@@ -59,7 +63,7 @@ struct TabReselectHostedTests {
         controller.delegate = delegate
         _ = controller.view
         _ = tabs[0].viewController
-        return (controller, host, tabs)
+        return PlainTabBar(controller: controller, host: host, tabs: tabs)
     }
 
     @Test func theObserverKeepsSwiftUIsDelegateAndForwardsToIt() {
