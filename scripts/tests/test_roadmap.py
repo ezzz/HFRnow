@@ -302,6 +302,16 @@ class Hygiene(unittest.TestCase):
         actions, _ = self.run_sweep(issues, [pr(10, body="Refs #1\nCloses #2", merged_at="2026-10-30T00:00:00Z")])
         self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("close", 2)])
 
+    def test_the_sweep_closes_what_the_claim_check_accepts(self):
+        # #1198: decorated, prefixed and listed closing lines pass the claim check, so the sweep must read them too
+        bodies = ["LOT-012 · Closes #1", "- Closes #1", "**Closes #1**", "Closed #1", "Fixes #1", "Refs #9 for later.\n\nCloses #1",
+                  "Closes #3, #1"]
+        for body in bodies:
+            with self.subTest(body=body):
+                issues = [issue(1, labels=["type: bug", "status: claimed"]), issue(3, labels=["type: bug", "status: claimed"])]
+                actions, _ = self.run_sweep(issues, [pr(10, body=body, merged_at="2026-10-30T00:00:00Z")])
+                self.assertIn(("close", 1), [(a["kind"], a["issue"]) for a in actions])
+
     def test_a_claim_is_reported_only_when_no_open_pr_cites_it(self):
         old = "2026-10-01T00:00:00Z"
         issues = [issue(3, labels=["type: lot", "status: claimed"], created=old), issue(4, labels=["type: bug", "status: claimed"], created=old)]

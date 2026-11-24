@@ -57,7 +57,7 @@ echo "› Ruleset on dev-swift"
 # Check names must match the job names in .github/workflows (update the JSON if a job is renamed).
 # "Issue and claim" (pr-issue.yml) is deliberately not required: pull_request_target runs the copy of the workflow on
 # the default branch (the legacy master), so on dev-swift it never reports and would block every PR (ADR 0010).
-# Add it to dev-swift.json only once that workflow and scripts/issue_claims.py run from the default branch.
+# Add it to dev-swift.json only once that workflow, scripts/issue_claims.py and tooling/common/pr_refs.py run from the default branch.
 apply_ruleset "$RULESETS/dev-swift.json"
 
 if $GUARD_MASTER; then
