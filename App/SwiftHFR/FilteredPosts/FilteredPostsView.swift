@@ -138,8 +138,9 @@ struct FilteredPostsView: View {
         .overlay(alignment: .bottom) { if let menus { ReaderMenuFeedbackBanner(model: menus) } }
         .onChange(of: menus?.menuFeedbackSerial) { ReaderAccessibility.announce(menus?.menuFeedback) }
         .modifier(ReaderAlertFlow(alerts: menus?.alerts))
-        // A blocked or allowed author: the batch is built again with the lists as they are now.
-        .onChange(of: menus?.listsRevision) { _, _ in show(model.result) }
+        // A blocked or allowed author: the batch is built again with the lists as they are now, where it was scrolled to. The
+        // first value (the menus made with the first document) is no change.
+        .onChange(of: menus?.listsRevision) { old, _ in if old != nil { rebuild(model.result) } }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
@@ -163,14 +164,14 @@ struct FilteredPostsView: View {
         nextToken += 1
         readyToken = nil
         failed = false
-        document = ReaderDocument(
-            token: nextToken,
-            html: TopicHTMLBuilder.document(
-                for: result.page, token: nextToken,
-                options: menuModel().renderOptions(services.settings.renderOptions())
-            ),
-            anchor: nil, keepsScrollPosition: false
-        )
+        document = menuModel().document(for: result, token: nextToken, keepsScrollPosition: false)
+    }
+
+    /// The batch on screen built again (a list change): the web view stays shown and keeps its position, as the reader's.
+    private func rebuild(_ result: FilteredPostsResult?) {
+        guard let result, readyToken != nil else { return show(result) }
+        nextToken += 1
+        document = menuModel().document(for: result, token: nextToken, keepsScrollPosition: true)
     }
 
     /// The menus, made by whichever comes first of the controller and the first document (both need them).

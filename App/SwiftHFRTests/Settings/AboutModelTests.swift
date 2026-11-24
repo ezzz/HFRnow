@@ -10,6 +10,27 @@ struct AboutModelTests {
         AboutModel(topicPages: FakeTopicPages())
     }
 
+    // LOT-159 (operator 2026-11-24): legacy's contact block, `credits.html:7-14` @ 87fe0d1c.
+    @Test func theContactRowsAreLegacysAndSayTheAppIsNotHardwareFrs() {
+        #expect(AboutContact.allCases.map(\.title) == ["Sur le forum : Topic Unique", "En privé : ezzz"])
+        #expect(AboutContact.forum.address == AboutTopicLink.superHFRPlus.address)
+        #expect(AboutContact.privately.address == "https://forum.hardware.fr/hfr/profil-15867.htm")
+        #expect(AboutContact.notice.hasPrefix("HFR+ n'est pas développé par l'équipe du site hardware.fr, mais de manière bénévole."))
+    }
+
+    @Test func theForumContactOpensTheAppsTopicAndThePrivateOneTheProfile() {
+        var asked: [Int] = []
+        let model = AboutModel(topicPages: FakeTopicPages(), makeProfile: { id in
+            asked.append(id)
+            return UserProfileModel(memberID: id, source: FakeUserProfiles([]), lists: nil)
+        })
+        model.open(.forum)
+        #expect(model.selected == .superHFRPlus)
+        model.open(.privately)
+        #expect(asked == [15867])
+        #expect(model.profile?.memberID == 15867)
+    }
+
     @Test func versionShowsShortVersionAndBuild() {
         let version = AppVersion(info: ["CFBundleShortVersionString": "1.0", "CFBundleVersion": "42"])
         #expect(version.display == "1.0 (42)")

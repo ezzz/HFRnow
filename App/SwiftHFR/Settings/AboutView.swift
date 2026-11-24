@@ -10,8 +10,10 @@ struct AboutView: View {
 
     /// About over the environment's topic pages and reader services (the one the open session built, LOT-081).
     init(environment: AppEnvironment) {
+        let reader = environment.reader
         _model = State(initialValue: AboutModel(
-            topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions
+            topicPages: environment.topicPages, renderOptions: reader.settings.renderOptions,
+            makeProfile: { reader.profileModel(memberID: $0) }
         ))
         services = environment.reader
         composer = environment.composer
@@ -44,6 +46,27 @@ struct AboutView: View {
             } footer: {
                 Text("Les sujets de l'app sur le forum, ouverts dans l'app.").themedSectionHeader()
             }
+            // LOT-159 (operator 2026-11-24): legacy's contact block (`credits.html:7-14` @ 87fe0d1c).
+            Section {
+                Group {
+                    ForEach(AboutContact.allCases, id: \.self) { contact in
+                        Button { model.open(contact) } label: {
+                            HStack {
+                                Label(contact.title, systemImage: contact.symbol).foregroundStyle(Color.primary)
+                                Spacer()
+                                Image(systemName: "chevron.forward")
+                                    .scaledFont(.footnote).fontWeight(.semibold)
+                                    .foregroundStyle(.tertiary)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                    }
+                }.themedListRow()
+            } header: {
+                Text("Nous contacter").themedSectionHeader()
+            } footer: {
+                Text(AboutContact.notice).themedSectionHeader()
+            }
             Section {
                 Group {
                     NavigationLink { ChangelogView().appScreenBackground() } label: {
@@ -57,6 +80,7 @@ struct AboutView: View {
         }
         .navigationTitle(StaticPage.credits.title)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $model.profile) { UserProfileView(model: $0, services: services) }
         .navigationDestination(item: $model.selected) { link in
             if let reader = model.reader(for: link) {
                 TopicReaderView(model: reader, services: services, composer: composer)

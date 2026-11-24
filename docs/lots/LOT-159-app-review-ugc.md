@@ -49,6 +49,8 @@ Legacy reference `legacy/duo-inner-cover` @ `87fe0d1c` (AGENTS.md §2).
   `HFRswift/Swift/AQPlusView.swift (AQSupport.shouldFilterCategory25)` @ `87fe0d1c` (LOT-082, LOT-133).
 - `App/SwiftHFR/FilteredPosts/FilteredPostsMenuModel.swift` (new): `HFRswift/Swift/MessagesView.swift (presentPopupMenu,
   presentAvatarActionSheet, in the favourite post filter mode)` @ `87fe0d1c`.
+- `App/SwiftHFR/Settings/AboutModel.swift` (`AboutContact`) and `AboutView.swift` (« Nous contacter »):
+  `SuperHFRplus/Assets/HTML/credits.html` (the "Mentions légales" contact block, `:7-14`) @ `87fe0d1c` (operator, 2026-11-24).
 - Everything else this lot checks is ported by its own lot: search (LOT-115), AQ (LOT-133), alert (LOT-135), lists (LOT-118),
   Plus menu, credits and charter (LOT-120, LOT-170).
 
@@ -59,7 +61,7 @@ by breaking that code (log paths in the PR), because the behaviour predates this
 
 | # | Rule | Source | Code | Test |
 |---|---|---|---|---|
-| R1 | One review-account configuration: the hidden category (25) and the account name (`applereview`, case-insensitive) live in `ForumVisibility`, built once per session in `AppEnvironment.make` and handed to the forum list, the search picker (through the forum list) and the AQ list and badge | Q-7 decision ("the review account name is configuration") | `ForumVisibility`, `AppEnvironment.visibility`, `RootModel.init(environment:)` | `ReviewAccountConfigurationTests` (new): one custom configuration reaches the forum list, the search picker and the AQ badge (mutation: a default `ForumVisibility()` in `RootModel`) |
+| R1 | One review-account configuration: the hidden category (25) and the account name (`applereview`, case-insensitive) live in `ForumVisibility`, built once per session in `AppEnvironment.make` and handed to the forum list, the search picker (through the forum list) and the AQ list and badge | Q-7 decision ("the review account name is configuration") | `ForumVisibility`, `AppEnvironment.visibility`, `RootModel.init(environment:)` | `ReviewAccountConfigurationTests` (new): one custom configuration reaches the forum list, the search picker and the AQ list (mutation: a default `ForumVisibility()` in `RootModel`); the badge counts with the same `hidesCategory` as the list (`QualityAlertsVisibilityTests`, R8) |
 | R2 | Apple category hidden from the forum list when logged out | `ObjCForumsParser.m:77-80` | `ForumVisibility.visible`, `ForumListContent` | `ForumVisibilityTests.hidesTheAppleCategoryWhenLoggedOut`, `aLoggedInSessionWithoutKnownNameIsTreatedAsLoggedOut` |
 | R3 | … and for the review account, whatever its case (Q-7 extends legacy, whose forum list hid it only logged out) | Q-7 decision | same | `ForumVisibilityTests.hidesItForTheReviewAccountWhateverTheCase`, `ForumListModelTests.theReviewAccountDoesNotSeeTheAppleCategory` |
 | R4 | Shown to every other logged-in account | `ObjCForumsParser.m:77-80` | same | `ForumVisibilityTests.showsItToAnotherLoggedInAccount`, `ForumListModelTests.appliesTheAppleRuleAndResolvesSources` |
@@ -69,10 +71,10 @@ by breaking that code (log paths in the PR), because the behaviour predates this
 | R8 | AQ list and Plus badge hide category 25 for the logged out and the review account, count included | `AQTableViewController.m:332-347`, `AQPlusView.swift:52-57`, `:69-87` | `QualityAlertsModel` with `ForumVisibility.hidesCategory` | `QualityAlertsVisibilityTests` (4 tests) |
 | R9 | "Alerter" (report) on every message of another member: HFR's alert form with an account, else the mail to the moderators | guideline 1.2 (report); `MessagesView.swift:197-260` | `MessageMenuPolicy`, `ModeratorAlertModel` | `ModeratorAlertModelTests` (LOT-135) |
 | R10 | The mail fallback always ships: the committed build setting reaches the app | Q-10, LOT-135 | `Shared.xcconfig` `MODERATOR_ALERT_MAIL_ADDRESS` | `ModeratorAlertModelTests.theCommittedBuildSettingReachesTheApp` |
-| R11 | "Blacklist" (block) on every message of another member, for an account: hides that member's posts | guideline 1.2 (block); `MessagesView.swift:204-216` | `PseudoListActionHandler`, the author menu, the profile sheet | LOT-118 tests (`PseudoListTests`, `UserProfileModelTests`) |
+| R11 | "Blacklist" (block) on every message of another member, for an account: hides that member's posts | guideline 1.2 (block); `MessagesView.swift:204-216` | `PseudoListActionHandler`, the author menu, the profile sheet | LOT-118 suites `PseudoListManagerTests`, `PseudoListActionHandlerTests`, `UserProfileListsTests` (file `PseudoListTests.swift`); the own-pseudo check with a URL-encoded key: `PseudoListManagerTests.theOwnPseudoIsFoundFromAURLEncodedAccountKey`, `UserProfileListsTests.theAccountsOwnProfileOffersNoListWithAURLEncodedKey` (LOT-159) |
 | R12 | Report and block also on the filtered posts (the favourite post filter, LOT-114), as in legacy | `MessagesView.swift:4767-4791` | `FilteredPostsMenuModel` (new), `FilteredPostsView` | `FilteredPostsMenuModelTests` (new, red without the change) |
 | R13 | The forum charter is one tap from the Plus menu | `PlusTab.swift:11-60` | `PlusEntry.charter`, `StaticPage.charter` | `StaticPageTests` (LOT-120) |
-| R14 | Contact: the app's forum topic is linked from Crédits | `credits.html:7-14` | `AboutTopicLink` | `AboutModelTests` (LOT-120); see decision D1 |
+| R14 | Contact: « Nous contacter » in Crédits, legacy's two contacts (the app's topic, the legacy maintainer's profile) and its "not developed by the hardware.fr team" sentence | `credits.html:7-14` | `AboutContact`, `AboutModel.open` | `AboutModelTests.theContactRowsAreLegacysAndSayTheAppIsNotHardwareFrs`, `theForumContactOpensTheAppsTopicAndThePrivateOneTheProfile` (LOT-159); D1 |
 | R15 | Account deletion from the Plus menu | guideline 5.1.1(v); `PlusTab.swift:11-60` | `PlusEntry.deleteAccount` | `AccountDeletionTests` (LOT-157) |
 
 **Not in the app, on HFR's side:** "filtering objectionable material from being posted" is HFR's moderation (the charter, the
@@ -105,9 +107,14 @@ The posts are read cookie-less (LOT-093), so they carry no toolbar link: no aler
   gives once HFR redirects it;
 - "Alerter" is the moderators' mail with that permalink (LOT-135's fallback, R10); with an account and no alert link the reader
   does the same;
-- a message is the user's own when its author is the current account's pseudo (`PseudoListManager.isOwn`, the LOT-072 comparison): no "Alerter", no
-  "Blacklist", no "Whitelist" on it (the reader reads the edit link instead, which a cookie-less page never has);
-- a change to the lists rebuilds the sheet's document, so a blocked member's posts are hidden at once (the reader does the same);
+- a message is the user's own when its author is the current account's pseudo (`PseudoListManager.isOwn`, the LOT-072
+  comparison): no "Alerter", no "Blacklist", no "Whitelist" on it (the reader reads the edit link instead, which a cookie-less
+  page never has). The account key is the `md_user` value, URL-encoded (HFR-PROTOCOL §5, `W03`: `user%20two` for "user two"),
+  so `isOwn` compares the raw and the percent-decoded key (`+` as a space), as `AccountBook.checkSessionCookie` does; every
+  caller of `isOwn` (the profile's list buttons too) gets it;
+- a change to the lists builds the sheet's document again where it was scrolled to, the web view staying on screen, as the
+  reader's `applyDisplaySettings()` does (`keepsScrollPosition`); a blocked member's posts are then masked (the `blocked`
+  collapsed block « Message masqué », as in the reader);
 - the confirmations ("Lien copié", the lists' sentences) show in the reader's banner and are announced to VoiceOver, as in the reader.
 
 The other actions of the reader's menus (quote, reply, edit, favourite, bookmark, AQ, profile, MP) are not offered there: the
@@ -119,6 +126,9 @@ sheet stays read-only, as LOT-114 decided.
   the mail "Alerter".
 - A menu tap from a document that is no longer shown (a newer batch) opens nothing (token check, as the reader).
 - Logged out: no blocklist anywhere (LOT-118, per-account lists); see D3.
+- **Pending capture:** how HFR encodes an accented pseudo in `md_user` (UTF-8 or Latin-1 percent-encoding) is not captured. A
+  key that does not decode as UTF-8 is compared raw only (never guessed): an accented own pseudo may then not be recognised.
+  Capture: log in with an accented test account and record the `Set-Cookie: md_user` of `W03`'s request.
 
 ## Fixtures
 
@@ -126,8 +136,10 @@ None new: the menu model is tested on batches built by `FilteredPostsModel.resul
 
 ## UX evolutions (app lots)
 
-None: same UX as legacy. R12 restores a legacy behaviour SwiftHFR lacked (the filtered posts had no menu since LOT-114); the
-entries offered there are a subset of legacy's (the read-only sheet of LOT-114).
+- **GAP-036** (`UX change`, `b·needed`: App Review guideline 1.2, and the cookie-less reads of LOT-093): the filtered posts
+  offer "Link", "Alerter" (always the mail) and "Blacklist" / "Whitelist", a subset of legacy's menus (difference 3). R12
+  restores what SwiftHFR lacked since LOT-114.
+- **GAP-151**: Crédits gets legacy's contact block back (R14, operator 2026-11-24): same as legacy, in rows.
 
 ## Intentional differences from legacy
 
@@ -137,23 +149,27 @@ entries offered there are a subset of legacy's (the read-only sheet of LOT-114).
 3. In the filtered posts, "Alerter" is always the mail (no alert link on a cookie-less page) and only the UGC entries are
    offered (LOT-114's read-only sheet).
 
+## Decisions
+
+- **D1 — contact (operator, 2026-11-24).** As legacy: a « Nous contacter » section in Crédits with legacy's two contacts, "Sur le
+  forum : Topic Unique" (topic 1711, `credits.html:12`) and "En privé : ezzz" (the legacy maintainer's profile,
+  `profil-15867.htm`, `credits.html:13`), under legacy's sentence "HFR+ n'est pas développé par l'équipe du site hardware.fr,
+  mais de manière bénévole. Pour toutes questions, soucis, bugs, vous pouvez nous contacter :" (`credits.html:9`, accents fixed).
+  **Risk accepted by the operator (Fable r1290 #6, guideline 1.2 "published contact information"):** the topic is in category 25
+  (`AboutModel.swift`, `AboutTopicLink.superHFRPlus`), which the forum list hides from the review account and from logged-out
+  readers (D5), and writing there, or a private message to the profile, needs an HFR account. The row opens the topic directly,
+  so it reads, but the contact is reachable only through the forum.
+- **D2 — terms (operator, 2026-11-24).** No terms agreement: parity with legacy (the charter is a page, R13).
+- **D5 — the review account (operator, 2026-11-24).** The `applereview` filter stays as legacy (Q-7), and the App Review notes
+  do not mention it. The risk stated before the decision: guideline 2.3.1 asks for features to be described in the review notes
+  and states "if you're dishonest, we don't want to do business with you"; a filter keyed on the reviewer's account and not
+  disclosed can be read as showing App Review a different app.
+
 ## Open decisions (operator)
 
-- **D1 — contact.** Legacy's credits had a "Mentions légales" block: "not developed by the hardware.fr team… contact us: on the
-  forum (the app's topic) / in private (the maintainer's profile)". SwiftHFR's Crédits screen links the app's topic
-  (`[TU] Super HFR+`, topic 1711) and the beta topic, without a "contact" heading or the "not made by hardware.fr" sentence. For
-  guideline 1.2 ("published contact information"): keep as is and point App Review at Crédits, or add a « Nous contacter » row
-  (which target: the topic, a GitHub issue form, a mail address?) and the sentence? Not changed here.
-- **D2 — terms.** Apple often asks UGC apps for an explicit agreement to terms ("zero tolerance"). Legacy has none (the charter
-  is a page). Keep parity, or add an agreement at first login? Not changed here.
 - **D3 — blocking logged out.** The blocklist is per account (LOT-118), so a logged-out reader can report (mail) but not block.
   The review account is logged in. Keep?
 - **D4 — "Home".** Read as the Plus tab (`PlusHomeView`) badge. Confirm.
-- **D5 — what the review account sees (🟠).** Q-7 hides the Apple category and the AQ alerts of category 25 from the
-  `applereview` account specifically. Guideline 2.3.1 asks for features to be described in the review notes and states
-  "if you're dishonest, we don't want to do business with you". A filter keyed on the reviewer's account and not disclosed can
-  be read as showing App Review a different app. The notes below disclose it as an optional paragraph; whether to keep the
-  account-specific part of the rule, and whether to disclose it, is the operator's call (Q-7 is his decision).
 
 ## App Review notes (draft for the operator, App Store Connect › App Review Information › Notes)
 
@@ -169,14 +185,12 @@ No credential here: the sign-in name and password go in App Store Connect's "Sig
 > - Report: on any message, tap "+" then « Alerter ». With an account, this sends the forum's own moderator alert (a reason is
 >   asked); otherwise it prepares an email to the forum's moderation address. HFR's moderators handle the reports.
 > - Block: tap a member's name or avatar: their profile opens with « Ajouter à la liste noire » (or, when the forum gives no
->   profile link, a menu with « Blacklist »). That member's posts are then hidden (masked, or removed with Plus › Réglages ›
->   « Masquer les pseudos blacklistés »); Plus › Réglages › « Liste noire » lists and removes them.
+>   profile link, a menu with « Blacklist »). Each of that member's posts is then collapsed behind « Message masqué » (it can be
+>   expanded on purpose); Plus › Réglages › « Masquer les pseudos blacklistés » also hides their name on that line. Plus ›
+>   Réglages › « Liste noire » lists and removes them.
 > - Rules: Plus › Charte du forum shows the forum charter.
-> - Contact: Plus › Crédits links the app's topic on the forum.
+> - Contact: Plus › Crédits › « Nous contacter »: the app's topic on the forum and its maintainer's forum profile.
 > - Account deletion: Plus › Supprimer mon compte prepares the deletion request to the forum.
->
-> Optional (D5): Some forum sections are not shown when signed out or with the review account: the "Apple" forum category
-> (jailbreak discussions) and the corresponding quality alerts; searches for jailbreak-related words are refused.
 
 ## Learnings
 

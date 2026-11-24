@@ -24,6 +24,8 @@ final class FilteredPostsMenuModel: MenuFeedbackShowing {
 
     @ObservationIgnored private var registry = MessageActionRegistry()
     @ObservationIgnored private let lists: PseudoListManager?
+    /// The reader's display settings, the pseudo lists included (read at each build).
+    @ObservationIgnored private let baseOptions: @Sendable () -> ReaderRenderOptions
 
     /// The menus over `services` (the lists and the moderators' address of the session); `copy` puts a link on the pasteboard,
     /// `openMail` hands the alert mail to the system.
@@ -31,6 +33,7 @@ final class FilteredPostsMenuModel: MenuFeedbackShowing {
         services: ReaderServices, copy: @escaping @MainActor (URL) -> Void, openMail: @escaping @MainActor (URL) -> Void
     ) {
         lists = services.pseudoLists
+        baseOptions = services.settings.renderOptions
         let confirm: @MainActor (String) -> Void = { [weak self] text in self?.showMenuFeedback(text) }
         // No alerter: a cookie-less page has no alert link, so the account's alert form is never the way here.
         let alerts = ModeratorAlertModel(
@@ -46,12 +49,22 @@ final class FilteredPostsMenuModel: MenuFeedbackShowing {
         registry = MessageActionRegistry(handlers)
     }
 
-    /// `options` with the menu buttons the handlers can serve.
-    func renderOptions(_ options: ReaderRenderOptions) -> ReaderRenderOptions {
-        var options = options
+    /// The reader's display settings, as they are now (a blocked author's posts masked), with the menu buttons the handlers
+    /// can serve.
+    func renderOptions() -> ReaderRenderOptions {
+        var options = baseOptions()
         options.showsMessageMenus = registry.offers(.message)
         options.showsAuthorMenus = registry.offers(.avatar)
         return options
+    }
+
+    /// The document of `result`, numbered `token`. A rebuild after a list change keeps the scroll position, as the reader's
+    /// `applyDisplaySettings()` does; a new batch opens at its top.
+    func document(for result: FilteredPostsResult, token: Int, keepsScrollPosition: Bool) -> ReaderDocument {
+        ReaderDocument(
+            token: token, html: TopicHTMLBuilder.document(for: result.page, token: token, options: renderOptions()),
+            anchor: nil, keepsScrollPosition: keepsScrollPosition
+        )
     }
 
     /// The menu of message `post` of `result`, or nil when the batch does not hold it or nothing applies.

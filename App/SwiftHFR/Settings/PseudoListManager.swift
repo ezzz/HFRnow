@@ -58,8 +58,20 @@ struct PseudoListManager: Sendable {
         self.blocklistChanges = blocklistChanges
     }
 
-    /// Whether `pseudo` is the current account's own pseudo (never offered for the lists, as legacy's `isOwnMessage`).
-    func isOwn(_ pseudo: String) -> Bool { account.map { PseudoNormalizer.matches($0, pseudo) } ?? false }
+    /// Whether `pseudo` is the current account's own pseudo (never offered for the lists, as legacy's `isOwnMessage`). The
+    /// account key is the `md_user` value, URL-encoded (HFR-PROTOCOL §5, `W03`), while a page prints the pseudo: both the raw and
+    /// the percent-decoded key are compared, as `AccountBook.checkSessionCookie` does (LOT-159). How HFR encodes an accented
+    /// pseudo in `md_user` (UTF-8 or Latin-1) is not captured: a key that does not decode as UTF-8 is compared raw only.
+    func isOwn(_ pseudo: String) -> Bool {
+        guard let account else { return false }
+        return Self.keyForms(of: account).contains { PseudoNormalizer.matches($0, pseudo) }
+    }
+
+    /// `key` as stored and percent-decoded (`+` read as a space, as a form-encoded value).
+    static func keyForms(of key: String) -> [String] {
+        let decoded = key.replacing("+", with: " ").removingPercentEncoding
+        return decoded.map { $0 == key ? [key] : [key, $0] } ?? [key]
+    }
 
     /// Whether `kind` can be edited: the blocklist belongs to an account.
     func isAvailable(_ kind: PseudoListKind) -> Bool { kind == .allowlist || account != nil }

@@ -95,6 +95,18 @@ struct PseudoListManagerTests {
         #expect(await store.blocklist(for: "moi").isEmpty)
     }
 
+    // LOT-159 (Fable r1290 #1): the key is the URL-encoded `md_user` (`AccountsModelLoginTests`: `user%20two` for "user two"),
+    // the page prints the pseudo; compared raw and decoded, as `AccountBook.checkSessionCookie`.
+    @Test func theOwnPseudoIsFoundFromAURLEncodedAccountKey() async throws {
+        let lists = try await fixture(account: "user%20two").manager
+        #expect(lists.isOwn("user two") && lists.isOwn("User Two") && lists.isOwn("user%20two"))
+        #expect(!lists.isOwn("user three"))
+        #expect(try await fixture(account: "user+two").manager.isOwn("user two"))
+        // Not a UTF-8 percent-encoding (how HFR encodes accents is not captured): compared raw only, never a crash.
+        #expect(try await fixture(account: "caf%E9").manager.isOwn("caf%E9"))
+        #expect(PseudoListManager.keyForms(of: "caf%E9") == ["caf%E9"])
+    }
+
     @Test func theBlocklistBelongsToAnAccountAndTheAllowlistDoesNot() async throws {
         let setup = try await fixture(account: nil)
         let lists = setup.manager
@@ -374,6 +386,17 @@ struct UserProfileListsTests {
         let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
         let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
         let lists = PseudoListManager(store: store, account: profile.pseudo.lowercased())
+        let model = UserProfileModel(memberID: 1, source: FakeUserProfiles([.success(profile)]), lists: lists)
+        await model.onAppear()
+        #expect(!model.offers(.blocklist) && !model.offers(.allowlist))
+    }
+
+    // LOT-159 (Fable r1290 #1): the account key as HFR sets it, URL-encoded (every byte, so the raw key never matches).
+    @Test func theAccountsOwnProfileOffersNoListWithAURLEncodedKey() async throws {
+        let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
+        let encoded = profile.pseudo.utf8.map { String(format: "%%%02X", $0) }.joined()
+        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        let lists = PseudoListManager(store: store, account: encoded)
         let model = UserProfileModel(memberID: 1, source: FakeUserProfiles([.success(profile)]), lists: lists)
         await model.onAppear()
         #expect(!model.offers(.blocklist) && !model.offers(.allowlist))

@@ -31,16 +31,18 @@ struct FilteredPostsMenuModelTests {
         return try await FilteredPostsModel.result(of: batch, topic: filterTopic, title: "Sujet", normalizer: PassNormalizer())
     }
 
+    /// The services as `AppEnvironment.make` wires them: the render options read the lists' snapshot, which a toggle refreshes.
     private func services(account: String?, mail: String? = mail) -> (ReaderServices, PseudoListStore) {
         let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        let snapshot = PseudoListsSnapshot(store: store, account: account)
         var services = ReaderServices(
             imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
-            settings: ReaderSettings(
-                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
+            settings: .live(
+                store: InMemorySettingsStore(), isOnWiFi: { true }, pseudo: account, pseudoLists: { snapshot.current }
             ),
             profiles: FakeUserProfiles([])
         )
-        services.pseudoLists = PseudoListManager(store: store, account: account)
+        services.pseudoLists = PseudoListManager(store: store, account: account, snapshot: snapshot)
         services.moderatorAlertMail = mail
         return (services, store)
     }
@@ -64,7 +66,7 @@ struct FilteredPostsMenuModelTests {
     }
 
     @Test func theDocumentDrawsTheMessageAndAuthorMenus() {
-        let options = menus().0.renderOptions(ReaderRenderOptions())
+        let options = menus().0.renderOptions()
         #expect(options.showsMessageMenus)
         #expect(options.showsAuthorMenus)
     }
@@ -95,6 +97,21 @@ struct FilteredPostsMenuModelTests {
         #expect(model.menuFeedback == "BIM! autre ajouté à la liste noire")
     }
 
+    // Fable r1290 #4: the block is seen in the sheet. Built before and after the block, from the model's own document, as
+    // `FilteredPostsView.rebuild` does; the rebuild keeps the scroll position.
+    @Test func aBlockedAuthorsPostsAreMaskedInTheRebuiltDocument() async throws {
+        let (model, _) = menus()
+        let result = try await result()
+        let before = model.document(for: result, token: 1, keepsScrollPosition: false)
+        #expect(!before.html.contains("class=\"message blocked\""))
+        let menu = try #require(model.menu(post: 301, source: .avatar, anchor: nil, in: result))
+        await model.perform(.blocklist, in: menu)
+        let after = model.document(for: result, token: 2, keepsScrollPosition: true)
+        #expect(after.keepsScrollPosition)
+        #expect(after.html.components(separatedBy: "class=\"message blocked\"").count - 1 == 2, "both posts of autre")
+        #expect(!after.html.contains("class=\"message blocked\" id=\"t510\""), "the user's own post stays")
+    }
+
     @Test func loggedOutTheAuthorMenuOffersTheAllowlistOnly() async throws {
         let menu = try #require(menus(account: nil).0.menu(post: 301, source: .avatar, anchor: nil, in: try await result()))
         #expect(menu.entries == [.allowlist])
@@ -102,6 +119,14 @@ struct FilteredPostsMenuModelTests {
 
     @Test func theUsersOwnPostIsNeitherReportedNorListed() async throws {
         let (model, _) = menus(account: "Moi")
+        let result = try await result()
+        #expect(model.menu(post: 510, source: .message, anchor: nil, in: result)?.entries == [.link])
+        #expect(model.menu(post: 510, source: .avatar, anchor: nil, in: result) == nil)
+    }
+
+    // Fable r1290 #1: the account key is the URL-encoded `md_user`; the page prints the pseudo.
+    @Test func theUsersOwnPostIsFoundFromAURLEncodedAccountKey() async throws {
+        let (model, _) = menus(account: "%6Doi")
         let result = try await result()
         #expect(model.menu(post: 510, source: .message, anchor: nil, in: result)?.entries == [.link])
         #expect(model.menu(post: 510, source: .avatar, anchor: nil, in: result) == nil)
