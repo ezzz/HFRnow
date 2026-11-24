@@ -67,10 +67,8 @@ struct UserProfileView: View {
             }
             .listLook()
             .refreshable { await model.reload() }
-        } else if let error = model.error {
-            LoadFailureView(error: error, retry: model.reload)
         } else {
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScreenStateView(state: ScreenLoadState(error: model.error), retry: model.reload)
         }
     }
 
@@ -101,7 +99,7 @@ private struct ProfileHeaderSection: View {
                     url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill", generation: model.loadGeneration
                 )
                     .frame(width: 98, height: 70)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(.rect(cornerRadius: 12)) // an avatar clip, not a card (#693)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(verbatim: profile.pseudo).scaledFont(.title2).bold().textSelection(.enabled)

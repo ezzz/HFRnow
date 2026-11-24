@@ -33,7 +33,7 @@ struct LoadFailureBanner: View {
             Button("Réessayer") { Task { await retry() } }
         }
         .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .floatingCard()
         .padding(.horizontal)
     }
 }

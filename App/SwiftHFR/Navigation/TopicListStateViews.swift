@@ -24,13 +24,7 @@ struct EmptyListView: View {
     let refresh: () async -> Void
 
     var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: "tray")
-        } description: {
-            if let message { Text(message) }
-        } actions: {
-            Button("Actualiser") { Task { await refresh() } }
-        }
+        EmptyStateView(title: title, symbol: "tray", message: message, refresh: refresh)
     }
 
     private var title: String {
@@ -47,24 +41,5 @@ struct EmptyListView: View {
         case .signInRequired(let notice): notice ?? "Connectez-vous pour voir cette liste."
         case .notice(let notice): notice
         }
-    }
-}
-
-/// HFR's confirmation of a new topic, above the list.
-struct TopicSentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }

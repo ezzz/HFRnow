@@ -25,26 +25,15 @@ struct ReaderStateOverlay: View {
     @ViewBuilder
     private var content: some View {
         if model.page == nil {
-            if let error = model.error {
-                LoadFailureView(error: error, retry: retry)
-            } else {
-                ProgressView("Chargement des messages")
-            }
+            ScreenStateView(state: ScreenLoadState(error: model.error), loadingLabel: "Chargement des messages", retry: retry)
         } else if let page = model.page, page.messages.isEmpty {
-            ContentUnavailableView {
-                Label("Aucun message", systemImage: "text.bubble")
-            } description: {
-                Text(page.notice ?? "Cette page ne contient aucun message.")
-            } actions: {
-                Button("Actualiser") { Task { await refresh() } }
-            }
+            EmptyStateView(
+                title: "Aucun message", symbol: "text.bubble", message: page.notice ?? "Cette page ne contient aucun message.",
+                refresh: refresh
+            )
         } else if !model.hasShownDocument {
             // The web view could not show the page (issue #566): a retry, never an endless spinner.
-            if let error = model.error {
-                LoadFailureView(error: error, retry: retry)
-            } else {
-                ProgressView("Chargement des messages")
-            }
+            ScreenStateView(state: ScreenLoadState(error: model.error), loadingLabel: "Chargement des messages", retry: retry)
         }
     }
 }
