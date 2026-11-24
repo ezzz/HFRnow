@@ -50,7 +50,7 @@ struct PagerToolbar {
         let isMenu = usesPageMenu
         ToolbarItemGroup(placement: .bottomBar) {
             if isMenu {
-                statusView
+                statusView(drawsGlass: false) // the bar's group draws the glass (#1155)
             } else {
                 Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled)
                 Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
@@ -77,12 +77,14 @@ struct PagerToolbar {
         if case .pageOf = status { true } else { false }
     }
 
+    private var statusView: some View { statusView(drawsGlass: true) }
+
     @ViewBuilder
-    private var statusView: some View {
+    private func statusView(drawsGlass: Bool) -> some View {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
         case .pageOf(let number, let total, let isExact):
-            PagerPageMenuPill(current: number, total: total, isExact: isExact, isLoading: isLoading, onJump: jump)
+            PagerPageMenuPill(current: number, total: total, isExact: isExact, isLoading: isLoading, onJump: jump, drawsGlass: drawsGlass)
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }

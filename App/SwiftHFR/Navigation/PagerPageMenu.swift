@@ -65,6 +65,10 @@ struct PagerPageMenuPill: View {
     var isLoading = false
     /// Called with the menu entry chosen or the page typed; nil makes the pill a plain label.
     let onJump: (@MainActor (PagerJump) -> Void)?
+    /// Whether the pill draws its own glass capsule. False inside the system bottom bar, whose item group supplies the glass (#1155).
+    var drawsGlass = true
+    /// The hit region the HIG asks of a button (Buttons): the pill's laid-out frame is the region (#1155).
+    static let hitSize: CGFloat = 44
     @State private var isEntering = false
     @State private var entry = ""
 
@@ -105,10 +109,21 @@ struct PagerPageMenuPill: View {
             if isLoading { ProgressView().accessibilityLabel("Chargement") } else { Text(menu.label).monospacedDigit() }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
-        .glassEffect(.regular, in: .capsule)
+        .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
+        .contentShape(.capsule)
+        .modifier(PagerPillGlass(isOn: drawsGlass))
         .accessibilityLabel(
             isLoading ? "Chargement"
                 : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
         )
+    }
+}
+
+/// The pill's own glass capsule, or nothing when the system bar already draws one behind the item (#1155).
+private struct PagerPillGlass: ViewModifier {
+    let isOn: Bool
+
+    func body(content: Content) -> some View {
+        if isOn { content.glassEffect(.regular, in: .capsule) } else { content }
     }
 }
