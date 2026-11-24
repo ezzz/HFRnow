@@ -278,6 +278,7 @@ struct ReaderBottomBarTests {
         #expect(reader.document?.keepsScrollPosition == true)
         for _ in 0..<200 where reader.pulledEdge != nil { try await Task.sleep(for: .milliseconds(10)) }
         #expect(reader.pulledEdge == nil, "the icon stops with the refresh")
+        #expect(box.played == [.impact(.light), .impact(.light)], "the pull's own impact at the start, one at completion (#1310)")
     }
 
     /// A first load, a page change or a toolbar refresh is no pull: no icon turns for them.

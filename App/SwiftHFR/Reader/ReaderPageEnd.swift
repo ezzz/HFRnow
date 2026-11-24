@@ -75,9 +75,19 @@ final class ReaderPullWatcher: NSObject {
 @MainActor
 enum ReaderRefresh {
     /// The refresh behind the top bar's button, the end-of-page button and the pull past the end: one code path.
-    static func run(model: TopicReaderModel, controller: ReaderWebController?) async {
+    ///
+    /// Legacy plays a light impact when a refresh starts and another when it completes, loaded or failed
+    /// (`AppHaptics.refreshStarted` / `refreshCompleted`, `MessagesView.swift:5051-5053, 5153-5157` @ 87fe0d1c). A refresh the
+    /// model refuses (a composer is open) is silent, and `startsWithHaptic: false` is for the pull, which played its own.
+    static func run(
+        model: TopicReaderModel, controller: ReaderWebController?, startsWithHaptic: Bool = true,
+        haptic: @escaping @MainActor () -> Void = { HapticFeedback.live.impact(.light) }
+    ) async {
+        let refuses = model.suspendsPageInteractions
+        if startsWithHaptic, !refuses { haptic() }
         controller?.resume()
         await model.refresh()
+        if !refuses { haptic() }
     }
 
     /// Follows the end of the page `controller` shows into `atPageEnd`, and turns a pull past it into a refresh. Reports of
@@ -102,7 +112,7 @@ enum ReaderRefresh {
             haptic()
             model.pulledEdge = edge
             Task { [controller] in
-                await run(model: model, controller: controller)
+                await run(model: model, controller: controller, startsWithHaptic: false, haptic: haptic)
                 model.pulledEdge = nil
             }
         }

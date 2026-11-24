@@ -13,8 +13,8 @@ struct AllSectionsCollapsedView: View {
         } description: {
             Text("La vue filtrée masque les sections repliées.")
         } actions: {
-            Button("Afficher les sections repliées") { options.showsCollapsedSections = true }
-            Button("Tout déplier") { Task { await options.expandAll() } }
+            Button("Afficher les sections repliées") { options.showCollapsedSectionsFromEmptyState() }
+            Button("Tout déplier") { Task { await options.expandAllFromEmptyState() } }
         }
     }
 }
