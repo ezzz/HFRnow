@@ -40,27 +40,40 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
         )
     }
 
+    /// One probed element: its name, its selector and its size at 100 % over the root's.
+    private struct ProbedElement {
+        let name: String
+        let selector: String
+        let ratio: Double
+
+        init(_ name: String, _ selector: String, _ ratio: Double) {
+            self.name = name
+            self.selector = selector
+            self.ratio = ratio
+        }
+    }
+
     /// Name, selector (`::after` for a pseudo-element) and the size at 100 % over the root's: what dev-swift computed before
     /// #1237, from each element's real nesting. The video button and card are children of the article, so they follow the
     /// body, not the message text; the signature's children are one 0.85 step further than the message text's.
-    private let elements: [(name: String, selector: String, ratio: Double)] = [
-        ("content", ".content", 15 / 17.0),
-        ("date", ".date", 0.85),
-        ("quote header", "table.oldcitation b.s1", 0.85 * 15 / 17),
-        ("bubble", ".quoted-bubble", 0.765),
-        ("badge", ".separator1::after", 0.7),
-        ("signature", ".signature", 0.85 * 15 / 17),
-        ("trailer", ".trailer", 0.85),
-        ("video button", ".videos button.video", 0.85),
-        ("video card", ".videolinks .video-pill", 0.85),
-        ("code header", "table.code b.s1", 0.85 * 0.85 * 15 / 17),
-        ("signature image button", ".signature button.image-tap", 0.85 * 0.85 * 15 / 17),
-        ("signature image link", ".signature .image-link", 0.85 * 0.85 * 15 / 17),
-        ("sub", ".content > p sub", 15 / 17.0 / 1.2),
-        ("sup", ".content sup", 15 / 17.0 / 1.2),
-        ("sub in a code block", ".content table.fixed sub", 0.85 * 15 / 17 / 1.2),
-        ("sub in the signature", ".signature > sub", 0.85 * 15 / 17 / 1.2),
-        ("code header in the signature", ".signature table.code b.s1", 0.85 * 0.85 * 0.85 * 15 / 17)
+    private let elements: [ProbedElement] = [
+        ProbedElement("content", ".content", 15 / 17.0),
+        ProbedElement("date", ".date", 0.85),
+        ProbedElement("quote header", "table.oldcitation b.s1", 0.85 * 15 / 17),
+        ProbedElement("bubble", ".quoted-bubble", 0.765),
+        ProbedElement("badge", ".separator1::after", 0.7),
+        ProbedElement("signature", ".signature", 0.85 * 15 / 17),
+        ProbedElement("trailer", ".trailer", 0.85),
+        ProbedElement("video button", ".videos button.video", 0.85),
+        ProbedElement("video card", ".videolinks .video-pill", 0.85),
+        ProbedElement("code header", "table.code b.s1", 0.85 * 0.85 * 15 / 17),
+        ProbedElement("signature image button", ".signature button.image-tap", 0.85 * 0.85 * 15 / 17),
+        ProbedElement("signature image link", ".signature .image-link", 0.85 * 0.85 * 15 / 17),
+        ProbedElement("sub", ".content > p sub", 15 / 17.0 / 1.2),
+        ProbedElement("sup", ".content sup", 15 / 17.0 / 1.2),
+        ProbedElement("sub in a code block", ".content table.fixed sub", 0.85 * 15 / 17 / 1.2),
+        ProbedElement("sub in the signature", ".signature > sub", 0.85 * 15 / 17 / 1.2),
+        ProbedElement("code header in the signature", ".signature table.code b.s1", 0.85 * 0.85 * 0.85 * 15 / 17)
     ]
 
     /// The computed font size (px) of each element, then the root's. The video nodes are added where the builder puts them
@@ -74,8 +87,10 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
             \(rootPixels.map { "document.documentElement.style.fontSize = '\($0)px';" } ?? "")
             const article = document.querySelector('article.message');
             article.insertAdjacentHTML('beforeend', '<div class="videos"><button type="button" class="video">Video</button></div>'
-                + '<div class="videolinks"><a class="video-card" href="https://example.invalid/v"><span class="video-pill">YouTube</span></a></div>');
-            const px = (selector, pseudo) => parseFloat(getComputedStyle(document.querySelector(selector), pseudo ? '::after' : null).fontSize);
+                + '<div class="videolinks"><a class="video-card" href="https://example.invalid/v">'
+                + '<span class="video-pill">YouTube</span></a></div>');
+            const px = (selector, pseudo) => parseFloat(
+                getComputedStyle(document.querySelector(selector), pseudo ? '::after' : null).fontSize);
             const sizes = [\(list.joined(separator: ", "))].map(([selector, pseudo]) => px(selector, pseudo));
             sizes.push(parseFloat(getComputedStyle(document.documentElement).fontSize));
             return JSON.stringify(sizes);
@@ -106,8 +121,9 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
             let rootSize = seen[elements.count]
             for (element, size) in zip(elements, seen) {
                 let unscaled = element.ratio * rootSize
-                #expect(size >= min(unscaled, 11) - 0.01, "\(element.name) computes to \(size) px at 70 %, root \(rootSize): under the floor")
-                #expect(size <= unscaled + 0.01, "\(element.name) computes to \(size) px at 70 %, root \(rootSize): above its \(unscaled) px at 100 %")
+                let label = "\(element.name) computes to \(size) px at 70 %, root \(rootSize)"
+                #expect(size >= min(unscaled, 11) - 0.01, "\(label): under the floor")
+                #expect(size <= unscaled + 0.01, "\(label): above its \(unscaled) px at 100 %")
             }
         }
     }
