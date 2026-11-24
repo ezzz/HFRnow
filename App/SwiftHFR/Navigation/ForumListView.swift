@@ -49,11 +49,10 @@ struct ForumListView: View {
     @ViewBuilder
     private func overlay(_ loader: ContentLoader<ForumListContent>) -> some View {
         if loader.value == nil {
-            if let error = loader.error {
-                LoadFailureView(error: error, retry: navigation.forums.reload)
-            } else if loader.isLoading {
-                ProgressView("Chargement des forums")
-            }
+            ScreenStateView(
+                state: ScreenLoadState(error: loader.error, isLoading: loader.isLoading), loadingLabel: "Chargement des forums",
+                retry: navigation.forums.reload
+            )
         }
     }
 

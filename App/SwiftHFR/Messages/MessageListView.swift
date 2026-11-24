@@ -50,7 +50,7 @@ struct MessageListView: View {
             // Both can show: a message HFR confirmed stays confirmed when the reload after it fails.
             VStack(spacing: 8) {
                 if let confirmation = model.sentConfirmation {
-                    MessageSentBanner(text: confirmation, close: model.clearSentConfirmation)
+                    ConfirmationBanner(text: confirmation, close: model.clearSentConfirmation)
                 }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)
@@ -103,30 +103,9 @@ struct MessageListView: View {
                     refresh: model.refresh
                 )
             }
-        } else if let error = loader.error {
-            LoadFailureView(error: error, retry: model.retry)
-        } else if loader.isLoading {
-            ProgressView()
+        } else {
+            ScreenStateView(state: ScreenLoadState(error: loader.error, isLoading: loader.isLoading), retry: model.retry)
         }
-    }
-}
-
-/// HFR's confirmation of a new private message or of a conversation marked unread, above the list.
-private struct MessageSentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }
 
@@ -137,13 +116,7 @@ private struct EmptyMessagesView: View {
     let refresh: () async -> Void
 
     var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: symbol)
-        } description: {
-            if let message { Text(message) }
-        } actions: {
-            Button("Actualiser") { Task { await refresh() } }
-        }
+        EmptyStateView(title: title, symbol: symbol, message: message, refresh: refresh)
     }
 
     private var title: String {

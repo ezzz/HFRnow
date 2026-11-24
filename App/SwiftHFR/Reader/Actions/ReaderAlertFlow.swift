@@ -13,7 +13,7 @@ struct ReaderAlertFlow: ViewModifier {
         content
             .overlay {
                 if let progress = alerts?.progress {
-                    ProgressView(progress).padding().glassEffect(in: .rect(cornerRadius: 12))
+                    ProgressView(progress).padding().floatingCard(.glass)
                 }
             }
             .sheet(item: Binding(get: { alerts?.composer }, set: { alerts?.composer = $0 })) { composer in
