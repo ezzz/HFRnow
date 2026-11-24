@@ -42,11 +42,13 @@ struct ScreenStateView: View {
     }
 }
 
-/// The one empty state of a screen (#693): what is missing, why, and a refresh.
+/// The one empty state of a screen (#693): what is missing, why, and a refresh; or, when refreshing cannot help, one other action
+/// (Favoris without an account: "Ajouter un pseudo", #824).
 struct EmptyStateView: View {
     let title: String
     let symbol: String
     var message: String?
+    var action: (title: String, run: () -> Void)?
     let refresh: () async -> Void
 
     var body: some View {
@@ -55,7 +57,11 @@ struct EmptyStateView: View {
         } description: {
             if let message { Text(message) }
         } actions: {
-            Button("Actualiser") { Task { await refresh() } }
+            if let action {
+                Button(action.title, action: action.run).buttonStyle(.borderedProminent)
+            } else {
+                Button("Actualiser") { Task { await refresh() } }
+            }
         }
     }
 }

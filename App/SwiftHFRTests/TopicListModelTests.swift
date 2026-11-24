@@ -104,7 +104,7 @@ struct TopicListModelTests {
 
     @Test func anEmptyListWithoutMessageIsSimplyEmpty() async {
         let source = FakeDataSource()
-        let model = TopicListModel(source: .favorites, dataSource: source)
+        let model = TopicListModel(source: .favorites, dataSource: source, isLoggedIn: { true })
         await model.loadIfNeeded()
         #expect(model.loader.value?.emptyReason == .nothing)
     }

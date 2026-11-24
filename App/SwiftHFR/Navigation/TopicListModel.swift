@@ -70,7 +70,10 @@ struct TopicListContent: Sendable, Equatable {
         favoritesPage = favorites
         self.isLoggedIn = isLoggedIn
         let isEmpty = favorites.sections.allSatisfy { $0.topics.isEmpty }
-        emptyReason = Self.reason(isEmpty: isEmpty, notice: favorites.notice, isLoggedIn: isLoggedIn)
+        // Favoris without an account is the login wall whatever HFR printed, even nothing (legacy `if !isLoggedIn`, #824).
+        emptyReason = isEmpty && !isLoggedIn
+            ? .signInRequired(favorites.notice)
+            : Self.reason(isEmpty: isEmpty, notice: favorites.notice, isLoggedIn: isLoggedIn)
     }
 
     private static func reason(isEmpty: Bool, notice: String?, isLoggedIn: Bool) -> EmptyReason? {

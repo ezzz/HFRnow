@@ -289,7 +289,7 @@ extension TopicListView {
     private func overlay(_ loader: ContentLoader<TopicListContent>) -> some View {
         if let content = loader.value {
             if content.isEmpty, let reason = content.emptyReason {
-                EmptyListView(reason: reason, refresh: model.refresh)
+                EmptyListView(reason: reason, prompt: model.signInPrompt(current:), refresh: model.refresh)
             } else if model.showsNoUnreadFavorites, let favorites = model.favorites {
                 // Nothing unread only when no row is: an unread row inside a folded section is hidden, not absent.
                 NoUnreadTopicsView(options: favorites)
