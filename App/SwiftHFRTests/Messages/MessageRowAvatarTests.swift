@@ -33,6 +33,8 @@ struct MessageRowAvatarTests {
             #expect(MessageRowView.accessibilityValue(of: row) == (row.isGroup ? "Conversation de groupe" : ""))
         }
         #expect(rows.contains { $0.isGroup } && rows.contains { !$0.isGroup })
+        // Same rule as the icon: a row that only carries the label of a group is a group too.
+        #expect(MessageRowView.accessibilityValue(of: thread(starter: "Interlocuteurs multiples")) == "Conversation de groupe")
     }
 
     @Test("A group row never leaks a member's pseudo (R123a)")
