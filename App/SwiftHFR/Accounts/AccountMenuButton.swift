@@ -71,7 +71,7 @@ struct AccountMenuButton: View {
         .sheet(item: $loginTarget) { target in
             LoginView(target: target, accounts: accounts)
         }
-        .alert("Action impossible", isPresented: errorBinding) {
+        .alert(AlertTitles.accountSwitchFailed, isPresented: errorBinding) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(actionError ?? "")

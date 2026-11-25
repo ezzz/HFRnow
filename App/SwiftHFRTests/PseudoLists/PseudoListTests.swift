@@ -149,9 +149,27 @@ struct PseudoListManagerTests {
     }
 }
 
+/// A persistence that reads fine and refuses every write.
+private final class FailingSavePersistence: PseudoListPersistence {
+    func load() throws -> PseudoListDocument? { nil }
+    func save(_ document: PseudoListDocument) throws { throw CocoaError(.fileWriteUnknown) }
+    func quarantineUnreadableData() throws {}
+}
+
 /// The two editors of Réglages.
 @MainActor @Suite(.timeLimit(.minutes(5)))
 struct PseudoListEditorModelTests {
+    /// #1175: the alert's title says what failed, never « Erreur ».
+    @Test func aRefusedAddSaysAddFailedInTheTitle() async {
+        let store = PseudoListStore(persistence: FailingSavePersistence())
+        let model = PseudoListEditorModel(kind: .blocklist, manager: PseudoListManager(store: store, account: "moi"))
+        await model.load()
+        model.draft = "Troll"
+        await model.add()
+        #expect(model.errorMessage == PseudoListKind.blocklist.addFailure)
+        #expect(model.errorTitle == "Ajout impossible")
+    }
+
     @Test func theFieldIsCleanedAndAddedThenEmptied() async throws {
         let setup = try await fixture()
         let lists = setup.manager
@@ -175,6 +193,7 @@ struct PseudoListEditorModelTests {
         model.draft = "troll"
         await model.add()
         #expect(model.errorMessage == "troll est déjà dans la liste.")
+        #expect(model.errorTitle == "Pseudo déjà dans la liste")
         #expect(await store.blocklist(for: "moi").count == 1)
     }
 
