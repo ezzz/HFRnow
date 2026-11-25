@@ -136,7 +136,8 @@ struct MessageListReadStateTests {
         let count = PrivateMessageCount()
         count.record(badge, ticket: count.ticket())
         let model = MessageListModel(
-            source: source, isLoggedIn: { true }, privateMessageCount: count, ledgerSeen: { recorder.add($0) }
+            source: source, isLoggedIn: { true }, privateMessageCount: count, ledgerSeen: { recorder.add($0) },
+            ledgerThread: { recorder.add(thread: $0, mark: $1) }
         )
         return (model, count)
     }
@@ -209,7 +210,9 @@ struct MessageListReadStateTests {
         }
         #expect(model.isUnread(read))
         #expect(count.latest == 1)
-        #expect(recorder.summaries.last?.unreadThreads == [7])
+        // The member's own mark unread reaches the ledger as that conversation alone (#1006), not as the stale page's set.
+        #expect(recorder.summaries.allSatisfy { $0.unreadThreads?.contains(7) != true })
+        #expect(recorder.marks == [7])
     }
 
     @Test func aRowWithoutAThreadLinkStaysUnread() async throws {

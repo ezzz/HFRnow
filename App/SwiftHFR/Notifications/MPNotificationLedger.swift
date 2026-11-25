@@ -17,6 +17,14 @@ enum MPNotificationLedger {
         _ = try? await store.record(summary, account: account)
     }
 
+    /// Records one conversation read in the app (`mark` nil) or marked unread there for `account`, that conversation alone (#1006):
+    /// what a background check recorded since the list was loaded stays. A failed write is not shown, as `recordSeen`.
+    static func recordThread(
+        _ topic: Int, unread mark: UnreadThreadMark?, account: String, store: NotificationLedgerStore = live
+    ) async {
+        _ = try? await store.setThread(topic, unread: mark, account: account)
+    }
+
     /// The unread conversations of an MP list page 1 the app showed.
     static func seenSummary(of page: PrivateMessageListPage) -> NotificationSummary {
         seenSummary(of: page.threads.filter(\.isUnread))

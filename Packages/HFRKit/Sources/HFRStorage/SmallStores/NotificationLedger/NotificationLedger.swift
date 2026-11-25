@@ -97,6 +97,33 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
         return self != before
     }
 
+    /// One conversation read here (`mark` nil) or marked unread here (`mark` given), applied to the recorded set alone (#1006):
+    /// the rest of the set is kept, so a list shown from before a background check cannot take that check's conversations
+    /// out of the ledger (they would be notified twice). A read drops the conversation and its mark, so its next reply is
+    /// news again, whether or not the list that showed it called it unread; a mark unread adds it with the highest mark, the
+    /// member's own action being no news. Nothing changes while no set was recorded (the first check is the baseline), nor for
+    /// a topic number not positive. Returns false when nothing changed.
+    @discardableResult
+    public mutating func setThread(_ topic: Int, unread mark: UnreadThreadMark?) -> Bool {
+        guard topic > 0, var threads = unreadThreads, mark.map({ $0.topic == topic && $0.repliesCount >= 0 }) ?? true else {
+            return false
+        }
+        let before = self
+        var marks = Self.highest(unreadThreadMarks ?? [])
+        if let mark {
+            threads.append(topic)
+            marks[topic] = marks[topic].map { $0.merged(with: mark) } ?? mark
+        } else {
+            threads.removeAll { $0 == topic }
+            marks[topic] = nil
+        }
+        unreadThreads = Array(Set(threads)).sorted()
+        if unreadThreadMarks != nil || mark != nil {
+            unreadThreadMarks = marks.values.sorted { $0.topic < $1.topic }
+        }
+        return self != before
+    }
+
     /// Whether a check may run at `now`: never checked, at least `minimumInterval` since the last check, or a last
     /// check in the future (the clock went back), which would otherwise block checks until the clock catches up.
     public func isDue(now: Date, minimumInterval: TimeInterval) -> Bool {

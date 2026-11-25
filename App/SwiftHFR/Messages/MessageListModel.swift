@@ -46,10 +46,12 @@ final class MessageListModel {
     /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
     /// do not need it.
     let privateMessageCount: PrivateMessageCount?
-    /// Hands what page 1 shows to the notification ledger (LOT-140): its unread conversations when it loads, and again when one
-    /// is read here (with the badge's count), so the next background check neither notifies what the member saw nor misses a
-    /// reply to a conversation read here. Nil in tests that do not need it.
+    /// Hands what page 1 shows to the notification ledger (LOT-140): its unread conversations when a list load applies, so the
+    /// next background check does not notify what the member saw (a read or mark unread goes through `ledgerThread`). Nil in
+    /// tests that do not need it.
     let ledgerSeen: (@Sendable (NotificationSummary) async -> Void)?
+    /// Hands one conversation read here (mark nil) or marked unread here to the ledger, that conversation alone (#1006).
+    let ledgerThread: (@Sendable (_ topic: Int, _ unread: UnreadThreadMark?) async -> Void)?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -84,9 +86,11 @@ final class MessageListModel {
         account: String? = nil,
         mpStorage: MPStorageSyncModel? = nil,
         privateMessageCount: PrivateMessageCount? = nil,
-        ledgerSeen: (@Sendable (NotificationSummary) async -> Void)? = nil
+        ledgerSeen: (@Sendable (NotificationSummary) async -> Void)? = nil,
+        ledgerThread: (@Sendable (_ topic: Int, _ unread: UnreadThreadMark?) async -> Void)? = nil
     ) {
         self.ledgerSeen = ledgerSeen
+        self.ledgerThread = ledgerThread
         self.mpStorage = mpStorage
         self.privateMessageCount = privateMessageCount
         segments = settings.map(MPListSegmentStore.init(settings:))
@@ -338,8 +342,8 @@ final class MessageListModel {
             if !isUnread(listed(thread)) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
-            // Recorded before the reload, which may fail: the member's own action is not news (LOT-140).
-            await recordReadState()
+            // Recorded before the reload, which may fail: the member's own action is not news (LOT-140; #1006: it alone).
+            await recordUnread(listed(thread))
             await refresh()
         }
     }
@@ -355,14 +359,8 @@ final class MessageListModel {
         if wasUnread { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
-        if wasUnread { Task { await recordReadState() } }
-    }
-
-    /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
-    /// later load may have made stale (a row since read must not take a second one off the badge, #762). Off the page, the
-    /// thread's "opened here" mark is kept by `load`, so the fallback still reads as read.
-    private func listed(_ thread: PrivateMessageThread) -> PrivateMessageThread {
-        loader.value?.threads.first { $0.id == thread.id } ?? thread
+        // Whether or not this list showed it unread: the ledger may hold it from a check since (#1006).
+        if let topic = thread.summary.topicID?.topic, let ledgerThread { Task { await ledgerThread(topic, nil) } }
     }
 
     private func load(page: Int, advancing: Bool = true) async {
