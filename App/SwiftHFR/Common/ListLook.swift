@@ -26,6 +26,20 @@ enum ListLook: Sendable, Equatable {
         }
     }
 
+    /// #1073 item 4 (operator, 2026-11-17: a solid accent fill is « un gros bloc de couleur »): the background of a row a list
+    /// can select. A selected row is a light accent tint in both looks, so the text and the row's own cues stay readable (the
+    /// row's pill is dropped on the selected row, `TopicRowCues.accent`); nil on an unselected classic row keeps the card's own
+    /// background, and the dense look's clear row stays clear. Legacy leaves the system's blue selection
+    /// (`UITableViewCellSelectionStyleBlue`, `ForumsTableViewController.m:1038` @ 87fe0d1c), so the subtle tint is the
+    /// operator's decision, not a port.
+    func rowBackground(isSelected: Bool) -> Color? {
+        if isSelected { return Self.selectedRowBackground }
+        return self == .dense ? DenseListLook.rowBackground : nil
+    }
+
+    /// The selected row's tint: the accent at 15 %, the value the dense look already drew (#1107).
+    static let selectedRowBackground = Color.accentColor.opacity(0.15)
+
     /// The inner side inset of a row that keeps the system's vertical insets, and of the section headers: nil keeps the system's.
     func rowSideInset(_ density: ListDensity) -> CGFloat? {
         outerMargin(density) == nil ? nil : density.rowInsets.leading
@@ -74,7 +88,8 @@ private struct ListLookRows: ViewModifier {
     }
 }
 
-/// The background of a row a list can select: the dense look draws the selection itself, its clear row would hide the list's.
+/// The background of a row a list can select: both looks draw a light tint (`ListLook.rowBackground`). The dense look's clear
+/// row would hide the list's selection, and the classic look's system fill is solid.
 private struct ListLookRow: ViewModifier {
     let isSelected: Bool
     @Environment(\.listLook) private var look
@@ -86,9 +101,8 @@ private struct ListLookRow: ViewModifier {
             content.themedListRow(isSelected: isSelected)
         } else {
             // EXPERIMENTAL(denseRows, #1107): the dense look's clear or selected row replaces the card's background.
-            content.listRowBackground(
-                look == .dense ? (isSelected ? DenseListLook.selectedRowBackground : DenseListLook.rowBackground) : nil
-            )
+            // #1073: the classic look no longer leaves the system's solid accent fill on the selected row (iPad split).
+            content.listRowBackground(look.rowBackground(isSelected: isSelected))
         }
     }
 }
