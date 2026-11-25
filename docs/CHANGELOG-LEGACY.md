@@ -166,5 +166,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 1279 | UX | Une image placée dans un lien ouvre l'image liée en grand dans la visionneuse quand le lien mène à une image, et demande confirmation (« Ce lien ouvre une page externe », avec le domaine) avant d'ouvrir toute autre page ; un lien du forum s'ouvre dans l'app sans avertissement. | #1279 | `MessagesView.swift:1150-1235`, `Common.swift:2243-2256` @ `87fe0d1c` |
 | 1303 | UX | Déconnecté, les menus d'auteur et la fiche profil proposent « Connectez-vous pour bloquer », qui ouvre la connexion, au lieu de « Blacklist » qui affichait un succès sans rien enregistrer. | LOT-159 #1297 | `MessagesView.swift:213-216, 4470-4484`; `BlackList.m:37-47, 92-94` @ `87fe0d1c` |
 | 1333 | UX | Les alertes disent ce qui a échoué ou ce qu'on demande (« Ajout impossible », « Activer le stockage MP ? ») au lieu de « Erreur » et « Stockage MP ». | #1333 | `AppSettingsView.swift:735` et `Classes/MPStorage.m:91` @ `87fe0d1c`, #1175 |
+| 1342 | UX | « Page numéro » : la feuille peut être agrandie et défile aux grandes tailles de texte, au lieu de couper la ligne des boutons. | #1342 | `HFRswift/Swift/Common.swift:3212` @ `87fe0d1c`, #1167 |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

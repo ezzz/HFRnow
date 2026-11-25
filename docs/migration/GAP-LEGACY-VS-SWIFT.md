@@ -192,6 +192,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-729 | Theme gallery | Two themes, light and dark, with the accent hue and the dark brightness. | Constants.h Theme; AppSettingsView.swift:421-466 @ 87fe0d1c | Galerie de thèmes sous les réglages de Réglages › Thème : familles, pastilles clair et sombre, nom, « par <auteur> », coche ; un thème est un fichier de jetons `<id>.theme.json` ; Legacy, par défaut, est l'app actuelle, inchangée (teinte, style sombre et luminosité réservés à Legacy). | LOT-188 | new | new UX: operator | b·operator |
 | GAP-903 | Experimental options | None. | — | Single row « Expérimental » at the end of Réglages (monochrome warning symbol) opening an « Expérimental » page; the themes (Composer, Messages…) are its sections, each switch with an ⓘ except « MP multiples → dark topic », whose description sits under its switch (#1014), the footer under the last one; device keys, all off by default (the modern composer too since #855, which made legacy's full-screen composer the default). Lists the options whose two paths exist: « Composer moderne » (#904), « Recherche dans la barre » (#896), « MP multiples → dark topic » (#1014, it replaced « Stockage MP détaillé », #859), « Chargement des images » (#902) and « Lignes denses » (#905, #973: dense topic and MP rows, last poster, one info line cut with « … » except at accessibility text sizes, bold section titles). | #903, #971, #855, #1014 | new | new UX: operator 2026-11-14 | b·operator |
 | GAP-1213 | Light style and theme tiles | None: one light look, and « Thème » is a menu with the dark controls always shown. | — | Réglages › Thème: « Thème » is three image tiles (Clair, Sombre, Système split diagonally, drawn from the reader's surfaces, the dot in the chosen accent); the light theme has a « Style du thème clair » (Blanc, today's look, default; Doux, a warm off-white #F5F4EF), the dark controls show for Sombre and Système only; device setting `theme_light_style`. | #1213 | new | new UX: operator (#1213) | b·operator |
+| GAP-1178 | App voice (« tu » or « vous ») | « Vous » in every user-facing string (« Connectez-vous… », « Réessayez… », « Votre session a expiré… »). | AppSettingsView.swift:260; Favorites.swift:669; MPListView.swift:583 @ `87fe0d1c` | Tous les textes de l'app s'adressent au lecteur en « tu » (« Connecte-toi… », « Réessaie… », « Ta session a expiré… ») ; les textes de HFR eux-mêmes (charte, phrases de confirmation du serveur) restent tels quels. | #1178 | UX change | port: ezzz Swift layer | b·operator |
 
 ## Accounts
 
@@ -227,7 +228,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
 |---|---|---|---|---|---|---|---|---|
 | GAP-190 | Background MP check | BGAppRefresh `com.hfrplus.refresh_mp` polls the home page. | MPBackgroundService.swift:21-46, 70-110 | Same task id; current account's stored session written back nowhere; home count then MP list page 1; interval setting (15 min to 4 h, Jamais; default 30 min) and the ledger's interval guard; nothing on an unknown or expired answer. A « Notifications » switch (default on) turns the notifications off and keeps the badge; an alert when a switch disagrees with iOS's settings (#1060). | LOT-140, LOT-047 | ported with changes | port: ezzz Swift layer | b·operator |
-| GAP-191 | Local notification | "Vous avez un nouveau message privé" when the count rises. | MPBackgroundService.swift:98-101, 140-157 | One notification per conversation that became unread (interlocutor and title, or a group's title), `mp-<topic>` identifier and thread, a summary past 5; the legacy text only when the list could not be read and the count rose. A reply in an already-unread conversation waits on #571. | LOT-140, LOT-091 | ported with changes | port: ezzz Swift layer | b·operator |
+| GAP-191 | Local notification | "Vous avez un nouveau message privé" when the count rises. | MPBackgroundService.swift:98-101, 140-157 | One notification per conversation that became unread, or that received a reply while already unread (reply count or last post moved forward), interlocutor and title (or a group's title), `mp-<topic>` identifier and thread, a summary past 5; the legacy text only when the list could not be read and the count rose. | LOT-140, LOT-091 | ported with changes | port: ezzz Swift layer | b·operator |
 | GAP-192 | App icon badge | Synced with the MP count when `mp_badge_enabled`. | MPBackgroundService.swift:60-66; MainWindow.swift:1564-1567, :2588-2593 | Badge per setting, set by the running app and by the background check; a badge iOS did not show (no permission yet) is set again when the app is back on screen, a shown one is not (#1060). A root logged out or rebuilt on a new session (switch, login, logout) sets 0 until its first count, as legacy's reset of `nb_mp` (LOT-156). | LOT-140 | ported with changes | port: ezzz Swift layer | b·needed |
 | GAP-193 | "Vérifier HFR" App Intent | None. | — | Shortcuts check of MPs and flags, minimum interval. | LOT-141, LOT-092, FEAT-005 | new | new UX: Bybifok (FEAT-005) | b |
 | GAP-194 | Flag news notification | Flags never notified. | — | Ledger notifies flagged topics with a newer post. | LOT-091, LOT-092 | new | new UX: Bybifok (FEAT-005) | b |
@@ -310,11 +311,11 @@ Gap issues: #1309 state views (needs a decision), #1310 haptics, #1311 row menus
 | same | 31 |
 | ported with changes | 67 |
 | ported with changes (engine only) | 1 |
-| UX change | 60 |
+| UX change | 61 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 2 |
-| **Total** | **193** |
+| **Total** | **194** |
 
 ## Convergence notes
 
@@ -344,14 +345,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (156)
+### GAP rows of type `ported with changes`, `UX change` or `new` (157)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 005, 007, 020, 021, 022, 023, 026, 027, 032, 033, 037, 038, 040, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595, 1039 | 52 |
 | a·master | 002, 093, 117, 150, 152, 210, 217, 219, 682, 713 | 10 |
 | b·needed | 024, 036, 056, 058, 070, 089, 133, 181, 192 | 9 |
-| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1207, 1213, 1297 | 44 |
+| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297 | 45 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 912, 1073, 1074, 1107 | 41 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
