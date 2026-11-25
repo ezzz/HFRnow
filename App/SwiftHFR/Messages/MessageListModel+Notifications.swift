@@ -24,8 +24,8 @@ extension MessageListModel {
     }
 
     /// Page 1's unread conversations as shown now (HFR's state, less what was read here, plus what was marked unread here),
-    /// to the ledger (LOT-140). Called after the newest load applied, a read and a mark unread: a conversation read here
-    /// leaves the ledger's set (its next reply is news), and the member's own mark unread is not news. No count: the list
+    /// to the ledger (LOT-140). Called after the newest load applied only: a read or a mark unread here reaches the ledger
+    /// through `ledgerThread`, one conversation at a time (#1006). No count: the list
     /// carries none, and the badge's may be stale (review r3). Nothing for other pages or the signed-out content.
     func recordReadState() async {
         guard let ledgerSeen, let content = loader.value, content.page == 1, content != .signedOut else { return }

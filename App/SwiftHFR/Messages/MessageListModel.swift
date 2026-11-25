@@ -46,9 +46,9 @@ final class MessageListModel {
     /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
     /// do not need it.
     let privateMessageCount: PrivateMessageCount?
-    /// Hands what page 1 shows to the notification ledger (LOT-140): its unread conversations when it loads, and again when one
-    /// is read here (with the badge's count), so the next background check neither notifies what the member saw nor misses a
-    /// reply to a conversation read here. Nil in tests that do not need it.
+    /// Hands what page 1 shows to the notification ledger (LOT-140): its unread conversations when a list load applies, so the
+    /// next background check does not notify what the member saw (a read or mark unread goes through `ledgerThread`). Nil in
+    /// tests that do not need it.
     let ledgerSeen: (@Sendable (NotificationSummary) async -> Void)?
     /// Hands one conversation read here (mark nil) or marked unread here to the ledger, that conversation alone (#1006).
     let ledgerThread: (@Sendable (_ topic: Int, _ unread: UnreadThreadMark?) async -> Void)?
