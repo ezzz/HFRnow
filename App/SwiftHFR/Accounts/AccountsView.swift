@@ -54,8 +54,9 @@ struct AccountsView: View {
                     Button("OK") { dismiss() }
                 }
             }
-            .sheet(item: $loginTarget) { target in
-                LoginView(target: target, accounts: accounts)
+            // #1176: pushed on this sheet's stack, never a second sheet over it (HIG › Sheets).
+            .navigationDestination(item: $loginTarget) { target in
+                LoginView(target: target, accounts: accounts, presentation: .pushed)
             }
             .confirmationDialog(
                 "Retirer ce compte ?", isPresented: removalBinding, titleVisibility: .visible, presenting: pendingRemoval
