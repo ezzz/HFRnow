@@ -182,7 +182,7 @@ struct TitlePill: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(title)
-            .accessibilityHint("Touchez pour lire le titre en entier, maintenez pour le copier")
+            .accessibilityHint("Touche pour lire le titre en entier, maintiens pour le copier")
             .accessibilityAddTraits([.isHeader, .isButton])
             .accessibilityAction(named: "Copier le titre") { copy() }
     }

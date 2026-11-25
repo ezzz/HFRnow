@@ -11,8 +11,8 @@ import OSLog
 // notification while « Notifications » is off, the badge kept (operator, 2026-11-18, #1060).
 /// One background MP check (LOT-140): due check, the forum's count and list, the ledger's news, notifications and badge.
 struct MPBackgroundCheck: Sendable {
-    /// The legacy text, kept for a count that went up while the list could not be read (`MPBackgroundService.swift:100`).
-    static let legacyText = "Vous avez un nouveau message privé"
+    /// The legacy text (« Vous avez… », moved to « tu » by #1178), kept for a count that went up while the list could not be read (`MPBackgroundService.swift:100`).
+    static let legacyText = "Tu as un nouveau message privé"
     /// Its own identifier, apart from the burst summary's, so withdrawing it never removes a summary.
     static let legacyIdentifier = "mp-legacy"
     /// Taken off the interval in the due test: iOS may launch the task right at its earliest date, which was computed a moment

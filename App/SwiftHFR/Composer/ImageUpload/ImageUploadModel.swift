@@ -70,7 +70,7 @@ final class ImageUploadModel {
         let host = services.hostName ?? "l'hébergeur d'images"
         return "Les images sont envoyées à \(host), un service communautaire qui n'est ni HFR ni cette application. "
             + "Sont envoyés : l'image, recompressée et réduite à la dimension choisie, sans ses métadonnées (dont la position), "
-            + "sans votre pseudo ni vos cookies. L'image devient publique et ne peut pas être supprimée depuis l'application. "
+            + "sans ton pseudo ni tes cookies. L'image devient publique et ne peut pas être supprimée depuis l'application. "
             + "Les conditions de l'hébergeur s'appliquent."
     }
 

@@ -43,7 +43,7 @@ struct NoUnreadTopicsView: View {
         ContentUnavailableView {
             Label("Aucun sujet non lu", systemImage: "checkmark.circle")
         } description: {
-            Text("Tous vos sujets sont lus.")
+            Text("Tous tes sujets sont lus.")
         } actions: {
             Button("Afficher tous les sujets") { options.unreadOnly = false }
         }

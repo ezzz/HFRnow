@@ -47,7 +47,7 @@ private struct BookmarkTitleSheet: View {
                 Section {
                     Group {
                         Text("Créer un bookmark sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
-                        TextField("Ajoutez un titre", text: $title)
+                        TextField("Ajoute un titre", text: $title)
                             .textInputAutocapitalization(.sentences)
                             .focused($focused)
                             .submitLabel(.done)

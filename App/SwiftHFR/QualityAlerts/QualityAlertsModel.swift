@@ -67,9 +67,9 @@ final class QualityAlertsModel {
         var detail: String {
             switch self {
             case .unavailable: "Cette version n'a pas d'adresse pour le service des Alertes Qualitay."
-            case .offline: "Vérifiez votre connexion puis réessayez."
-            case .timedOut: "Le service des Alertes Qualitay n'a pas répondu à temps. Réessayez dans un moment."
-            case .other: "La liste des Alertes Qualitay n'a pas pu être lue. Réessayez dans un moment."
+            case .offline: "Vérifie ta connexion puis réessaie."
+            case .timedOut: "Le service des Alertes Qualitay n'a pas répondu à temps. Réessaie dans un moment."
+            case .other: "La liste des Alertes Qualitay n'a pas pu être lue. Réessaie dans un moment."
             }
         }
     }

@@ -303,7 +303,7 @@ struct EditComposerTests {
     @Test func theMessagesTalkAboutTheEdit() {
         #expect(ComposerMessages.message(for: .formUnavailable(message: nil), edit: true).contains("modifier ce message"))
         #expect(ComposerMessages.message(for: .sessionChanged, edit: true).contains("la modification"))
-        #expect(ComposerMessages.message(for: .unconfirmed(.transport(.timedOut)), edit: true).contains("Vérifiez le sujet"))
+        #expect(ComposerMessages.message(for: .unconfirmed(.transport(.timedOut)), edit: true).contains("Vérifie le sujet"))
         #expect(!ComposerMessages.message(for: .subjectNotEditable, edit: true).contains("réponse"))
         #expect(ComposerMessages.message(for: .unknownSubcategory, edit: true).contains("sous-catégorie"))
     }

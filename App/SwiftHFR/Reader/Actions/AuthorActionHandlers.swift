@@ -73,7 +73,7 @@ enum PrivateMessageFeedback {
             let message = result.message.trimmingCharacters(in: .whitespacesAndNewlines)
             return message.isEmpty ? "Message privé envoyé" : message
         case .checkTopic:
-            return "Envoi non confirmé : vérifiez vos MP avant de renvoyer."
+            return "Envoi non confirmé : vérifie tes MP avant de renvoyer."
         case .keptDraft, .discardedDraft, .closedWithoutSaving:
             return nil
         }

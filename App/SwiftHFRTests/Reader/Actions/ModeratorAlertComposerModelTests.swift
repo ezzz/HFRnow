@@ -47,9 +47,9 @@ struct ModeratorAlertComposerModelTests {
         let refusals: [(ModeratorAlertError, String)] = [
             (.rejected(message: "Merci de patienter avant de poster à nouveau."), "Merci de patienter avant de poster à nouveau."),
             (.rejected(message: nil), "Le forum a refusé l’alerte : rien n’a été envoyé."),
-            (.emptyReason, "Décrivez le problème avant d’envoyer."),
+            (.emptyReason, "Décris le problème avant d’envoyer."),
             (.unsupportedCharacters(["😀", "🚀"]),
-             "Le forum ne peut pas enregistrer ces caractères : 😀 🚀. Retirez-les puis envoyez."),
+             "Le forum ne peut pas enregistrer ces caractères : 😀 🚀. Retire-les puis envoie."),
             (.network(.cancelled), "Alerte annulée : rien n’a été envoyé.")
         ]
         for (error, text) in refusals {
@@ -88,10 +88,10 @@ struct ModeratorAlertComposerModelTests {
     @Test func aFormThatCannotBeSentAnyMoreEndsTheSheet() async {
         let cases: [(ModeratorAlertError, String)] = [
             (.notLoggedIn,
-             "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis alertez à nouveau."),
+             "Ta session a expiré : rien n’a été envoyé. Reconnecte-toi depuis le menu Comptes, puis alerte à nouveau."),
             (.unsupportedForm(reason: "select"),
              "Le formulaire d’alerte du forum n’est pas pris en charge : rien n’a été envoyé. "
-                + "Actualisez le sujet puis réessayez.")
+                + "Actualise le sujet puis réessaie.")
         ]
         for (error, text) in cases {
             let ended = Ended()

@@ -104,9 +104,9 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
     var detailPlaceholder: DetailPlaceholder? {
         switch self {
         case .bookmarks:
-            DetailPlaceholder(title: "Aucun bookmark sélectionné", symbol: "pin", description: "Choisissez un bookmark dans la liste.")
+            DetailPlaceholder(title: "Aucun bookmark sélectionné", symbol: "pin", description: "Choisis un bookmark dans la liste.")
         case .qualityAlerts:
-            DetailPlaceholder(title: "Aucune alerte sélectionnée", symbol: "bell", description: "Choisissez une alerte dans la liste.")
+            DetailPlaceholder(title: "Aucune alerte sélectionnée", symbol: "bell", description: "Choisis une alerte dans la liste.")
         case .settings, .search, .credits, .charter, .deleteAccount:
             nil
         }

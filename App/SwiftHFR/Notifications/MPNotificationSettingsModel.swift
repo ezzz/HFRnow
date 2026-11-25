@@ -150,8 +150,8 @@ enum MPNotificationSettingsAlert: Sendable, Hashable {
     /// The alert's message.
     var message: String {
         switch self {
-        case .notifications: "Autorisez SwiftHFR dans Réglages › Notifications pour recevoir les messages privés."
-        case .badge: "Autorisez SwiftHFR dans Réglages › Notifications pour voir la pastille sur l’icône."
+        case .notifications: "Autorise SwiftHFR dans Réglages › Notifications pour recevoir les messages privés."
+        case .badge: "Autorise SwiftHFR dans Réglages › Notifications pour voir la pastille sur l’icône."
         }
     }
 }

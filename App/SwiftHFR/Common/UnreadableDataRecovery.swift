@@ -17,7 +17,7 @@ enum UnreadableDataRecovery {
     }
 
     /// What the screen shows when the set-aside failed.
-    static let failure = "Impossible de mettre les données illisibles de côté. Réessayez plus tard."
+    static let failure = "Impossible de mettre les données illisibles de côté. Réessaie plus tard."
 }
 
 /// The "Repartir de zéro…" button and its confirmation; `discard` runs only after the member confirmed.

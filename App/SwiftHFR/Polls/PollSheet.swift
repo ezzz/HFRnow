@@ -100,9 +100,9 @@ struct PollSheet: View {
                     .accessibilityAddTraits(model.selected == option.id ? .isSelected : [])
                 }
                 if model.voterMissing {
-                    Text("Connectez-vous pour voter.").font(.footnote).foregroundStyle(.secondary)
+                    Text("Connecte-toi pour voter.").font(.footnote).foregroundStyle(.secondary)
                 } else if model.poll.maxChoices > 1 {
-                    Text("Ce sondage à choix multiples n’est pas encore pris en charge : votez depuis le site.")
+                    Text("Ce sondage à choix multiples n’est pas encore pris en charge : vote depuis le site.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }.themedListRow()

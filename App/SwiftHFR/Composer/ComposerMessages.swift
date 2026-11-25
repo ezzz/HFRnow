@@ -18,11 +18,11 @@ enum ComposerMessages {
         case .formUnavailable(let message):
             return message ?? unavailable(newMessage: newMessage, newTopic: newTopic)
         case .notLoggedIn:
-            return "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis renvoyez \(what)."
+            return "Ta session a expiré : rien n’a été envoyé. Reconnecte-toi depuis le menu Comptes, puis renvoie \(what)."
         case .sessionChanged:
-            return "Le compte connecté a changé depuis l’ouverture du formulaire : rien n’a été envoyé. Renvoyez \(what)."
+            return "Le compte connecté a changé depuis l’ouverture du formulaire : rien n’a été envoyé. Renvoie \(what)."
         case .rejected(let message):
-            return message ?? "Le forum a refusé \(what) : rien n’a été envoyé. Réessayez."
+            return message ?? "Le forum a refusé \(what) : rien n’a été envoyé. Réessaie."
         case .unconfirmed(let uncertainty):
             return unconfirmed(uncertainty, newMessage: newMessage, newTopic: newTopic)
         case .network(let error):
@@ -32,7 +32,7 @@ enum ComposerMessages {
         case .unsupportedCharacters(_, let characters):
             return unsupported(characters)
         case .unknownSubcategory where newTopic || edit:
-            return "Le forum n’offre plus cette sous-catégorie : choisissez-la à nouveau. Rien n’a été envoyé."
+            return "Le forum n’offre plus cette sous-catégorie : choisis-la à nouveau. Rien n’a été envoyé."
         case .invalidFormURL, .missingAction, .unsupportedForm, .formMismatch, .unknownSubcategory, .subjectNotEditable,
              .optionNotOffered, .deleteNotOffered, .wholeTopicDeletionNotConfirmed, .pollNotOffered, .invalidPoll:
             return unsupportedForm(newMessage: newMessage, newTopic: newTopic)
@@ -56,10 +56,10 @@ enum ComposerMessages {
         case .invalidFormURL, .missingAction, .unsupportedForm, .formMismatch, .subjectNotEditable, .optionNotOffered, .deleteNotOffered,
              .wholeTopicDeletionNotConfirmed:
             "Le formulaire de modification du forum n’est pas pris en charge : rien n’a été envoyé. "
-                + "Actualisez le sujet puis réessayez."
+                + "Actualise le sujet puis réessaie."
         case .unconfirmed(let uncertainty):
-            "Le forum n’a pas confirmé la modification : votre message a peut-être été modifié. "
-                + "Vérifiez le sujet avant de renvoyer ; le texte est gardé." + answer(of: uncertainty)
+            "Le forum n’a pas confirmé la modification : ton message a peut-être été modifié. "
+                + "Vérifie le sujet avant de renvoyer ; le texte est gardé." + answer(of: uncertainty)
         default:
             nil
         }
@@ -69,7 +69,7 @@ enum ComposerMessages {
     static func editUnavailable(_ error: PostingError) -> String {
         switch error {
         case .notLoggedIn, .sessionChanged:
-            "Votre session a expiré : reconnectez-vous depuis le menu Comptes, puis réessayez."
+            "Ta session a expiré : reconnecte-toi depuis le menu Comptes, puis réessaie."
         case .formUnavailable(let message?):
             message
         case .formUnavailable:
@@ -77,7 +77,7 @@ enum ComposerMessages {
         case .network(let failure):
             network(failure)
         default:
-            "Le formulaire de modification du forum n’est pas pris en charge. Actualisez le sujet puis réessayez."
+            "Le formulaire de modification du forum n’est pas pris en charge. Actualise le sujet puis réessaie."
         }
     }
 
@@ -85,20 +85,20 @@ enum ComposerMessages {
     static func deletion(_ error: PostingError) -> String {
         switch error {
         case .unconfirmed(let uncertainty):
-            "Le forum n’a pas confirmé la suppression : le message a peut-être été supprimé. Vérifiez le sujet avant de réessayer."
+            "Le forum n’a pas confirmé la suppression : le message a peut-être été supprimé. Vérifie le sujet avant de réessayer."
                 + answer(of: uncertainty)
         case .wholeTopicDeletionNotConfirmed:
             "Ce message ouvre le sujet : le supprimer emporterait tout le sujet. Rien n’a été supprimé."
         case .deleteNotOffered:
             "Le forum ne propose pas de supprimer ce message. Rien n’a été supprimé."
         case .notLoggedIn, .sessionChanged:
-            "Votre session a expiré : rien n’a été supprimé. Reconnectez-vous depuis le menu Comptes, puis réessayez."
+            "Ta session a expiré : rien n’a été supprimé. Reconnecte-toi depuis le menu Comptes, puis réessaie."
         case .rejected(let message?), .formUnavailable(let message?):
             message
         case .network(let failure):
             network(failure)
         default:
-            "Le forum n’a pas accepté la suppression : rien n’a été supprimé. Actualisez le sujet puis réessayez."
+            "Le forum n’a pas accepté la suppression : rien n’a été supprimé. Actualise le sujet puis réessaie."
         }
     }
 
@@ -106,7 +106,7 @@ enum ComposerMessages {
     static func quote(_ error: QuoteError) -> String {
         switch error {
         case .form(.notLoggedIn):
-            return "Votre session a expiré : reconnectez-vous depuis le menu Comptes, puis citez à nouveau."
+            return "Ta session a expiré : reconnecte-toi depuis le menu Comptes, puis cite à nouveau."
         case .form(.formUnavailable(let message?)):
             return message
         case .form(.network(let failure)):
@@ -123,10 +123,10 @@ enum ComposerMessages {
     private static func quoteUnreachable(_ error: NetworkError) -> String {
         switch error {
         case .offline: "Pas de connexion à internet : la citation n’a pas pu être récupérée."
-        case .timedOut: "Le forum ne répond pas : la citation n’a pas pu être récupérée. Réessayez dans quelques instants."
+        case .timedOut: "Le forum ne répond pas : la citation n’a pas pu être récupérée. Réessaie dans quelques instants."
         case .httpStatus(let code, _): "Le forum a renvoyé l’erreur \(code) : la citation n’a pas pu être récupérée."
         case .cancelled, .invalidRequest, .invalidResponse, .transport, .unscripted:
-            "La connexion au forum a échoué : la citation n’a pas pu être récupérée. Réessayez."
+            "La connexion au forum a échoué : la citation n’a pas pu être récupérée. Réessaie."
         }
     }
 
@@ -140,37 +140,37 @@ enum ComposerMessages {
     /// The composer's form has a shape the engine refuses.
     private static func unsupportedForm(newMessage: Bool, newTopic: Bool) -> String {
         if newTopic {
-            return "Le formulaire de nouveau sujet du forum n’est pas pris en charge : rien n’a été envoyé. Réessayez plus tard."
+            return "Le formulaire de nouveau sujet du forum n’est pas pris en charge : rien n’a été envoyé. Réessaie plus tard."
         }
         if newMessage {
-            return "Le formulaire de message privé du forum n’est pas pris en charge : rien n’a été envoyé. Réessayez plus tard."
+            return "Le formulaire de message privé du forum n’est pas pris en charge : rien n’a été envoyé. Réessaie plus tard."
         }
-        return "Le formulaire de réponse du forum n’est pas pris en charge : rien n’a été envoyé. Actualisez le sujet puis réessayez."
+        return "Le formulaire de réponse du forum n’est pas pris en charge : rien n’a été envoyé. Actualise le sujet puis réessaie."
     }
 
     /// The new-topic form could not be read for its sub-categories; nothing is lost, the topic can still be sent.
     static func subcategoriesUnavailable(_ error: PostingError) -> String {
         switch error {
         case .notLoggedIn:
-            "Votre session a expiré : reconnectez-vous depuis le menu Comptes pour envoyer ce sujet."
+            "Ta session a expiré : reconnecte-toi depuis le menu Comptes pour envoyer ce sujet."
         case .formUnavailable(let message?):
             message
         case .formUnavailable, .formMismatch, .invalidFormURL, .missingAction, .unsupportedForm:
             unsupportedForm(newMessage: false, newTopic: true)
         default:
-            "La liste des sous-catégories n’a pas pu être chargée : le forum appliquera son choix par défaut. Vous pouvez réessayer."
+            "La liste des sous-catégories n’a pas pu être chargée : le forum appliquera son choix par défaut. Tu peux réessayer."
         }
     }
 
     /// A field the engine refused before anything was sent: empty, on several lines, or longer than the form allows.
     private static func field(_ error: PostingError) -> String {
         switch error {
-        case .emptyInput(.text): "Écrivez un message avant d’envoyer."
-        case .emptyInput(.subject): "Indiquez un sujet avant d’envoyer."
-        case .emptyInput(.recipient): "Indiquez le pseudo du destinataire avant d’envoyer."
+        case .emptyInput(.text): "Écris un message avant d’envoyer."
+        case .emptyInput(.subject): "Indique un sujet avant d’envoyer."
+        case .emptyInput(.recipient): "Indique le pseudo du destinataire avant d’envoyer."
         case .lineBreak(let input): "\(name(of: input)) doit tenir sur une ligne : rien n’a été envoyé."
         case .tooLong(let input, let maximum):
-            "\(name(of: input)) dépasse \(maximum) caractères : raccourcissez-le. Rien n’a été envoyé."
+            "\(name(of: input)) dépasse \(maximum) caractères : raccourcis-le. Rien n’a été envoyé."
         default: "Rien n’a été envoyé."
         }
     }
@@ -184,27 +184,27 @@ enum ComposerMessages {
     }
 
     /// The form no longer adds a poll (legacy `ReplyPostingError.pollCreationUnavailable`, `ReplyService.swift:42-43` @ 87fe0d1c).
-    static let pollNotOffered = "Ce formulaire ne permet plus de créer un sondage sur ce sujet. Rien n’a été envoyé : retirez le sondage, "
-        + "ou créez-le en modifiant le premier message du sujet."
+    static let pollNotOffered = "Ce formulaire ne permet plus de créer un sondage sur ce sujet. Rien n’a été envoyé : retire le sondage, "
+        + "ou crée-le en modifiant le premier message du sujet."
 
     /// The form fetched at send does not serve a poll field as expected: every retry would fail the same way while the poll is set.
     static let pollUnsupportedForm = "Le formulaire du forum ne prend pas en charge ce sondage : rien n’a été envoyé. "
-        + "Retirez le sondage pour envoyer la modification."
+        + "Retire le sondage pour envoyer la modification."
 
     /// What stops a poll from being sent: legacy's sentences (`TopicPollDraft.swift:16-30` @ 87fe0d1c), plus the one-line and
     /// character rules of the other fields.
     static func poll(_ problem: PollProblem) -> String {
         switch problem {
-        case .emptyQuestion: "Saisissez la question du sondage."
+        case .emptyQuestion: "Saisis la question du sondage."
         case .question(.tooLong): "La question est limitée à 255 caractères."
-        case .tooFewAnswers: "Saisissez au moins deux réponses."
+        case .tooFewAnswers: "Saisis au moins deux réponses."
         case .tooManyAnswers: "Le sondage est limité à dix réponses."
         case .answer(.tooLong): "Chaque réponse est limitée à 255 caractères."
         case .question(.lineBreak), .answer(.lineBreak): "La question et chaque réponse tiennent sur une ligne."
         case .question(.unsupportedCharacters(let characters)), .answer(.unsupportedCharacters(let characters)):
             "Le forum ne peut pas enregistrer ces caractères : \(characters.map(String.init).joined(separator: " "))."
         case .choicesOutOfRange: "Le nombre de choix dépasse le nombre de réponses."
-        case .closingDateNotInFuture: "Choisissez une date de clôture future."
+        case .closingDateNotInFuture: "Choisis une date de clôture future."
         }
     }
 
@@ -213,20 +213,20 @@ enum ComposerMessages {
     static func unsupported(_ characters: [Character]) -> String {
         let list = characters.map(String.init).joined(separator: " ")
         return "Le forum ne peut pas enregistrer ces caractères et couperait le message au premier : \(list). "
-            + "Retirez-les puis envoyez."
+            + "Retire-les puis envoie."
     }
 
     /// The write may have been posted: the user checks the topic, or the private messages, before sending again (never
     /// resent on its own).
     private static func unconfirmed(_ uncertainty: PostingUncertainty, newMessage: Bool, newTopic: Bool = false) -> String {
         let base = newTopic
-            ? "Le forum n’a pas confirmé l’envoi : votre sujet a peut-être été créé. "
-                + "Vérifiez la liste des sujets avant de renvoyer ; le texte est gardé."
+            ? "Le forum n’a pas confirmé l’envoi : ton sujet a peut-être été créé. "
+                + "Vérifie la liste des sujets avant de renvoyer ; le texte est gardé."
             : newMessage
-            ? "Le forum n’a pas confirmé l’envoi : votre message a peut-être été envoyé. "
-                + "Vérifiez vos messages privés avant de renvoyer ; le texte est gardé."
-            : "Le forum n’a pas confirmé l’envoi : votre réponse a peut-être été postée. "
-                + "Vérifiez le sujet avant de renvoyer ; le texte est gardé."
+            ? "Le forum n’a pas confirmé l’envoi : ton message a peut-être été envoyé. "
+                + "Vérifie tes messages privés avant de renvoyer ; le texte est gardé."
+            : "Le forum n’a pas confirmé l’envoi : ta réponse a peut-être été postée. "
+                + "Vérifie le sujet avant de renvoyer ; le texte est gardé."
         return base + answer(of: uncertainty)
     }
 
@@ -244,15 +244,15 @@ enum ComposerMessages {
     private static func network(_ error: NetworkError) -> String {
         switch error {
         case .offline:
-            "Pas de connexion à internet : rien n’a été envoyé. Réessayez une fois connecté."
+            "Pas de connexion à internet : rien n’a été envoyé. Réessaie une fois connecté."
         case .timedOut:
-            "Le forum ne répond pas : rien n’a été envoyé. Réessayez dans quelques instants."
+            "Le forum ne répond pas : rien n’a été envoyé. Réessaie dans quelques instants."
         case .cancelled:
             "Envoi annulé : rien n’a été envoyé."
         case .httpStatus(let code, _):
-            "Le forum a renvoyé l’erreur \(code) : rien n’a été envoyé. Réessayez plus tard."
+            "Le forum a renvoyé l’erreur \(code) : rien n’a été envoyé. Réessaie plus tard."
         case .invalidRequest, .invalidResponse, .transport, .unscripted:
-            "La connexion au forum a échoué : rien n’a été envoyé. Réessayez."
+            "La connexion au forum a échoué : rien n’a été envoyé. Réessaie."
         }
     }
 }

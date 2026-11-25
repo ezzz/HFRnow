@@ -174,7 +174,7 @@ struct SmileyPickerModelTests {
         let listed = ownSmileys("[:me]")
         let model = picker(ownLoader: { await calls.next() == 1 ? nil : listed })
         await model.loadOwn()
-        #expect(model.sections[2].state == .failed("Vos smileys sont indisponibles pour le moment."))
+        #expect(model.sections[2].state == .failed("Tes smileys sont indisponibles pour le moment."))
         await model.retryOwn()
         #expect(model.sections[2].smileys.map(\.code) == ["[:me]"])
         #expect(await calls.count == 2)
@@ -183,7 +183,7 @@ struct SmileyPickerModelTests {
     @Test func withoutALoaderTheOwnSectionSaysSoAndALoadedListIsNotReadTwice() async {
         let none = picker()
         await none.loadOwn()
-        #expect(none.sections[2].state == .empty("Vos smileys sont indisponibles ici."))
+        #expect(none.sections[2].state == .empty("Tes smileys sont indisponibles ici."))
         let calls = LoadCounter()
         let listed = ownSmileys("[:me]")
         let model = picker(ownLoader: { _ = await calls.next(); return listed })
@@ -230,7 +230,7 @@ struct SmileyPickerModelTests {
     @Test func anAccountWithoutForumFavouritesSaysSo() async {
         let model = picker(forumLoader: { [] })
         await model.loadForum()
-        #expect(model.sections[1].state == .empty("Aucun smiley favori sur votre compte HFR."))
+        #expect(model.sections[1].state == .empty("Aucun smiley favori sur ton compte HFR."))
     }
 
     @Test func theEmptyAppFavouritesExplainHowToAddOne() {

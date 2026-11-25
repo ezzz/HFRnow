@@ -28,7 +28,7 @@ struct VideoPlayerSheet: View {
                 } else {
                     ContentUnavailableView(
                         "Vidéo indisponible", systemImage: "play.slash",
-                        description: Text("Le lecteur ne peut pas être chargé ici. Ouvrez le lien de la vidéo.")
+                        description: Text("Le lecteur ne peut pas être chargé ici. Ouvre le lien de la vidéo.")
                     )
                 }
             }

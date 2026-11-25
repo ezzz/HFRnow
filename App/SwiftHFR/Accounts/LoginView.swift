@@ -39,7 +39,7 @@ struct LoginView: View {
                 } footer: {
                     Group {
                         if case .existing = model.target {
-                            Text("Saisissez le mot de passe de ce compte pour renouveler sa session.")
+                            Text("Saisis le mot de passe de ce compte pour renouveler sa session.")
                         }
                     }.themedSectionHeader()
                 }

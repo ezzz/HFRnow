@@ -76,9 +76,9 @@ enum AccountSyncMessages {
 
     /// What travels, where, and how to stop (#312); reviewed by the operator before merge. Shown in the info bubble of the row (#1065).
     static let explanation = """
-        Vos comptes (cookies de session et jeton hash_check, jamais de mot de passe) sont copiés dans votre trousseau \
-        iCloud, chiffré de bout en bout par Apple, et apparaissent sur vos autres appareils où l’option est activée. \
-        Désactiver l’option retire la copie iCloud sur tous vos appareils ; chaque appareil garde les comptes qui y sont \
+        Tes comptes (cookies de session et jeton hash_check, jamais de mot de passe) sont copiés dans ton trousseau \
+        iCloud, chiffré de bout en bout par Apple, et apparaissent sur tes autres appareils où l’option est activée. \
+        Désactiver l’option retire la copie iCloud sur tous tes appareils ; chaque appareil garde les comptes qui y sont \
         connectés.
         """
 
@@ -88,7 +88,7 @@ enum AccountSyncMessages {
     static let resetMessage = """
         Les réglages de synchronisation de cet appareil seront effacés : l’option restera désactivée, et cet appareil \
         n’importera plus de lui-même les comptes d’un autre appareil. La copie iCloud n’est pas supprimée : pour la \
-        retirer de tous vos appareils, réactivez puis désactivez l’option. Vos comptes ne sont pas touchés.
+        retirer de tous tes appareils, réactive puis désactive l’option. Tes comptes ne sont pas touchés.
         """
 
     /// Why the device switched itself off.
@@ -97,7 +97,7 @@ enum AccountSyncMessages {
         case .tombstone:
             "La synchronisation des comptes a été désactivée sur un autre appareil."
         case .laterSwitchOn:
-            "La synchronisation des comptes a été réactivée sur un autre appareil. Réactivez-la ici pour la reprendre."
+            "La synchronisation des comptes a été réactivée sur un autre appareil. Réactive-la ici pour la reprendre."
         }
     }
 
@@ -105,24 +105,24 @@ enum AccountSyncMessages {
     static func problem(_ error: any Error) -> String {
         switch error as? AccountSyncError {
         case .itemChanged?:
-            return "Un autre appareil modifie la copie iCloud en ce moment. Réessayez."
+            return "Un autre appareil modifie la copie iCloud en ce moment. Réessaie."
         case .stateFromLaterVersion?:
             // Never written over (#1200 P3): the later version can still read it.
-            return "L’état de la synchronisation des comptes vient d’une version plus récente de l’app. Mettez l’app à jour."
+            return "L’état de la synchronisation des comptes vient d’une version plus récente de l’app. Mets l’app à jour."
         case .damagedState?:
             // Kept until the user resets it (#1200 P3, option (b)).
-            return "L’état de la synchronisation des comptes de cet appareil est illisible. Réinitialisez-le pour pouvoir "
+            return "L’état de la synchronisation des comptes de cet appareil est illisible. Réinitialise-le pour pouvoir "
                 + "réactiver l’option."
         case nil:
             break
         }
         switch error as? CredentialStoreError {
         case .corrupted?:
-            return "La copie iCloud des comptes est illisible. Désactivez puis réactivez l’option."
+            return "La copie iCloud des comptes est illisible. Désactive puis réactive l’option."
         case .unsupportedVersion?:
-            return "La copie iCloud des comptes vient d’une version plus récente de l’app. Mettez l’app à jour."
+            return "La copie iCloud des comptes vient d’une version plus récente de l’app. Mets l’app à jour."
         default:
-            return "Le trousseau est indisponible pour le moment (appareil verrouillé ?). Réessayez."
+            return "Le trousseau est indisponible pour le moment (appareil verrouillé ?). Réessaie."
         }
     }
 }

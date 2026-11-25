@@ -27,7 +27,7 @@ struct ReaderAlertFlow: ViewModifier {
                 Button(AlertVerbs.cancel, role: .cancel) {}
                 Button(AlertVerbs.prepareModeratorMail) { alerts?.confirmMail(mail) }
             } message: { _ in
-                Text("Un email sera préparé dans votre application Mail.")
+                Text("Un email sera préparé dans ton application Mail.")
             }
             .alert(
                 alerts?.failure?.title ?? "",
