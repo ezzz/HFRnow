@@ -2,6 +2,10 @@ import SwiftUI
 
 /// The rules of the "Page numéro" sheet, apart from the view so they are tested as they are.
 enum ReaderPagePicker {
+    /// Legacy's fixed 260 pt stop (`Common.swift:3212` @ 87fe0d1c) stays the first one; `.medium` lets the sheet grow when Dynamic Type
+    /// makes the field and the two button rows taller than that (#1167, HIG › Typography).
+    static let detents: Set<PresentationDetent> = [.height(260), .medium]
+
     /// One quick button of the sheet's second row.
     enum Step: Int, CaseIterable {
         case minusTen = -10, minusOne = -1, plusOne = 1, plusTen = 10
@@ -70,26 +74,30 @@ struct ReaderPageSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Choisir une page entre 1 et \(maxPage)").font(.footnote).foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    quickButton(systemImage: "backward.end", label: "Première page") { input = "1" }
-                    TextField("1...\(maxPage)", text: $input)
-                        .keyboardType(.numberPad)
-                        .font(.body.monospacedDigit())
-                        .textFieldStyle(.roundedBorder)
-                        .multilineTextAlignment(.center)
-                    quickButton(systemImage: "forward.end", label: "Dernière page") { input = "\(maxPage)" }
-                }
-                HStack(spacing: 10) {
-                    ForEach(ReaderPagePicker.Step.allCases, id: \.self) { step in
-                        quickButton(title: step.title, label: step.accessibilityLabel) {
-                            input = ReaderPagePicker.stepped(input, by: step, maxPage: maxPage)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Choisir une page entre 1 et \(maxPage)").font(.footnote).foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        quickButton(systemImage: "backward.end", label: "Première page") { input = "1" }
+                        TextField("1...\(maxPage)", text: $input)
+                            .keyboardType(.numberPad)
+                            .font(.body.monospacedDigit())
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.center)
+                        quickButton(systemImage: "forward.end", label: "Dernière page") { input = "\(maxPage)" }
+                    }
+                    HStack(spacing: 10) {
+                        ForEach(ReaderPagePicker.Step.allCases, id: \.self) { step in
+                            quickButton(title: step.title, label: step.accessibilityLabel) {
+                                input = ReaderPagePicker.stepped(input, by: step, maxPage: maxPage)
+                            }
                         }
                     }
                 }
+                .padding(20)
             }
-            .padding(20)
+            // The sheet opens at 260 pt as legacy's; at a large text size it grows or scrolls instead of cutting the rows (#1167).
+            .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Page numéro")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -107,7 +115,7 @@ struct ReaderPageSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(260)])
+        .presentationDetents(ReaderPagePicker.detents)
         .presentationDragIndicator(.visible)
     }
 
