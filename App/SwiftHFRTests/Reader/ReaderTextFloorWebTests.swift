@@ -16,10 +16,11 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
                 content: MessageContent(
                     html: """
                         <div class="container"><table class="oldcitation"><tr class="none">
-                        <td><b class="s1">cite :</b><p>cité</p></td></tr></table></div>
-                        <table class="code"><tr><td><b class="s1">Code :</b><br />let x = 1</td></tr></table>
-                        <table class="fixed"><tr><td>H<sub>2</sub>O</td></tr></table>
+                        <td><b class="s1">cite<sub>q</sub> :</b><p>cité</p></td></tr></table></div>
+                        <table class="code"><tr><td><b class="s1">Code<sub>c</sub> :</b><br />let x = 1</td></tr></table>
+                        <table class="fixed"><tr><td>H<sub>2</sub>O<sub>2<sub>n</sub></sub></td></tr></table>
                         <p>texte H<sub>2</sub>O x<sup>2</sup></p>
+                        <p>y<sup>2<sup>n</sup></sup></p>
                         """,
                     signatureHTML: """
                         <br />ma signature <button type="button" class="image-tap">Afficher l'image</button>
@@ -73,6 +74,10 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
         ProbedElement("sup", ".content sup", 15 / 17.0 / 1.2),
         ProbedElement("sub in a code block", ".content table.fixed sub", 0.85 * 15 / 17 / 1.2),
         ProbedElement("sub in the signature", ".signature > sub", 0.85 * 15 / 17 / 1.2),
+        ProbedElement("sub in a quote header", "table.oldcitation b.s1 sub", 0.85 * 15 / 17 / 1.2),
+        ProbedElement("sub in a code header", "table.code b.s1 sub", 0.85 * 0.85 * 15 / 17 / 1.2),
+        ProbedElement("nested sup", ".content > p sup sup", 15 / 17.0 / 1.44),
+        ProbedElement("nested sub in a code block", ".content table.fixed sub sub", 0.85 * 15 / 17 / 1.44),
         ProbedElement("code header in the signature", ".signature table.code b.s1", 0.85 * 0.85 * 0.85 * 15 / 17)
     ]
 
