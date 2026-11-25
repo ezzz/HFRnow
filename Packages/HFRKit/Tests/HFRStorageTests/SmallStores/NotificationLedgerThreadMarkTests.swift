@@ -68,10 +68,16 @@ import Testing
     @Test func aMarkForAConversationThatWasReadSinceIsIgnoredByDiff() {
         var ledger = NotificationLedger()
         ledger.record(Self.summary([5, 8], marks: [Self.mark(5, replies: 0, at: 1), Self.mark(8, replies: 0, at: 1)]))
-        ledger.record(Self.summary([5], marks: [Self.mark(5, replies: 0, at: 1)]))
-        // 8 is not in the unread set, though a mark for it moved forward: not news.
+        // 8 is not in the unread set, though its recorded mark exists and a mark for it moved forward: not news.
         let news = ledger.diff(summary: Self.summary([5], marks: [Self.mark(5, replies: 0, at: 1), Self.mark(8, replies: 4, at: 9)]))
         #expect(news.isEmpty)
+    }
+
+    @Test func recordingDropsTheMarksOfConversationsNoLongerUnread() {
+        var ledger = NotificationLedger()
+        ledger.record(Self.summary([5, 8], marks: [Self.mark(5, replies: 0, at: 1), Self.mark(8, replies: 0, at: 1)]))
+        ledger.record(Self.summary([5], marks: [Self.mark(5, replies: 0, at: 1)]))
+        #expect(ledger.unreadThreadMarks?.map(\.topic) == [5])
     }
 
     @Test func aNewlyUnreadAndAMovedConversationAreReportedSortedOnce() {
