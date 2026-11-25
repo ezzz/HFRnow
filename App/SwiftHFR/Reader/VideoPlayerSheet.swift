@@ -35,7 +35,7 @@ struct VideoPlayerSheet: View {
             .navigationTitle("Vidéo \(TopicHTMLBuilder.providerName(embed.provider))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
                 if let link = VideoPlayerSheet.fallbackURL(for: embed) {
                     ToolbarItem(placement: .primaryAction) {
                         Button("Ouvrir le lien", systemImage: "safari") { openURL(link) }

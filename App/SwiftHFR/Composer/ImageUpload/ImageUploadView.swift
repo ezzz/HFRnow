@@ -30,7 +30,7 @@ struct ImageUploadView: View {
             .navigationTitle("Insérer une image")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
             }
             .alert(AlertTitles.imageHostQuestion, isPresented: askingNotice) {
                 Button("Annuler", role: .cancel) { model.declineNotice() }

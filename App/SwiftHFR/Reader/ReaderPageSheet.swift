@@ -104,9 +104,7 @@ struct ReaderPageSheet: View {
             .navigationTitle("Page numéro")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Fermer", systemImage: "xmark") { dismiss() }
-                }
+                SheetCloseToolbarItem { dismiss() }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Valider") {
                         if let page = ReaderPagePicker.target(input, maxPage: maxPage) {

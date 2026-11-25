@@ -24,7 +24,7 @@ struct ImageViewerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
                 ToolbarItem(placement: .primaryAction) { actionsMenu }
             }
             .overlay(alignment: .bottom) { banner }
