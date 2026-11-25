@@ -37,10 +37,14 @@ enum ListLook: Sendable, Equatable {
         return self == .dense ? DenseListLook.rowBackground : nil
     }
 
-    /// Opacity of the selected row's tint: twice `RowTint.strength`, in light and dark and with Increase Contrast.
+    /// Opacity of the selected row's tint: twice `RowTint.strength` (0.20 light, 0.32 dark, 0.36 and 0.48 with Increase Contrast),
+    /// held at `maxSelectedStrength` so it stays a tint, and still above every pill (the strongest is 0.24).
     static func selectedStrength(scheme: ColorScheme, contrast: ColorSchemeContrast) -> Double {
-        RowTint.strength(scheme: scheme, contrast: contrast) * 2
+        min(RowTint.strength(scheme: scheme, contrast: contrast) * 2, maxSelectedStrength)
     }
+
+    /// The most opaque a selection tint gets: 30 %, dark mode and Increase Contrast included.
+    static let maxSelectedStrength = 0.30
 
     /// The inner side inset of a row that keeps the system's vertical insets, and of the section headers: nil keeps the system's.
     func rowSideInset(_ density: ListDensity) -> CGFloat? {
@@ -98,6 +102,7 @@ private struct ListLookRow: ViewModifier {
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.backgroundProminence) private var backgroundProminence
 
     @ViewBuilder func body(content: Content) -> some View {
         if appearance.listColors != nil {
@@ -106,7 +111,11 @@ private struct ListLookRow: ViewModifier {
         } else {
             // EXPERIMENTAL(denseRows, #1107): the dense look's clear or selected row replaces the card's background.
             // #1073: the classic look no longer leaves the system's solid accent fill on the selected row (iPad split).
-            content.listRowBackground(look.rowBackground(isSelected: isSelected, scheme: scheme, contrast: contrast))
+            // A selected row is a prominent background to the system, which draws the primary text white (LOT-126, `ReadTitleStyle`):
+            // that is for its solid fill. On the light tint the text keeps its normal colours.
+            content
+                .environment(\.backgroundProminence, isSelected ? .standard : backgroundProminence)
+                .listRowBackground(look.rowBackground(isSelected: isSelected, scheme: scheme, contrast: contrast))
         }
     }
 }

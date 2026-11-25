@@ -13,7 +13,7 @@ struct ListLookSelectionTests {
                 let strength = ListLook.selectedStrength(scheme: scheme, contrast: contrast)
                 #expect(ListLook.classic.rowBackground(isSelected: true, scheme: scheme, contrast: contrast)
                     == Color.accentColor.opacity(strength))
-                #expect(strength < 0.5)
+                #expect(strength <= ListLook.maxSelectedStrength)
             }
         }
     }

@@ -11,7 +11,6 @@ struct BookmarksView: View {
     @State private var model: BookmarksModel
     let environment: AppEnvironment
     @Environment(\.openTopicInDetail) private var openInDetail
-    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
     init(mpStorage: MPStorageSyncModel?, selection: BookmarkSelection, environment: AppEnvironment) {
         _model = State(initialValue: BookmarksModel(mpStorage: mpStorage, selection: selection))
@@ -67,13 +66,8 @@ struct BookmarksView: View {
         } else {
             ForEach(bookmarks) { bookmark in
                 Button { open(bookmark) } label: { BookmarkRow(bookmark: bookmark) }
-                    // #842: under a theme its `surface` or `selection`, inside the Legacy background below (a row's own wins).
-                    .themedListRow(isSelected: isSelected(bookmark))
-                    // EXPERIMENTAL(denseRows, #1107): the dense look's clear row replaces the card's.
-                    .listRowBackground(
-                        isSelected(bookmark) ? Color.accentColor.opacity(0.15)
-                            : ListLook.current(experimental) == .dense ? DenseListLook.rowBackground : nil
-                    )
+                    // #842 (a theme's `surface` or `selection`), #1107 (the dense look's clear row), #1073 (the light selection tint).
+                    .listLookRow(isSelected: isSelected(bookmark))
                     .accessibilityAddTraits(isSelected(bookmark) ? .isSelected : [])
             }
             .onDelete { offsets in
