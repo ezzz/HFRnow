@@ -11,6 +11,7 @@ struct MPNotificationStaleListTests {
     /// A list loaded, then a background check that ran while the app was suspended.
     private struct Setup {
         let messages: MessageListModel
+        let source: FakePrivateMessages
         let check: MPBackgroundCheck
         let delivery: FakeMPDelivery
         let ledger: NotificationLedgerStore
@@ -35,7 +36,7 @@ struct MPNotificationStaleListTests {
         )
         await messages.onAppear()
         _ = await check.run(now: start.addingTimeInterval(1800)) // the check that ran while the app was suspended
-        return Setup(messages: messages, check: check, delivery: delivery, ledger: ledger, start: start)
+        return Setup(messages: messages, source: source, check: check, delivery: delivery, ledger: ledger, start: start)
     }
 
     /// The thread numbers of the ledger once the unstructured task of a read has reached it.
@@ -97,6 +98,8 @@ struct MPNotificationStaleListTests {
                 MPForumReading(count: 2, page: PrivateMessageListPage(threads: [ten, twelve]))
             ]
         )
+        // HFR confirmed the write; the reload that follows fails, so the ledger holds only what the write itself recorded.
+        setup.source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .other }
         let reader = TopicReaderModel(
             target: ReaderTarget(source: .topic(TopicID(category: .privateMessages, topic: 11))), title: "", source: FakeTopicPages()
         )

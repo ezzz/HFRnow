@@ -17,7 +17,8 @@ extension MessageListModel {
     /// `thread`, marked unread here, to the ledger alone (#1006), with the reply count and last post its row shows: the member's
     /// own mark unread is not news. Page 1's rows only, as the ledger's set is page 1's; nothing without a thread number.
     func recordUnread(_ thread: PrivateMessageThread) async {
-        guard let ledgerThread, loader.value?.page == 1, let topic = thread.summary.topicID?.topic else { return }
+        guard let ledgerThread, let content = loader.value, content.page == 1, content != .signedOut,
+              let topic = thread.summary.topicID?.topic else { return }
         let summary = thread.summary
         await ledgerThread(topic, UnreadThreadMark(topic: topic, repliesCount: summary.repliesCount, lastPost: summary.lastPost?.date))
     }
