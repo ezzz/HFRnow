@@ -144,8 +144,8 @@ final class MessageListModel {
     func signInPrompt(current: AccountRow?) -> SignInPrompt? {
         guard case .signInRequired? = loader.value?.emptyReason else { return nil }
         return SignInPrompt.make(
-            current: current, title: "Connectez-vous pour accéder aux MP", systemImage: "envelope.badge",
-            loading: "vos messages privés"
+            current: current, title: "Connecte-toi pour accéder aux MP", systemImage: "envelope.badge",
+            loading: "tes messages privés"
         )
     }
 

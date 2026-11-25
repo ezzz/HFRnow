@@ -281,7 +281,7 @@ final class FilteredPostsModel {
     nonisolated static func message(for error: FilteredPostsError) -> String {
         switch error {
         case .invalidTopic: "Ce sujet ne peut pas être filtré."
-        case .network(.offline): "Pas de connexion. Réessayez une fois connecté."
+        case .network(.offline): "Pas de connexion. Réessaie une fois connecté."
         case .network(.timedOut): "Le forum n'a pas répondu à temps."
         case .network(.httpStatus(let code, _)): "Le forum a répondu avec une erreur (\(code))."
         case .network: "Une page n'a pas pu être lue."

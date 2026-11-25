@@ -15,11 +15,11 @@ struct AccountDeletionView: View {
             Section {
                 Group {
                     Text(
-                        "Votre compte appartient au forum Hardware.fr, pas à cette app : l’app ne peut pas le supprimer à votre place."
+                        "Ton compte appartient au forum Hardware.fr, pas à cette app : l’app ne peut pas le supprimer à ta place."
                     )
                     Text(
-                        "Hardware.fr explique sur sa page « Données personnelles » comment exercer vos droits, dont la suppression "
-                            + "de vos données."
+                        "Hardware.fr explique sur sa page « Données personnelles » comment exercer tes droits, dont la suppression "
+                            + "de tes données."
                     )
                     if let url = AccountDeletionModel.procedureURL {
                         Link(destination: url) {
@@ -28,7 +28,7 @@ struct AccountDeletionView: View {
                     }
                 }.themedListRow()
             } header: {
-                Text("Votre compte HFR").themedSectionHeader()
+                Text("Ton compte HFR").themedSectionHeader()
             }
             Section {
                 Group {

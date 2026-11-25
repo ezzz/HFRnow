@@ -13,7 +13,7 @@ struct MessagePlaceholderView: View {
                 Text("Ce sujet ne peut pas être ouvert : son lien n'est pas reconnu.")
             }
         } else {
-            ContentUnavailableView("Choisissez un sujet", systemImage: "text.bubble")
+            ContentUnavailableView("Choisis un sujet", systemImage: "text.bubble")
         }
     }
 }

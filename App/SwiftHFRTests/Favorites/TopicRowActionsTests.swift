@@ -208,7 +208,7 @@ struct TopicRowActionsTests {
         let (model, _) = await favoritesList([topic], writer: writer)
         await model.removeFlag(topic)
         #expect(writer.removed.count == 1)
-        #expect(model.actionFailure?.contains("Actualisez pour vérifier") == true)
+        #expect(model.actionFailure?.contains("Actualise pour vérifier") == true)
     }
 
     /// Issue #564: `removeFlag` marks the row on the main actor, then the request reaches the writer from another executor;
@@ -297,10 +297,10 @@ extension TopicRowActionsTests {
         for health in expired + unconfirmed {
             #expect(TopicFlagActions.session(health).contains("rien n'a été envoyé"), "\(health)")
         }
-        for health in expired { #expect(TopicFlagActions.session(health).contains("Reconnectez-vous"), "\(health)") }
+        for health in expired { #expect(TopicFlagActions.session(health).contains("Reconnecte-toi"), "\(health)") }
         for health in unconfirmed {
-            #expect(!TopicFlagActions.session(health).contains("Reconnectez"), "\(health)")
-            #expect(TopicFlagActions.session(health).contains("Réessayez"), "\(health)")
+            #expect(!TopicFlagActions.session(health).contains("Reconnecte"), "\(health)")
+            #expect(TopicFlagActions.session(health).contains("Réessaie"), "\(health)")
         }
         // Each case reads differently, so a screenshot from a device names the check that failed.
         #expect(Set((expired + unconfirmed).map(TopicFlagActions.session)).count == expired.count + unconfirmed.count)

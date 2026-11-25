@@ -89,7 +89,7 @@ final class BookmarkActionModel {
     }
 
     /// What a pick says when the account does not sync its bookmarks (declined, off, decided in another window).
-    static let notSyncing = "Activez le stockage MP dans Réglages pour créer un bookmark."
+    static let notSyncing = "Active le stockage MP dans Réglages pour créer un bookmark."
 
     /// The consent answer for `draft` (SwiftUI clears the alert's state before the button runs, AGENTS.md LOT-087). Yes switches
     /// the account on (an existing thread is read, a missing one leads to the creation question at the root) and, once on, asks

@@ -27,7 +27,7 @@ struct SeasonalThemesSection: View {
                 Text(
                     "Noël soft : neige légère et accent rouge sur le thème Legacy (un thème de la galerie garde son accent). "
                         + "Noël abusé : vert sapin, guirlande, sapin et cadeaux, identique en clair et en sombre. "
-                        + "Jusqu’au 26 décembre ; votre thème revient ensuite. Sans animations, la neige ne tombe plus."
+                        + "Jusqu’au 26 décembre ; ton thème revient ensuite. Sans animations, la neige ne tombe plus."
                 )
             }.themedSectionHeader()
         }

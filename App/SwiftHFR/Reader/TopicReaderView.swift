@@ -136,7 +136,7 @@ struct TopicReaderView: View {
             Button("Annuler", role: .cancel) {}
             Button("Se connecter") { showsAccounts = true }
         } message: {
-            Text("Connectez-vous pour rechercher dans un sujet.")
+            Text("Connecte-toi pour rechercher dans un sujet.")
         }
         .sheet(isPresented: $showsAccounts) { AccountsView() }
         .signInToBlockSheet(isPresented: Bindable(model).asksLogin)

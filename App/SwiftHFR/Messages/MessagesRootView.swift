@@ -64,7 +64,7 @@ struct MessageReaderColumn: View {
                     if onLastPage, let page = readerModel.page { model.markOpened(thread, page: page.currentPage, of: page.maxPage) }
                 }
         } else {
-            ContentUnavailableView("Choisissez une conversation", systemImage: "envelope")
+            ContentUnavailableView("Choisis une conversation", systemImage: "envelope")
         }
     }
 }

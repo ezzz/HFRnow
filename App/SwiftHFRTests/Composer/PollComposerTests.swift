@@ -78,7 +78,7 @@ struct PollComposerTests {
         #expect(!model.canSend)
         await model.send()
         #expect(poster.calls.isEmpty)
-        #expect(ComposerMessages.poll(.tooFewAnswers) == "Saisissez au moins deux réponses.")
+        #expect(ComposerMessages.poll(.tooFewAnswers) == "Saisis au moins deux réponses.")
     }
 
     /// A later post (`R62a`) has no poll row; a private thread's first post (`R43a`) neither.
@@ -154,7 +154,7 @@ struct PollComposerTests {
     /// An invalid poll the engine refused names its problem and says nothing was sent.
     @Test func anInvalidPollMessageNamesTheProblem() {
         let message = ComposerMessages.message(for: .invalidPoll(.closingDateNotInFuture), edit: true)
-        #expect(message.contains("Choisissez une date de clôture future."))
+        #expect(message.contains("Choisis une date de clôture future."))
         #expect(message.contains("Rien n’a été envoyé"))
     }
 }

@@ -142,7 +142,7 @@ final class AppLockModel {
             case .available:
                 break
             case .passcodeNotSet:
-                message = "Définissez un code sur l’appareil pour utiliser le verrouillage."
+                message = "Définis un code sur l’appareil pour utiliser le verrouillage."
                 return
             case .unavailable:
                 message = "Le verrouillage n’est pas disponible sur cet appareil."
@@ -197,7 +197,7 @@ final class AppLockModel {
         case .cancelled:
             break
         case .failed:
-            message = "Authentification échouée. Réessayez."
+            message = "Authentification échouée. Réessaie."
         }
     }
 

@@ -24,11 +24,11 @@ struct BookmarksView: View {
             Group {
                 switch model.state {
                 case .signedOut:
-                    Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary)
+                    Text("Connecte-toi pour voir tes bookmarks.").foregroundStyle(.secondary)
                 case .notSyncing:
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Stockage MP désactivé", systemImage: "tray").scaledFont(.headline)
-                        Text("Activez « Activer le stockage MP » dans Réglages pour récupérer vos bookmarks.")
+                        Text("Active « Activer le stockage MP » dans Réglages pour récupérer tes bookmarks.")
                             .scaledFont(.footnote).foregroundStyle(.secondary)
                     }
                 case .syncing:

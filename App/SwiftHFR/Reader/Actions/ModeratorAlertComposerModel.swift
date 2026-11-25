@@ -21,7 +21,7 @@ final class ModeratorAlertComposerModel: Identifiable {
 
     /// Legacy's warning, above the reason (`MessagesView.swift:7427-7428` @ 87fe0d1c).
     static let warning =
-        "Attention : le message que vous écrivez ici sera envoyé directement aux modérateurs via message privé ou e-mail."
+        "Attention : le message que tu écris ici sera envoyé directement aux modérateurs via message privé ou e-mail."
 
     /// The reason typed by the user.
     var reason = ""

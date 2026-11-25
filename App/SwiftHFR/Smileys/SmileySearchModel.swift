@@ -75,7 +75,7 @@ final class SmileySearchModel {
     /// Why a typed text cannot be searched yet; nil when it can, or when the field is empty.
     var tooShortHint: String? {
         guard !trimmed.isEmpty, !canSearch else { return nil }
-        return "Saisissez au moins \(Self.minimumLength) caractères pour lancer une recherche."
+        return "Saisis au moins \(Self.minimumLength) caractères pour lancer une recherche."
     }
 
     /// Whether the results area replaces the catalogue.
@@ -196,10 +196,10 @@ final class SmileySearchModel {
 
     private static func message(for error: SmileyLookupError) -> String {
         switch error {
-        case .queryTooShort: "Saisissez au moins \(minimumLength) caractères pour lancer une recherche."
+        case .queryTooShort: "Saisis au moins \(minimumLength) caractères pour lancer une recherche."
         case .invalidCode: "Code de smiley invalide."
-        case .network: "Le forum ne répond pas. Vérifiez votre connexion et réessayez."
-        case .page: "Le forum a répondu autrement que prévu. Réessayez plus tard."
+        case .network: "Le forum ne répond pas. Vérifie ta connexion et réessaie."
+        case .page: "Le forum a répondu autrement que prévu. Réessaie plus tard."
         }
     }
 }

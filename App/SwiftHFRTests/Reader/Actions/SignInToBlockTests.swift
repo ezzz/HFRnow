@@ -28,7 +28,7 @@ struct SignInToBlockTests {
         let registry = registry(account: nil, opened: opened)
         let entries = registry.entries(for: context(), source: .avatar)
         #expect(entries == [.signInToBlock, .allowlist])
-        #expect(entries.first?.title == "Connectez-vous pour bloquer")
+        #expect(entries.first?.title == "Connecte-toi pour bloquer")
         #expect(await registry.perform(.signInToBlock, with: context()))
         #expect(opened.taps == 1)
     }
