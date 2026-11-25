@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerCloseButtonStyle, composerDraftButtonStyle,
+// Port of HFRswift/Swift/AnswerView.swift (composerHeader `:765-819`, composerCloseButtonStyle, composerDraftButtonStyle,
 // composerSendButtonStyle `:1704-1745`) @ 87fe0d1c. Differences: drawn on the docked card instead of a full-screen cover (#653,
 // GAP-653); with the modern composer the buttons float with no title (`FloatingComposerButtons`, #854, #895, #972); the drafts
 // button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type; the buttons take the card tools' diameter,

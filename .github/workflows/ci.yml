@@ -50,6 +50,8 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: printf '%s' "$PR_BODY" | python3 tooling/docs/ledger.py check-body --pr "$PR_NUMBER"
+      - name: Legacy pointers of the `// Port of` headers find their symbol in the cited lines (#1252)
+        run: python3 tooling/docs/check_legacy_pointers.py --fetch
       - name: Markdown tables and links
         run: npx --yes markdownlint-cli2@0.18.1
 

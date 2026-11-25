@@ -1,7 +1,7 @@
 import HFRStorage
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`) @ 87fe0d1c. Differences: no title strip (#972, operator
+// Port of HFRswift/Swift/AnswerView.swift (composerHeader `:765-819`) @ 87fe0d1c. Differences: no title strip (#972, operator
 // 2026-11-16): close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, directly above the card, as circles
 // of the card tools' diameter (`ComposerToolSize`, #1126) in 44 pt hit areas (#854) on an opaque-enough fill so they read over
 // any page (#972), `FloatingSpacing.gap` from the sides and the card (#895); GAP-653.
