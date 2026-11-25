@@ -98,7 +98,8 @@ struct ReaderPageSheet: View {
                 }
                 .padding(20)
             }
-            // The sheet opens at 260 pt as legacy's; at a large text size the member can drag it taller and the content scrolls meanwhile (#1167).
+            // The sheet opens at 260 pt as legacy's; at a large text size the member can drag it taller and the content
+            // scrolls meanwhile (#1167).
             .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Page numéro")
             .navigationBarTitleDisplayMode(.inline)
