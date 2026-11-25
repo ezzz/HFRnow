@@ -17,6 +17,9 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
     public private(set) var unreadPrivateMessages: Int?
     /// The unread conversations last recorded, sorted; nil when none were.
     public private(set) var unreadThreads: [Int]?
+    /// The reply count and last post of each unread conversation recorded, by topic number; nil when none was recorded
+    /// (a ledger written before #571: the first check that carries marks is their baseline, no news).
+    public private(set) var unreadThreadMarks: [UnreadThreadMark]?
     /// The latest last post recorded per flagged topic, latest first; nil when no flags list was recorded.
     public private(set) var flaggedTopics: [FlaggedTopicStamp]?
     /// The latest last post among the topics dropped by `topicLimit`: a topic not recorded is news only after it, so a
@@ -36,7 +39,16 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
             news.newPrivateMessages = max(0, count - max(0, unreadPrivateMessages ?? 0))
         }
         if let threads = summary.unreadThreads, let known = unreadThreads {
-            news.newThreads = threads.subtracting(known).sorted()
+            var moved = threads.subtracting(known)
+            if let marks = summary.unreadThreadMarks, let recorded = unreadThreadMarks {
+                // Still unread, and its row moved forward: a reply in an unread conversation (#571). A conversation with no
+                // recorded mark has no baseline yet: no news.
+                let before = Dictionary(recorded.map { ($0.topic, $0) }, uniquingKeysWith: { first, _ in first })
+                for mark in marks where threads.contains(mark.topic) {
+                    if let old = before[mark.topic], mark.movedForward(from: old) { moved.insert(mark.topic) }
+                }
+            }
+            news.newThreads = moved.sorted()
         }
         if let stamps = summary.flaggedTopics, let known = flaggedTopics {
             let notified = Self.latest(known)
@@ -61,6 +73,12 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
         }
         if let threads = summary.unreadThreads {
             unreadThreads = threads.sorted()
+            // Marks follow the unread set: a conversation read here drops its mark, one with no mark in this summary keeps
+            // the one it had.
+            var kept = Dictionary((unreadThreadMarks ?? []).map { ($0.topic, $0) }, uniquingKeysWith: { first, _ in first })
+            for mark in summary.unreadThreadMarks ?? [] where threads.contains(mark.topic) { kept[mark.topic] = mark }
+            let marks = kept.values.filter { threads.contains($0.topic) }.sorted { $0.topic < $1.topic }
+            unreadThreadMarks = marks.isEmpty && summary.unreadThreadMarks == nil && unreadThreadMarks == nil ? nil : marks
         }
         if let stamps = summary.flaggedTopics {
             var latest = Self.latest(flaggedTopics ?? [])

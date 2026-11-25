@@ -88,14 +88,14 @@ No pseudo, no subject, no count in logs (operator): only the outcome kind.
 - Two runs with no change: no news (ledger), no notification.
 - An unknown or expired answer: nothing recorded, nothing notified, badge kept.
 - Account switched between a run and a tap: the tap opens the current account's list; a conversation it does not list is not selected.
-- A list read with no conversation newly unread sends nothing, even when the count rose (a reply to a conversation already unread waits on #571; the count alone can rise from an older count the app recorded).
+- A list read with no conversation newly unread sends nothing, even when the count rose (the count alone can rise from an older count the app recorded; a reply to a conversation already unread is a `newThreads` entry since #571).
 - A member who never opened Messages and whose list was never read by a check has no thread baseline: the first check that reads the list records it silently, so a conversation new at that moment is not notified (once per account; LOT-091 baseline).
 - The ledger file unreadable: `markCheckedIfDue` throws → the run stops (no notification loop, LOT-091).
 
 ## Fixtures
 Captures read in place (no new fixture): `R336`-`R338` (#567, reply in an unread one-to-one conversation), `R610a`/`R610b` (an older read row becomes unread, #610), `R610e`/`R610g` (group row, creator's list), `R13u1`, `R13a` (MP lists), through `PrivateMessageListParser`.
 
-**Pending (#571, ledger follow-up, `status: ready`):** a new reply in a conversation that is already unread changes only `repliesCount` and the last-post date (`R336` → `R337` → `R338`, HFR-PROTOCOL §6c LOT-140); the ledger keeps only the unread set, so that reply is **not** notified until #571 adds the per-thread watermark. LOT-140 reads only `NotificationNews.newThreads`: once #571 reports moved-forward threads there, the plan notifies them unchanged (the `mp-<number>` identifier replaces the earlier notification). The #230 acceptance item "a reply in an already-unread conversation produces a notification" closes with #571.
+**Reply in an already-unread conversation (#571, done):** it changes only `repliesCount` and the last-post date (`R336` → `R337` → `R338`, HFR-PROTOCOL §6c LOT-140); the ledger keeps both per unread conversation (LOT-091 thread marks) and reports a conversation that moved forward in `NotificationNews.newThreads`, so the plan notifies it unchanged (the `mp-<number>` identifier replaces the earlier notification). The foreground list record feeds the marks too, so a reply seen in the list is not notified. App test `MPBackgroundCheckTests/replyInAnUnreadConversation`.
 
 ## Intentional differences from legacy
 | # | Legacy | Port | Why |
