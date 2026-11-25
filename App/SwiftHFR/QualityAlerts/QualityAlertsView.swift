@@ -5,7 +5,7 @@ import SwiftUI
 // follow the list look of every Plus list (#1107, #842) and are `Button`s opening the reader at the message's page and anchor
 // (issues #105, #106) as the entry's reader, on the Plus stack (`PlusStackReader`) or in the detail column of the iPad split
 // (`openTopicInDetail`, #685), not the legacy topic row view; a failed load keeps the rows and shows a retry; the list is a plain
-// `List`, not the topic row styles (no flag cues).
+// `List`, not the topic row styles (no flag cues); a new row is also spoken as « Nouvelle » (legacy has no accessibility text, #1160).
 /// The Alertes Qualitay list: one row per report, bold while new, opening the reported message.
 struct QualityAlertsView: View {
     let model: QualityAlertsModel
@@ -82,7 +82,7 @@ private struct QualityAlertsPlaceholder: View {
     }
 }
 
-private struct QualityAlertRow: View {
+struct QualityAlertRow: View {
     let row: QualityAlertsModel.Row
     let now: Date
     let open: () -> Void

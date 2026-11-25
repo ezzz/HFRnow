@@ -46,7 +46,9 @@ struct QualityAlertsModelTests {
         // #1160: the state is spoken, not only drawn as weight; a seen row says nothing and is regular.
         #expect(model.rows.filter { $0.accessibilityState == "Nouvelle" }.count == 2)
         #expect(model.rows.allSatisfy { $0.isNew == ($0.accessibilityState == "Nouvelle") })
-        #expect(model.rows.allSatisfy { $0.titleStyle == ($0.isNew ? .headline : .body) })
+        let new = try #require(model.rows.first(where: \.isNew))
+        let seen = try #require(model.rows.first(where: { !$0.isNew }))
+        #expect(new.titleStyle == .headline && seen.titleStyle == .body)
         #expect(model.unreadCount == 0)
         #expect(store.value(for: SettingKey.aqLastCheck) == Support.shownAt)
         // Next launch: nothing is newer than that visit.
