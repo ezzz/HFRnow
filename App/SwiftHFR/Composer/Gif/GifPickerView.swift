@@ -131,11 +131,7 @@ struct GifPickerView: View {
                 .onSubmit { searchFocused = false; Task { await model.submitSearch() } }
                 .disabled(model.phase == .idle)
             if !model.query.isEmpty {
-                Button { model.query = ""; Task { await model.submitSearch() } } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Effacer")
+                GifSearchClearButton { model.query = ""; Task { await model.submitSearch() } }
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 9)
@@ -224,5 +220,28 @@ private struct GifPanel: ViewModifier {
                     inserted = true
                 }
             })
+    }
+}
+
+/// The ✕ that clears the search field: a 44 pt hit region (#1296) that overflows the bar's layout, so the glyph and the text
+/// field keep their place and width (same technique as `PollAnswerRemoveButton`, #1292).
+struct GifSearchClearButton: View {
+    let action: () -> Void
+    /// Test seam: the size of the hit region once laid out (the label's frame, before the negative padding).
+    var regionProbe: (@MainActor (CGSize) -> Void)?
+    /// The glyph's size once laid out, which the overhang depends on (the default size until it is read).
+    @State private var glyph = CGSize(width: 20, height: 20)
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                .onGeometryChange(for: CGSize.self, of: \.size) { glyph = $0 }
+                .minimumHitRegion()
+                .onGeometryChange(for: CGSize.self, of: \.size) { regionProbe?($0) }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, -PollAnswerRemoveButton.overhang(of: glyph.width))
+        .padding(.vertical, -PollAnswerRemoveButton.overhang(of: glyph.height))
+        .accessibilityLabel("Effacer")
     }
 }
