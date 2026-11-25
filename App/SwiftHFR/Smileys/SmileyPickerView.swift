@@ -59,7 +59,7 @@ struct SmileyPickerView: View {
             .navigationTitle("Smileys")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
             }
             .overlay(alignment: .top) { noticeBanner }
             // Pushed, not a third sheet over the composer (#1177; HIG › Sheets: one sheet at a time): the back button and

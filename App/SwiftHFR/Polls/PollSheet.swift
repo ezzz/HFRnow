@@ -54,7 +54,7 @@ struct PollSheet: View {
             .navigationTitle("Sondage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() }.disabled(model.phase == .sending) }
+                SheetCloseToolbarItem(isDisabled: model.phase == .sending) { dismiss() }
                 if model.offersVote {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Voter") { Task { await model.vote() } }.disabled(!model.canVote)

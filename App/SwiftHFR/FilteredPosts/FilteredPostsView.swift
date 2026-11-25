@@ -126,7 +126,7 @@ struct FilteredPostsView: View {
         .navigationSubtitle(model.result?.subtitle ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("Fermer") { model.closeResult() } }
+            SheetCloseToolbarItem { model.closeResult() }
         }
         .safeAreaBar(edge: .top) {
             if model.bannerText != nil { FilteredPostsBanner(model: model).padding(.horizontal).padding(.top, 4) }

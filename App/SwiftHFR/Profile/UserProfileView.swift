@@ -20,7 +20,7 @@ struct UserProfileView: View {
                 .navigationTitle(model.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                    SheetCloseToolbarItem { dismiss() }
                     ToolbarItem(placement: .primaryAction) {
                         Button { Task { await model.reload() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                             .disabled(model.isLoading)

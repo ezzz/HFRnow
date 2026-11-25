@@ -26,7 +26,7 @@ struct GifPickerView: View {
                 .navigationTitle("GIF")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                    SheetCloseToolbarItem { dismiss() }
                 }
                 .alert(AlertTitles.gifServiceQuestion, isPresented: $isAskingNotice) {
                     Button("Annuler", role: .cancel) { dismiss() }
