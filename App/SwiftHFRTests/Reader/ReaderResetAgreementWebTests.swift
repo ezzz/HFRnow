@@ -52,38 +52,72 @@ struct ReaderResetAgreementWebTests: ReaderWebTesting {
         return (values.first?.doubleValue ?? -1, values.dropFirst().first?.doubleValue ?? -1)
     }
 
+    /// The frame at which the page agreed and the one at which the app's scroll ran, counted in the page, and the page's
+    /// `scrollY` at each frame for a failure message.
+    private struct Agreement {
+        let agreedAt: Int
+        let ranAt: Int
+        let trace: String
+    }
+
+    /// Asks `ask` (a restore or a landing whose `from` is 600) while the page is at 300, then, from frame 5, delivers the
+    /// late reset by hand (the page moves to 600) until `ran` holds. #1324: the asked `from` is not 0, where WebKit's own
+    /// reset puts a page: a late reset of the page's new document (#995) reaching it during the test (CI job 138855383148,
+    /// the landing ran by frame 5 with the page at the top) no longer agrees for the test, and the frames are counted in the
+    /// page, never timed. Delivered again each frame until the scroll runs: a WebKit reset to 0 between two frames cannot
+    /// undo the test's own one. The page calls its own frame callbacks first (registered first), so `ran` sees the scroll of
+    /// the same frame.
+    private func agreement(asking ask: String, ran: String, in controller: ReaderWebController) async throws -> Agreement {
+        let script = """
+            const oneFrame = () => new Promise((done) => requestAnimationFrame(done));
+            const ran = () => \(ran);
+            \(ask);
+            const trace = [];
+            let agreedAt = -1;
+            for (let frame = 1; frame <= 15; frame += 1) {
+              await oneFrame();
+              trace.push(frame + ':' + Math.round(window.scrollY));
+              if (ran()) { return [agreedAt, frame, trace.join(' ')]; }
+              if (frame >= 5) {
+                if (agreedAt < 0) { agreedAt = frame; }
+                window.scrollTo(0, 600);
+              }
+            }
+            return [agreedAt, -1, trace.join(' ')];
+            """
+        let values = try await evaluate(script, in: controller) as? [Any] ?? []
+        return Agreement(
+            agreedAt: (values.first as? NSNumber)?.intValue ?? -1,
+            ranAt: (values.dropFirst().first as? NSNumber)?.intValue ?? -1,
+            trace: values.dropFirst(2).first as? String ?? "no answer"
+        )
+    }
+
     @Test func aRestoreWaitsForTheResetThenRunsAtOnce() async throws {
         let controller = try await pageAway()
-        // The scroll view shows the top (`from` 0) while the page is still at 300; the reset reaches the page five frames
-        // later. Without the wait the restore landed at frame 2 and the reset put the page back to 0; with a blind delay it
-        // would come only at the cap.
-        let script = Self.frames + """
-            window.hfrReader.restoreScroll(1000, 0);
-            await frames(5);
-            const waited = window.scrollY;
-            window.scrollTo(0, 0);
-            await frames(3);
-            return [waited, window.scrollY];
-            """
-        let (waited, fired) = try await pair(script, in: controller)
-        #expect(abs(waited - 300) <= 1, "the restore did not wait for the reset: scrollY \(waited) at frame 5")
-        #expect(abs(fired - 1000) <= 1, "the restore did not run once the page agreed: scrollY \(fired) 3 frames later")
+        // The scroll view shows 600 (`from`) while the page is still at 300; the reset reaches the page at frame 5. Without
+        // the wait the restore ran at frame 2 and the reset undid it; with a blind delay it would come only at the cap (30).
+        let result = try await agreement(
+            asking: "window.hfrReader.restoreScroll(1000, 600)", ran: "Math.abs(window.scrollY - 1000) <= 1", in: controller
+        )
+        #expect(result.agreedAt == 5, "the restore did not wait for the reset (scrollY by frame): \(result.trace)")
+        #expect(
+            result.ranAt > result.agreedAt && result.ranAt <= result.agreedAt + 3,
+            "the restore did not run once the page agreed at frame \(result.agreedAt) (scrollY by frame): \(result.trace)"
+        )
     }
 
     @Test func aLandingWaitsForTheResetThenRunsAtOnce() async throws {
         let controller = try await pageAway()
-        let script = Self.frames + """
-            const top = () => Math.round(document.getElementById('t2').getBoundingClientRect().top);
-            window.hfrReader.landOnPost(2, 0);
-            await frames(5);
-            const waited = top();
-            window.scrollTo(0, 0);
-            await frames(3);
-            return [waited, top()];
-            """
-        let (waited, fired) = try await pair(script, in: controller)
-        #expect(waited > 1000, "the landing did not wait for the reset: message 2 at \(waited) at frame 5")
-        #expect(fired == 0, "the landing did not run once the page agreed: message 2 at \(fired) 3 frames later")
+        let result = try await agreement(
+            asking: "window.hfrReader.landOnPost(2, 600)",
+            ran: "Math.abs(document.getElementById('t2').getBoundingClientRect().top) <= 1", in: controller
+        )
+        #expect(result.agreedAt == 5, "the landing did not wait for the reset (scrollY by frame): \(result.trace)")
+        #expect(
+            result.ranAt > result.agreedAt && result.ranAt <= result.agreedAt + 3,
+            "the landing did not run once the page agreed at frame \(result.agreedAt) (scrollY by frame): \(result.trace)"
+        )
     }
 
     /// A page that never shows what the scroll view showed (no reset comes) is still scrolled, after the frame cap: the wait
