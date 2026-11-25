@@ -2,8 +2,9 @@ import SwiftUI
 
 /// The rules of the "Page numéro" sheet, apart from the view so they are tested as they are.
 enum ReaderPagePicker {
-    /// Legacy's fixed 260 pt stop (`Common.swift:3212` @ 87fe0d1c) stays the first one; `.medium` lets the sheet grow when Dynamic Type
-    /// makes the field and the two button rows taller than that (#1167, HIG › Typography).
+    /// Legacy's fixed 260 pt stop (`Common.swift:3212` @ 87fe0d1c) stays the first one and is where the sheet opens; `.medium` lets
+    /// the member drag it taller when Dynamic Type makes the field and the two button rows taller than that, and the content
+    /// scrolls meanwhile (#1167, HIG › Typography).
     static let detents: Set<PresentationDetent> = [.height(260), .medium]
 
     /// One quick button of the sheet's second row.
@@ -58,7 +59,8 @@ enum ReaderPagePicker {
 
 // Port of HFRswift/Swift/Common.swift (TopicPagePickerSheet, TopicPagePickerQuickButton) @ 87fe0d1c (lines 3063-3190).
 // Differences: the quick buttons use the system tint, not `themePalette.actionTintColor` / `.systemGray3` (GAP-060, follow-up
-// in the PR's issue list). The field opens on the current page, as legacy does (`Common.swift:3532` @ 87fe0d1c).
+// in the PR's issue list). The field opens on the current page, as legacy does (`Common.swift:3532` @ 87fe0d1c). A second
+// detent and a scrolling content for large text sizes, which legacy's fixed 260 pt lacks (#1167).
 /// The "Page numéro" sheet: first | number | last, then -10 | -1 | +1 | +10, "Valider" opens the page.
 struct ReaderPageSheet: View {
     let maxPage: Int
