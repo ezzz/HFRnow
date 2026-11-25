@@ -18,6 +18,13 @@ struct ListLookSelectionTests {
         }
     }
 
+    @Test func selectionStrengthIsPinned() {
+        #expect(ListLook.selectedStrength(scheme: .light, contrast: .standard) == 0.20)
+        #expect(ListLook.selectedStrength(scheme: .light, contrast: .increased) == 0.30)
+        #expect(ListLook.selectedStrength(scheme: .dark, contrast: .standard) == 0.30)
+        #expect(ListLook.selectedStrength(scheme: .dark, contrast: .increased) == 0.30)
+    }
+
     @Test func selectionIsStrongerThanAStatePill() {
         for scheme in Self.schemes {
             for contrast in Self.contrasts {

@@ -11,8 +11,6 @@ struct MessageRowView: View {
     let thread: PrivateMessageThread
     /// The member's unread state as the list shows it (HFR's, until the thread is opened).
     let isUnread: Bool
-    /// The row is the list's selection (iPad): the system highlight must show, so the tint steps aside.
-    var isSelected = false
     /// A group row's MPStorage position, `⚑ <page> / <max>` (LOT-130); nil shows the interlocutors.
     var flagLabel: String?
     @Environment(\.listDensity) private var density

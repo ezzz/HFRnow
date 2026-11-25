@@ -37,8 +37,8 @@ enum ListLook: Sendable, Equatable {
         return self == .dense ? DenseListLook.rowBackground : nil
     }
 
-    /// Opacity of the selected row's tint: twice `RowTint.strength` (0.20 light, 0.32 dark, 0.36 and 0.48 with Increase Contrast),
-    /// held at `maxSelectedStrength` so it stays a tint, and still above every pill (the strongest is 0.24).
+    /// Opacity of the selected row's tint: twice `RowTint.strength`, held at `maxSelectedStrength`: 0.20 in light, 0.30 in dark and
+    /// with Increase Contrast (the cap). It stays a tint and above every pill (the strongest is 0.24).
     static func selectedStrength(scheme: ColorScheme, contrast: ColorSchemeContrast) -> Double {
         min(RowTint.strength(scheme: scheme, contrast: contrast) * 2, maxSelectedStrength)
     }

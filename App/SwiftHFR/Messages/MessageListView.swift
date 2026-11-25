@@ -34,7 +34,7 @@ struct MessageListView: View {
                 if loader.value != nil {
                     ForEach(model.visibleThreads) { thread in
                         MessageRowView(
-                            thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
+                            thread: thread, isUnread: model.isUnread(thread),
                             flagLabel: model.flagLabel(for: thread)
                         )
                         .themedRowText()
