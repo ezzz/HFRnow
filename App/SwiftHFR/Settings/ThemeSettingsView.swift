@@ -11,13 +11,29 @@ import SwiftUI
 struct ThemeSettingsView: View {
     @Environment(ThemeSettingsModel.self) private var theme
     @Environment(SeasonalThemeModel.self) private var seasonal
+    // The sliders' values while a finger is down (#1211): the model, the store and the app behind get the final one on release.
+    @State private var hueDraft = SliderDraft<Double>()
+    @State private var brightnessDraft = SliderDraft<Double>()
+
+    private var shownHue: Double { hueDraft.shown(saved: theme.accentHue) }
+    private var shownBrightness: Double { brightnessDraft.shown(saved: theme.darkBrightness) }
+
+    /// The appearance this screen's previews draw: the model's, with the values being dragged.
+    private var previewAppearance: ThemeAppearance {
+        var appearance = theme.appearance
+        guard theme.theme.isLegacy else { return appearance }
+        appearance.dayAccent = ThemeAppearance.dayTint(hue: shownHue)
+        appearance.nightAccent = ThemeAppearance.nightTint(hue: shownHue)
+        appearance.darkBrightness = shownBrightness
+        return appearance
+    }
 
     var body: some View {
         @Bindable var theme = theme
         Form {
             Section {
                 Group {
-                    ThemeModeTiles(appearance: theme.appearance, mode: $theme.mode)
+                    ThemeModeTiles(appearance: previewAppearance, mode: $theme.mode)
                     if theme.theme.isLegacy {
                         legacyColors
                     }
@@ -61,13 +77,20 @@ struct ThemeSettingsView: View {
         @Bindable var theme = theme
         VStack(alignment: .leading, spacing: 8) {
             LabeledContent("Teinte d'accent") {
-                Text(theme.accentHue, format: .number.precision(.fractionLength(2)))
+                Text(shownHue, format: .number.precision(.fractionLength(2)))
             }
             .accessibilityHidden(true) // the slider below speaks both
-            Slider(value: $theme.accentHue, in: 0...1, step: 0.001)
-                .tint(Color(uiColor: ThemeAppearance.dayTint(hue: theme.accentHue).uiColor))
-                .accessibilityLabel("Teinte d'accent")
-                .accessibilityValue(Text(theme.accentHue, format: .number.precision(.fractionLength(2))))
+            Slider(
+                value: Binding(
+                    get: { shownHue },
+                    set: { if let saved = hueDraft.move(to: $0) { theme.accentHue = saved } }
+                ),
+                in: 0...1, step: 0.001,
+                onEditingChanged: { if let saved = hueDraft.editingChanged($0) { theme.accentHue = saved } }
+            )
+            .tint(Color(uiColor: ThemeAppearance.dayTint(hue: shownHue).uiColor))
+            .accessibilityLabel("Teinte d'accent")
+            .accessibilityValue(Text(shownHue, format: .number.precision(.fractionLength(2))))
         }
         ForEach(theme.mode.controls, id: \.self) { control in
             controlView(control)
@@ -83,22 +106,29 @@ struct ThemeSettingsView: View {
             Picker("Style du thème clair", selection: $theme.lightStyle) {
                 ForEach(LightStyle.allCases, id: \.self) { Text($0.title).tag($0) }
             }
-            LightStylePreview(appearance: theme.appearance)
+            LightStylePreview(appearance: previewAppearance)
         case .darkStyle:
             if theme.mode == .system { groupTitle("Thème sombre") }
             Picker("Style du thème sombre", selection: $theme.darkStyle) {
                 ForEach(DarkStyle.allCases, id: \.self) { Text($0.title).tag($0) }
             }
-            DarkStylePreview(appearance: theme.appearance)
+            DarkStylePreview(appearance: previewAppearance)
         case .darkBrightness:
             VStack(alignment: .leading, spacing: 8) {
                 LabeledContent("Luminosité du thème sombre") {
-                    Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0)))
+                    Text(shownBrightness, format: .percent.precision(.fractionLength(0)))
                 }
                 .accessibilityHidden(true)
-                Slider(value: $theme.darkBrightness, in: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01)
-                    .accessibilityLabel("Luminosité du thème sombre")
-                    .accessibilityValue(Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0))))
+                Slider(
+                    value: Binding(
+                        get: { shownBrightness },
+                        set: { if let saved = brightnessDraft.move(to: $0) { theme.darkBrightness = saved } }
+                    ),
+                    in: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01,
+                    onEditingChanged: { if let saved = brightnessDraft.editingChanged($0) { theme.darkBrightness = saved } }
+                )
+                .accessibilityLabel("Luminosité du thème sombre")
+                .accessibilityValue(Text(shownBrightness, format: .percent.precision(.fractionLength(0))))
             }
         }
     }

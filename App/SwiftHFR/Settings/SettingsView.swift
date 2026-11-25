@@ -88,20 +88,7 @@ struct SettingsView: View {
                 Toggle("Actualisation automatique des favoris", isOn: $favorites.autoRefresh)
                 Toggle("Mode compact", isOn: $general.compactMode)
                 Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
-                VStack(alignment: .leading, spacing: 4) {
-                    LabeledContent("Taille du texte", value: "\(general.textSizePercent) %")
-                        .accessibilityHidden(true) // the slider below speaks both
-                    Slider(
-                        value: Binding(
-                            get: { Double(general.textSizePercent) },
-                            set: { general.textSizePercent = Int($0.rounded()) }
-                        ),
-                        in: Double(SettingKey.textSizePercentRange.lowerBound)...Double(SettingKey.textSizePercentRange.upperBound),
-                        step: Double(SettingKey.textSizePercentStep)
-                    )
-                    .accessibilityLabel("Taille du texte")
-                    .accessibilityValue("\(general.textSizePercent) %")
-                }
+                TextSizeRow(general: general)
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle("Retours haptiques", isOn: $general.hapticsEnabled)
                 DefaultBrowserRow(general: general)
@@ -197,4 +184,30 @@ struct SettingsDestinationView: View {
         .environment(SeasonalThemeModel(store: InMemorySettingsStore()))
         .environment(AccountsModel.preview())
         .environment(AppLockModel.preview())
+}
+
+/// The « Taille du texte » slider (#1211): the percentage follows the finger here only; the setting, and with it every screen's type
+/// scale, changes once on release, as each tick used to rebuild the whole app.
+private struct TextSizeRow: View {
+    let general: GeneralSettingsModel
+    @State private var draft = SliderDraft<Double>()
+
+    var body: some View {
+        let percent = Int(draft.shown(saved: Double(general.textSizePercent)).rounded())
+        VStack(alignment: .leading, spacing: 4) {
+            LabeledContent("Taille du texte", value: "\(percent) %")
+                .accessibilityHidden(true) // the slider below speaks both
+            Slider(
+                value: Binding(
+                    get: { Double(percent) },
+                    set: { if let saved = draft.move(to: $0) { general.textSizePercent = Int(saved.rounded()) } }
+                ),
+                in: Double(SettingKey.textSizePercentRange.lowerBound)...Double(SettingKey.textSizePercentRange.upperBound),
+                step: Double(SettingKey.textSizePercentStep),
+                onEditingChanged: { if let saved = draft.editingChanged($0) { general.textSizePercent = Int(saved.rounded()) } }
+            )
+            .accessibilityLabel("Taille du texte")
+            .accessibilityValue("\(percent) %")
+        }
+    }
 }
