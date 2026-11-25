@@ -61,7 +61,7 @@ struct ReaderMarkUnreadFlow: ViewModifier {
                     }
                 }
             }
-            .alert("Action impossible", isPresented: failureShown) {
+            .alert(AlertTitles.markUnreadFailed, isPresented: failureShown) {
                 Button("OK", role: .cancel) {}
             } message: {
                 if case .failed(let reason) = model.markUnreadState { Text(reason) }

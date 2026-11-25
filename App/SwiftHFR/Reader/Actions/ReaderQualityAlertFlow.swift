@@ -9,14 +9,14 @@ struct ReaderQualityAlertFlow: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Alerte Qualitay", isPresented: noticeShown, presenting: notice) { draft in
+            .alert(AlertTitles.qualityNoticeQuestion, isPresented: noticeShown, presenting: notice) { draft in
                 // The draft comes from the alert: SwiftUI clears the presenting state before the button runs (LOT-087).
                 Button("Continuer") { alerts?.answerNotice(true, for: draft) }
                 Button("Annuler", role: .cancel) { alerts?.answerNotice(false, for: draft) }
             } message: { _ in
                 Text(alerts?.noticeMessage ?? "")
             }
-            .alert("Alerte Qualitay", isPresented: additionShown, presenting: addition) { draft in
+            .alert(AlertTitles.qualityAdditionQuestion, isPresented: additionShown, presenting: addition) { draft in
                 Button("Plussoyer") { Task { await alerts?.add(draft) } }
                 Button("Annuler", role: .cancel) {}
             } message: { draft in

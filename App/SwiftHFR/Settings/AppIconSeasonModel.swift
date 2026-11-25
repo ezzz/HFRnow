@@ -108,7 +108,7 @@ private struct AppIconSeasonAlert: ViewModifier {
             .onChange(of: gate.owner) { gate.refresh() }
             .onDisappear { gate.release() }
             .alert(
-                "Icône",
+                AlertTitles.iconChangeFailed,
                 isPresented: Binding(
                     get: { model.errorMessage != nil && gate.isOpen }, set: { if !$0, gate.isOpen { model.errorMessage = nil } }
                 )

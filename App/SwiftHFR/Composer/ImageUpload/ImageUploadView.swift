@@ -32,7 +32,7 @@ struct ImageUploadView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Fermer") { dismiss() } }
             }
-            .alert("Hébergeur d'images", isPresented: askingNotice) {
+            .alert(AlertTitles.imageHostQuestion, isPresented: askingNotice) {
                 Button("Annuler", role: .cancel) { model.declineNotice() }
                 Button("Continuer") { model.acceptNotice() }
             } message: {

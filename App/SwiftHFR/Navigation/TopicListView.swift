@@ -128,7 +128,8 @@ struct TopicListView: View {
         .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
-            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
+            AlertTitles.flagRemoveFailed,
+            isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
         ) {
             // The row is captured here: the alert clears the model's state before a button's action runs (LOT-087).
             if let topic = model.retryableRemoval {
