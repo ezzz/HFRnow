@@ -229,6 +229,12 @@ table.code sub, table.fixed sub, table.code sup, table.fixed sup {
 table.code :is(sub, sup) :is(sub, sup), table.fixed :is(sub, sup) :is(sub, sup) {
   font-size: max(calc(1em / 1.2), min(calc(var(--code-100, 1rem) / 1.44), var(--floor)));
 }
+/* Third level (1.2 three times). Deeper levels are not covered: they take the third level's size at 100 %, a little
+   above their own. */
+:is(sub, sup) :is(sub, sup) :is(sub, sup) { font-size: max(calc(1em / 1.2), min(calc(var(--context-100, 1rem) / 1.728), var(--floor))); }
+table.code :is(sub, sup) :is(sub, sup) :is(sub, sup), table.fixed :is(sub, sup) :is(sub, sup) :is(sub, sup) {
+  font-size: max(calc(1em / 1.2), min(calc(var(--code-100, 1rem) / 1.728), var(--floor)));
+}
 
 /* Code: monospace, scroll sideways instead of widening the page. */
 table.code, table.fixed { font-size: var(--fs-85-content); }
@@ -330,7 +336,7 @@ table.quote-blocked { cursor: pointer; }
 table.quote-blocked > * > tr > td { padding: 0.4em 0.6em; }
 table.quote-blocked:not(.open) > * > tr > td { font-size: 0; padding: calc(0.4 * var(--content-em)) calc(0.6 * var(--content-em)); }
 table.quote-blocked:not(.open) > * > tr > td > :not(b.s1) { display: none; }
-table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: var(--fs-85-content); }
+table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: var(--fs-85-content); --context-100: calc(0.85 * 15 / 17 * 1rem); }
 table.quote-blocked > * > tr > td > b.s1 { display: flex; justify-content: space-between; gap: 0.5em; }
 /* The header is a block line now, so the `<br>` that ended it would add a blank line: hide it. */
 table.quote-blocked > * > tr > td > b.s1 + br { display: none; }
