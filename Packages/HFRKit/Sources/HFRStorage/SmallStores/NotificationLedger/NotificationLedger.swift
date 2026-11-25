@@ -43,9 +43,9 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
             if let marks = summary.unreadThreadMarks, let recorded = unreadThreadMarks {
                 // Still unread, and its row moved forward: a reply in an unread conversation (#571). A conversation with no
                 // recorded mark has no baseline yet: no news.
-                let before = Dictionary(recorded.map { ($0.topic, $0) }, uniquingKeysWith: { first, _ in first })
-                for mark in marks where threads.contains(mark.topic) {
-                    if let old = before[mark.topic], mark.movedForward(from: old) { moved.insert(mark.topic) }
+                let before = Self.highest(recorded)
+                for (topic, mark) in Self.highest(marks) where threads.contains(topic) {
+                    if let old = before[topic], mark.movedForward(from: old) { moved.insert(topic) }
                 }
             }
             news.newThreads = moved.sorted()
@@ -73,10 +73,13 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
         }
         if let threads = summary.unreadThreads {
             unreadThreads = threads.sorted()
-            // Marks follow the unread set: a conversation read here drops its mark, one with no mark in this summary keeps
-            // the one it had.
-            var kept = Dictionary((unreadThreadMarks ?? []).map { ($0.topic, $0) }, uniquingKeysWith: { first, _ in first })
-            for mark in summary.unreadThreadMarks ?? [] where threads.contains(mark.topic) { kept[mark.topic] = mark }
+            // Marks follow the unread set: a conversation read here drops its mark; one with no mark in this summary keeps
+            // the one it had. The highest count and latest date win, as flags do, so a stale list shown in the app (the
+            // background check recorded a newer reply since) cannot lower the baseline and notify the reply twice.
+            var kept = Self.highest(unreadThreadMarks ?? [])
+            for (topic, mark) in Self.highest(summary.unreadThreadMarks ?? []) where threads.contains(topic) {
+                kept[topic] = kept[topic].map { $0.merged(with: mark) } ?? mark
+            }
             let marks = kept.values.filter { threads.contains($0.topic) }.sorted { $0.topic < $1.topic }
             unreadThreadMarks = marks.isEmpty && summary.unreadThreadMarks == nil && unreadThreadMarks == nil ? nil : marks
         }
@@ -111,6 +114,13 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
     }
 
     // MARK: Internals
+
+    /// One mark per topic: the highest reply count and the latest date among the marks given for it.
+    private static func highest(_ marks: [UnreadThreadMark]) -> [Int: UnreadThreadMark] {
+        marks.reduce(into: [:]) { result, mark in
+            result[mark.topic] = result[mark.topic].map { $0.merged(with: mark) } ?? mark
+        }
+    }
 
     private static func latest(_ stamps: [FlaggedTopicStamp]) -> [TopicID: Date] {
         stamps.reduce(into: [:]) { latest, stamp in

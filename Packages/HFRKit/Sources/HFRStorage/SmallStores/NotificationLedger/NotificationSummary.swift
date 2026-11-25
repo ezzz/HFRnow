@@ -72,6 +72,13 @@ public struct UnreadThreadMark: Sendable, Hashable, Codable {
         self.lastPost = lastPost
     }
 
+    /// The highest reply count and the latest date of the two marks of one conversation (a deletion lowers a count; the
+    /// next reply still moves the date).
+    func merged(with other: Self) -> Self {
+        let latest = [lastPost, other.lastPost].compactMap { $0 }.max()
+        return Self(topic: topic, repliesCount: max(repliesCount, other.repliesCount), lastPost: latest)
+    }
+
     /// Whether `self`, read now, is later than `recorded`: more replies or a later last post.
     func movedForward(from recorded: Self) -> Bool {
         if repliesCount > recorded.repliesCount { return true }

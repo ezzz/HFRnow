@@ -42,13 +42,36 @@ import Testing
         #expect(!again)
     }
 
-    @Test func aCountOrDateThatWentDownIsNotNewsAndBecomesTheBaseline() {
+    @Test func aCountOrDateThatWentDownIsNotNewsAndDoesNotLowerTheBaseline() {
         var ledger = NotificationLedger()
         ledger.record(Self.summary([5], marks: [Self.mark(5, replies: 3, at: 5)]))
+        // A stale list shown in the app (older than what the background check recorded).
         let lower = Self.summary([5], marks: [Self.mark(5, replies: 2, at: 4)])
         #expect(ledger.diff(summary: lower).isEmpty)
-        ledger.record(lower)
-        #expect(ledger.diff(summary: Self.summary([5], marks: [Self.mark(5, replies: 3, at: 5)])).newThreads == [5])
+        let changed = ledger.record(lower)
+        #expect(!changed)
+        #expect(ledger.diff(summary: lower).isEmpty)
+        #expect(ledger.diff(summary: Self.summary([5], marks: [Self.mark(5, replies: 3, at: 5)])).isEmpty)
+        // A reply after a deletion still moves the date forward.
+        #expect(ledger.diff(summary: Self.summary([5], marks: [Self.mark(5, replies: 3, at: 6)])).newThreads == [5])
+    }
+
+    @Test func twoMarksOfOneTopicInASummaryCountAsTheirHighest() {
+        var ledger = NotificationLedger()
+        ledger.record(Self.summary([5], marks: [Self.mark(5, replies: 1, at: 1)]))
+        let both = Self.summary([5], marks: [Self.mark(5, replies: 2, at: 2), Self.mark(5, replies: 1, at: 1)])
+        #expect(ledger.diff(summary: both).newThreads == [5])
+        ledger.record(both)
+        #expect(ledger.diff(summary: both).isEmpty)
+    }
+
+    @Test func aMarkForAConversationThatWasReadSinceIsIgnoredByDiff() {
+        var ledger = NotificationLedger()
+        ledger.record(Self.summary([5, 8], marks: [Self.mark(5, replies: 0, at: 1), Self.mark(8, replies: 0, at: 1)]))
+        ledger.record(Self.summary([5], marks: [Self.mark(5, replies: 0, at: 1)]))
+        // 8 is not in the unread set, though a mark for it moved forward: not news.
+        let news = ledger.diff(summary: Self.summary([5], marks: [Self.mark(5, replies: 0, at: 1), Self.mark(8, replies: 4, at: 9)]))
+        #expect(news.isEmpty)
     }
 
     @Test func aNewlyUnreadAndAMovedConversationAreReportedSortedOnce() {
@@ -98,7 +121,8 @@ import Testing
     @Test func aMarkForAThreadThatIsNotUnreadIsIgnoredAndAMissingDateStillCountsReplies() {
         var ledger = NotificationLedger()
         ledger.record(Self.summary([5], marks: [Self.mark(5, replies: 1, at: nil)]))
-        #expect(ledger.diff(summary: Self.summary([5], marks: [Self.mark(5, replies: 2, at: nil), Self.mark(8, replies: 9, at: 9)])).newThreads == [5])
+        let moved = Self.summary([5], marks: [Self.mark(5, replies: 2, at: nil), Self.mark(8, replies: 9, at: 9)])
+        #expect(ledger.diff(summary: moved).newThreads == [5])
         ledger.record(Self.summary([5], marks: [Self.mark(8, replies: 9, at: 9)]))
         #expect(ledger.unreadThreadMarks?.map(\.topic) == [5])
     }
