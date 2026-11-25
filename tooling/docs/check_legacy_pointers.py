@@ -146,7 +146,10 @@ def check(root: Path, read: Reader, repo_root: Path) -> Result:
                 continue
             checked += 1
             where = f"{pointer.file}:{pointer.line}: {pointer.legacy_path} {pointer.first}-{pointer.last} @ {pointer.sha}"
-            if pointer.first < 1 or pointer.last < pointer.first or pointer.first > len(legacy):
+            if pointer.last < pointer.first:
+                failures.append(f"{where}: reversed range")
+                continue
+            if pointer.first < 1 or pointer.first > len(legacy):
                 failures.append(f"{where}: range outside the file ({len(legacy)} lines)")
                 continue
             window = "\n".join(legacy[pointer.first - 1:pointer.last])

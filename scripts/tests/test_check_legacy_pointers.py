@@ -79,6 +79,10 @@ class LegacyPointerTests(unittest.TestCase):
         result = check(header)
         self.assertEqual((result.failures, result.checked), ([], 0))
 
+    def test_a_reversed_range_is_wrong_and_says_so(self):
+        result = check(f"// Port of {LEGACY_PATH} (applyIconSelection :231-221) @ {SHA}.")
+        self.assertIn("reversed range", result.failures[0])
+
     def test_a_plain_word_before_a_range_is_prose_not_a_symbol(self):
         result = check(f"// Port of {LEGACY_PATH} (applyIconSelection :221-231, alerts `:300-310`) @ {SHA}.")
         self.assertEqual((result.failures, result.checked), ([], 1))
