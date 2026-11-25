@@ -99,7 +99,7 @@ private struct QualityAlertRow: View {
     private var content: some View {
         VStack(alignment: .leading) {
             Text(row.title)
-                .scaledFont(.headline)
+                .scaledFont(row.titleStyle)
                 .bold(row.isNew)
                 .foregroundStyle(row.isNew ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             HStack {
@@ -114,5 +114,12 @@ private struct QualityAlertRow: View {
         // #842: the row's text under a gallery theme (`textPrimary`, `textSecondary`); the row itself is `listLookRows()`'s.
         .themedRowText()
         .accessibilityElement(children: .combine)
+        .accessibilityValue(row.accessibilityState)
     }
+}
+
+extension QualityAlertsModel.Row {
+    /// The title's text style: a seen alert is regular, a new one bold (legacy `titleWeight`, `AQPlusView.swift:405-407` @ 87fe0d1c);
+    /// body and headline share their size, headline alone is semibold.
+    var titleStyle: Font.TextStyle { isNew ? .headline : .body }
 }

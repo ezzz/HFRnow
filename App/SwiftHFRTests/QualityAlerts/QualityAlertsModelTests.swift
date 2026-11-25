@@ -5,6 +5,7 @@ import HFRNetwork
 import HFRParsing
 import HFRStorage
 @testable import SwiftHFR
+import SwiftUI
 import Testing
 
 /// The Alertes Qualitay model over the captured feed `T01` (LOT-133).
@@ -42,6 +43,10 @@ struct QualityAlertsModelTests {
         #expect(model.rows.count == 25)
         // The rows keep what was new before this visit.
         #expect(model.rows.filter(\.isNew).count == 2)
+        // #1160: the state is spoken, not only drawn as weight; a seen row says nothing and is regular.
+        #expect(model.rows.filter { $0.accessibilityState == "Nouvelle" }.count == 2)
+        #expect(model.rows.allSatisfy { $0.isNew == ($0.accessibilityState == "Nouvelle") })
+        #expect(model.rows.allSatisfy { $0.titleStyle == ($0.isNew ? .headline : .body) })
         #expect(model.unreadCount == 0)
         #expect(store.value(for: SettingKey.aqLastCheck) == Support.shownAt)
         // Next launch: nothing is newer than that visit.
