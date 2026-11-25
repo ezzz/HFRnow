@@ -136,7 +136,7 @@ struct RootSidebarView: View {
         case .tab(.favorites): ReaderColumn(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
         case .tab(.messages): MessageReaderColumn(model: model.messages, reader: environment.reader, composer: environment.composer)
         case .plus(let entry): PlusDetailColumn(entry: entry, model: model, environment: environment)
-        default: ContentUnavailableView("Choisissez un élément", systemImage: "sidebar.left")
+        default: ContentUnavailableView("Choisis un élément", systemImage: "sidebar.left")
         }
     }
 

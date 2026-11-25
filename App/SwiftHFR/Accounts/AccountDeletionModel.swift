@@ -159,8 +159,8 @@ final class AccountDeletionModel {
     }
 
     private static let keychainTitle = "l’élément du trousseau"
-    private static let keychainFailure = "L’élément vide du trousseau n’a pas pu être supprimé. Réessayez."
-    private static let genericFailure = "Le compte n’a pas pu être retiré. Réessayez."
+    private static let keychainFailure = "L’élément vide du trousseau n’a pas pu être supprimé. Réessaie."
+    private static let genericFailure = "Le compte n’a pas pu être retiré. Réessaie."
     static let legacyImportFailure =
-        "Le compte n’a pas pu être exclu de l’import de l’ancienne app : rien n’a été effacé. Réessayez."
+        "Le compte n’a pas pu être exclu de l’import de l’ancienne app : rien n’a été effacé. Réessaie."
 }

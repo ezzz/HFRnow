@@ -32,7 +32,7 @@ struct ReaderReplyFlow: ViewModifier {
                 guard reply == nil else { return } // a composer is open: the request was a double tap
                 guard let composer, let target = model.replyTarget else {
                     // The answer form went away while the quote was fetched: say so instead of dropping the quote silently.
-                    model.showMenuFeedback("Réponse indisponible : la page a changé, réessayez.")
+                    model.showMenuFeedback("Réponse indisponible : la page a changé, réessaie.")
                     return
                 }
                 reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)

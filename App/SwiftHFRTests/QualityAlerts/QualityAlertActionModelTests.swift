@@ -145,8 +145,8 @@ struct QualityAlertActionModelTests {
         let refused = try Support.rig(alerts: "T54-aq-alerts-after-create-local.xml", create: nil, accepted: true, pseudo: "user4")
         await refused.model.add(added)
         #expect(refused.messages == [QualityAlertMessages.additionNotRecorded])
-        #expect(!QualityAlertMessages.additionNotRecorded.contains("Réessayez"))
-        #expect(!QualityAlertMessages.notRecorded.contains("Réessayez"))
+        #expect(!QualityAlertMessages.additionNotRecorded.contains("Réessaie"))
+        #expect(!QualityAlertMessages.notRecorded.contains("Réessaie"))
     }
 
     @Test func aSecondPickWhileTheCheckIsStillRunningDoesNothing() async throws {

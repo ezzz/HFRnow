@@ -196,7 +196,7 @@ struct TopicsColumn: View {
                 .appScreenBackground()
             }
         } else {
-            ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
+            ContentUnavailableView("Choisis un forum", systemImage: "list.bullet")
         }
     }
 }

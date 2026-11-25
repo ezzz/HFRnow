@@ -11,7 +11,7 @@ struct LegacyImportSummaryView: View {
     let retry: () -> Void
     @Environment(\.dismiss) private var dismiss
 
-    static let intro = "Vos données de l’ancienne version ont été reprises. Rien n’a été effacé, sauf l’ancien cache des pages."
+    static let intro = "Tes données de l’ancienne version ont été reprises. Rien n’a été effacé, sauf l’ancien cache des pages."
 
     /// The model's summary, which a retry refreshes; the opening one once the sheet is closing.
     private var summary: LegacyImportSummary { model.summary ?? opened }

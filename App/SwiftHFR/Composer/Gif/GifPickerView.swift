@@ -70,7 +70,7 @@ struct GifPickerView: View {
         case .failed(let reason):
             message(reason, icon: "wifi.exclamationmark", action: ("Réessayer", { Task { await model.retry() } }))
         case .loaded where model.items.isEmpty:
-            message("Aucun GIF trouvé. Essayez avec un autre mot.", icon: "questionmark.bubble", action: nil)
+            message("Aucun GIF trouvé. Essaie avec un autre mot.", icon: "questionmark.bubble", action: nil)
         case .loaded:
             grid
         }

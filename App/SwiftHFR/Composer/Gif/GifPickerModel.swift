@@ -66,7 +66,7 @@ final class GifPickerModel: Identifiable {
     var noticeMessage: String {
         let host = services.hostName.map { "le service Giphy (\($0))" } ?? "le service Giphy"
         return "La recherche de GIF passe par \(host), exploité par la société Giphy, un tiers qui n'est ni HFR ni cette application. "
-            + "Seuls vos mots de recherche sont envoyés, sans votre pseudo ni vos cookies. "
+            + "Seuls tes mots de recherche sont envoyés, sans ton pseudo ni tes cookies. "
             + "Le GIF choisi est publié par son adresse : chaque lecteur du message le chargera depuis ce service. "
             + "Les conditions du service s'appliquent."
     }
@@ -182,11 +182,11 @@ final class GifPickerModel: Identifiable {
     /// The French reason a page failed.
     nonisolated static func message(for error: GiphyError) -> String {
         switch error {
-        case .network: "Impossible de joindre le service de GIF. Vérifiez votre connexion."
-        case .http(let code) where code == 429: "Trop de recherches de GIF pour le moment. Réessayez dans un instant."
+        case .network: "Impossible de joindre le service de GIF. Vérifie ta connexion."
+        case .http(let code) where code == 429: "Trop de recherches de GIF pour le moment. Réessaie dans un instant."
         case .http, .invalidResponse: "Le service de GIF a répondu de façon inattendue."
         case .notConfigured, .invalidBaseURL: "La recherche de GIF n'est pas disponible dans cette version."
-        case .emptyQuery: "Saisissez un mot à chercher."
+        case .emptyQuery: "Saisis un mot à chercher."
         }
     }
 }

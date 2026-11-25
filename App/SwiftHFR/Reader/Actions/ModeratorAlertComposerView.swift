@@ -24,7 +24,7 @@ struct ModeratorAlertComposerView: View {
                         .disabled(model.isSending)
                         .accessibilityLabel("Motif de l’alerte")
                     if model.reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text("Décrivez le problème…")
+                        Text("Décris le problème…")
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 8)

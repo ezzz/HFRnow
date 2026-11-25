@@ -19,8 +19,6 @@ extension MessageListModel {
     /// carries none, and the badge's may be stale (review r3). Nothing for other pages or the signed-out content.
     func recordReadState() async {
         guard let ledgerSeen, let content = loader.value, content.page == 1, content != .signedOut else { return }
-        await ledgerSeen(NotificationSummary(
-            unreadThreads: Set(content.threads.filter(isUnread).compactMap { $0.summary.topicID?.topic })
-        ))
+        await ledgerSeen(MPNotificationLedger.seenSummary(of: content.threads.filter(isUnread)))
     }
 }

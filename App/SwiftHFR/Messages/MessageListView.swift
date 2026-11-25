@@ -165,7 +165,7 @@ private struct EmptyMessagesView: View {
     private var message: String? {
         switch reason {
         case .nothing: nil
-        case .signInRequired(let notice): notice ?? "Connectez-vous pour lire vos messages privés."
+        case .signInRequired(let notice): notice ?? "Connecte-toi pour lire tes messages privés."
         case .notice(let notice): notice
         }
     }

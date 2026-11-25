@@ -22,13 +22,13 @@ extension SignInPrompt {
     static func make(current: AccountRow?, title: String, systemImage: String, loading: String) -> SignInPrompt {
         guard let current else {
             return SignInPrompt(
-                title: title, message: "Ajoutez un pseudo pour charger \(loading).", systemImage: systemImage,
+                title: title, message: "Ajoute un pseudo pour charger \(loading).", systemImage: systemImage,
                 action: "Ajouter un pseudo", target: .newAccount
             )
         }
         let message = current.status == .expired
-            ? "Votre session a expiré : reconnectez-vous pour charger \(loading)."
-            : "Reconnectez-vous pour charger \(loading)."
+            ? "Ta session a expiré : reconnecte-toi pour charger \(loading)."
+            : "Reconnecte-toi pour charger \(loading)."
         return SignInPrompt(
             title: title, message: message, systemImage: systemImage, action: "Se reconnecter",
             target: .existing(id: current.id, displayName: current.displayName)
@@ -50,8 +50,8 @@ extension TopicListModel {
     func signInPrompt(current: AccountRow?) -> SignInPrompt? {
         guard source.isFavoritesList, case .signInRequired? = loader.value?.emptyReason else { return nil }
         return SignInPrompt.make(
-            current: current, title: "Connectez-vous pour accéder aux favoris", systemImage: "star.slash",
-            loading: "vos favoris et vos drapeaux"
+            current: current, title: "Connecte-toi pour accéder aux favoris", systemImage: "star.slash",
+            loading: "tes favoris et tes drapeaux"
         )
     }
 
@@ -62,12 +62,12 @@ extension TopicListModel {
         guard isSignedIn else {
             return FilterNote(
                 title: "Connexion requise pour Favoris, Suivis et Lus",
-                subtitle: "Vous pouvez consulter \"Tous\" sans compte.",
+                subtitle: "Tu peux consulter \"Tous\" sans compte.",
                 systemImage: "person.crop.circle.badge.exclamationmark"
             )
         }
         return FilterNote(
-            title: "Le filtre n'est pas disponible pour cette liste : choisissez « Tous les sous-forums ».",
+            title: "Le filtre n'est pas disponible pour cette liste : choisis « Tous les sous-forums ».",
             subtitle: nil,
             systemImage: "info.circle"
         )

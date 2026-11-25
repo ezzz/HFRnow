@@ -122,7 +122,7 @@ struct NewMessageComposerTests {
         #expect(ComposerMessages.message(for: .tooLong(.subject, maximum: 70), newMessage: true).contains("Le sujet dépasse 70"))
         #expect(ComposerMessages.message(for: .lineBreak(.recipient), newMessage: true).contains("Le destinataire"))
         #expect(ComposerMessages.message(for: .emptyInput(.recipient), newMessage: true).contains("destinataire"))
-        #expect(ComposerMessages.message(for: .notLoggedIn, newMessage: true).hasSuffix("renvoyez le message."))
+        #expect(ComposerMessages.message(for: .notLoggedIn, newMessage: true).hasSuffix("renvoie le message."))
         #expect(!ComposerMessages.message(for: .tooLong(.subject, maximum: 70), newMessage: true).contains("peut-être"))
         #expect(ComposerMessages.message(for: .formUnavailable(message: nil), newMessage: true).contains("message privé"))
     }
