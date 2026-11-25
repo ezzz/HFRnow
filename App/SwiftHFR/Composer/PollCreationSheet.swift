@@ -155,7 +155,7 @@ struct PollAnswerRemoveButton: View {
     @State private var glyph = CGSize(width: 20, height: 20)
 
     /// How far the region reaches past a glyph of `side` points, each side.
-    static func overhang(of side: CGFloat) -> CGFloat { max(0, ComposerHeader.hitSize - side) / 2 }
+    static func overhang(of side: CGFloat) -> CGFloat { MinimumHitRegion.overhang(of: side) }
 
     var body: some View {
         Button(role: .destructive, action: action) {
