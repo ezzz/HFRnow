@@ -122,7 +122,7 @@ struct GifPickerView: View {
     }
 
     private var searchBar: some View {
-        HStack {
+        HStack(spacing: GifSearchClearButton.spacing) {
             TextField("Rechercher un GIF…", text: $model.query)
                 .focused($searchFocused)
                 .submitLabel(.search)
@@ -224,24 +224,38 @@ private struct GifPanel: ViewModifier {
 }
 
 /// The ✕ that clears the search field: a 44 pt hit region (#1296) that overflows the bar's layout, so the glyph and the text
-/// field keep their place and width (same technique as `PollAnswerRemoveButton`, #1292).
+/// field keep their place and width (same technique as `PollAnswerRemoveButton`, #1292). The region never reaches into the
+/// text field: its leading overhang is capped at the stack's spacing and the rest goes to the trailing side, which has the
+/// bar's and the screen's margins to spare.
 struct GifSearchClearButton: View {
+    /// The spacing between the field and the ✕ in the search bar, which caps how far the region reaches over the field.
+    static let spacing: CGFloat = 8
+
     let action: () -> Void
-    /// Test seam: the size of the hit region once laid out (the label's frame, before the negative padding).
-    var regionProbe: (@MainActor (CGSize) -> Void)?
+    /// Test seams: the laid-out frames (global) of the hit region (the label's frame, before the negative padding) and of the
+    /// visible glyph.
+    var regionProbe: (@MainActor (CGRect) -> Void)?
+    var glyphProbe: (@MainActor (CGRect) -> Void)?
     /// The glyph's size once laid out, which the overhang depends on (the default size until it is read).
     @State private var glyph = CGSize(width: 20, height: 20)
 
     var body: some View {
+        let sideways = 2 * MinimumHitRegion.overhang(of: glyph.width)
+        let leading = min(sideways / 2, Self.spacing)
+        let vertical = MinimumHitRegion.overhang(of: glyph.height)
         Button(action: action) {
             Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 .onGeometryChange(for: CGSize.self, of: \.size) { glyph = $0 }
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { glyphProbe?($0) })
+                // The margins are the overhang, so the glyph sits where the negative padding below puts the layout back.
+                .padding(.leading, leading).padding(.trailing, sideways - leading).padding(.vertical, vertical)
                 .minimumHitRegion()
-                .onGeometryChange(for: CGSize.self, of: \.size) { regionProbe?($0) }
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { regionProbe?($0) })
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, -PollAnswerRemoveButton.overhang(of: glyph.width))
-        .padding(.vertical, -PollAnswerRemoveButton.overhang(of: glyph.height))
+        .padding(.leading, -leading)
+        .padding(.trailing, -(sideways - leading))
+        .padding(.vertical, -vertical)
         .accessibilityLabel("Effacer")
     }
 }
