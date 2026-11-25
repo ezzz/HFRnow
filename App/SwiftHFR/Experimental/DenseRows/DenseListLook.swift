@@ -14,9 +14,6 @@ enum DenseListLook {
     /// grouped grey (operator's screenshot, decided by mac/M1 on #1117).
     static let plainBackground = Color(uiColor: .systemBackground)
 
-    /// A selected row's background: the clear row would hide the list's own selection (iPad columns), as `BookmarksView` does.
-    static let selectedRowBackground = Color.accentColor.opacity(0.15)
-
     /// Catégories (#1107): the vertical inset of a category row, tighter than the system's (about 11 pt).
     static let categoryRowVerticalInset: CGFloat = 5
 

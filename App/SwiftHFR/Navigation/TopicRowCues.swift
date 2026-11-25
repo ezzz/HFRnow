@@ -60,9 +60,9 @@ enum TopicRowCues {
         (label: title, hint: "Ouvrir le forum")
     }
 
-    /// The row accent; the super favourite wins over the flag, and the selected row has none (the iPad selection stays visible).
-    static func accent(flag: TopicFlag?, isSuperFavorite: Bool, isSelected: Bool) -> Accent? {
-        guard !isSelected else { return nil }
+    /// The row accent; the super favourite wins over the flag, and the selected row keeps its accent over the light selection
+    /// tint (#1073; the solid fill that hid it is gone).
+    static func accent(flag: TopicFlag?, isSuperFavorite: Bool) -> Accent? {
         if isSuperFavorite { return .superFavorite }
         switch flag {
         case .yellow: return .yellowFlag

@@ -6,13 +6,8 @@ import Testing
 struct MessageRowCuesTests {
     @Test("An unread row is tinted, a read one is not")
     func unreadTint() {
-        #expect(MessageRowView.rowTint(isUnread: true, isSelected: false) != nil)
-        #expect(MessageRowView.rowTint(isUnread: false, isSelected: false) == nil)
-    }
-
-    @Test("The selected row keeps the system selection highlight")
-    func selectedRowIsNotTinted() {
-        #expect(MessageRowView.rowTint(isUnread: true, isSelected: true) == nil)
+        #expect(MessageRowView.rowTint(isUnread: true) != nil)
+        #expect(MessageRowView.rowTint(isUnread: false) == nil)
     }
 
     private func thread(unread: Bool, unreadBy: [String] = [], marked: Bool = false) -> PrivateMessageThread {

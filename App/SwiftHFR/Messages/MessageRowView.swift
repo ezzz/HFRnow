@@ -11,8 +11,6 @@ struct MessageRowView: View {
     let thread: PrivateMessageThread
     /// The member's unread state as the list shows it (HFR's, until the thread is opened).
     let isUnread: Bool
-    /// The row is the list's selection (iPad): the system highlight must show, so the tint steps aside.
-    var isSelected = false
     /// A group row's MPStorage position, `⚑ <page> / <max>` (LOT-130); nil shows the interlocutors.
     var flagLabel: String?
     @Environment(\.listDensity) private var density
@@ -112,9 +110,9 @@ struct MessageRowView: View {
         avatarSubject(of: thread).isGroup ? "Conversation de groupe" : ""
     }
 
-    /// The accent tint of an unread, unselected row; nil leaves the system background (#570).
-    static func rowTint(isUnread: Bool, isSelected: Bool) -> RowTint? {
-        isUnread && !isSelected ? RowTint() : nil
+    /// The accent tint of an unread row (the selected one too, over the selection tint, #1073); nil leaves the system background (#570).
+    static func rowTint(isUnread: Bool) -> RowTint? {
+        isUnread ? RowTint() : nil
     }
 
     /// Primary and semibold when unread, secondary and regular when read (#651).
