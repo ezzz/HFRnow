@@ -84,10 +84,12 @@ final class FavoritesOptionsModel {
 
     @ObservationIgnored private let settings: any SettingsStore
     @ObservationIgnored private let stores: FavoritesStores?
+    @ObservationIgnored private let haptics: HapticFeedback
 
     /// Reads the four settings from `settings`. Without `stores` (Réglages), only the settings work.
-    init(settings: any SettingsStore, stores: FavoritesStores? = nil) {
+    init(settings: any SettingsStore, stores: FavoritesStores? = nil, haptics: HapticFeedback = .live) {
         self.settings = settings
+        self.haptics = haptics
         self.stores = stores
         mode = settings.value(for: SettingKey.favoritesSource)
         groupedByCategory = settings.value(for: SettingKey.favoritesGroupedByCategory)
@@ -204,6 +206,19 @@ final class FavoritesOptionsModel {
         for section in foldableSections(of: page).sorted() {
             await setCollapsed(true, section: section)
         }
+    }
+
+    /// The empty state's « Afficher les sections repliées »: a light impact, then the option (legacy `Favorites.swift:623-625`
+    /// @ 87fe0d1c; the menu's toggle plays none).
+    func showCollapsedSectionsFromEmptyState() {
+        haptics.impact(.light)
+        showsCollapsedSections = true
+    }
+
+    /// The empty state's « Tout déplier »: a light impact, then `expandAll()` (legacy `Favorites.swift:626-628` @ 87fe0d1c).
+    func expandAllFromEmptyState() async {
+        haptics.impact(.light)
+        await expandAll()
     }
 
     /// Unfolds every section (legacy "Tout déplier").

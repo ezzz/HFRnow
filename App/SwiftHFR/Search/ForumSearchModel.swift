@@ -88,6 +88,7 @@ final class ForumSearchModel {
     private let renderOptions: @Sendable () -> ReaderRenderOptions
     private let now: @Sendable () -> Date
     private let calendar: Calendar
+    private let haptics: HapticFeedback
     /// Pager path of the last page asked for, for a retry; nil when it was the first page.
     @ObservationIgnored private var requestedPath: String?
     @ObservationIgnored private var currentReader: (id: String, model: TopicReaderModel)?
@@ -103,8 +104,10 @@ final class ForumSearchModel {
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         store: (any SettingsStore)? = nil,
         now: @escaping @Sendable () -> Date = { Date() },
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        haptics: HapticFeedback = .live
     ) {
+        self.haptics = haptics
         self.store = store
         category = store?.value(for: SettingKey.searchCategory) ?? .forum(13)
         self.source = source
@@ -153,9 +156,12 @@ final class ForumSearchModel {
         let source = source
         // The search starts with a POST that LOT-046 never sends twice: a cancellation nobody asked for is a failure at once
         // ("Réessayer"), not a retry (#1191).
-        await loader.load(retriesUnrequestedCancellation: false) { () async throws(ListLoadError) -> SearchContent in
+        let arrived = await loader.load(retriesUnrequestedCancellation: false) { () async throws(ListLoadError) -> SearchContent in
             SearchContent(page: try await source.search(query))
         }
+        // Results arriving play a light impact, an empty answer too; a failure or a superseded search none
+        // (legacy `ForumSearchView.swift:92` @ 87fe0d1c).
+        if arrived { haptics.impact(.light) }
     }
 
     func goToNextPage() async { if canGoToNext, let path = loader.value?.nextPath { await load(path: path) } }
@@ -224,8 +230,9 @@ final class ForumSearchModel {
         requestedPath = path
         selected = nil
         let source = source
-        await loader.load { () async throws(ListLoadError) -> SearchContent in
+        let arrived = await loader.load { () async throws(ListLoadError) -> SearchContent in
             SearchContent(page: try await source.page(atPath: path))
         }
+        if arrived { haptics.impact(.light) }
     }
 }
