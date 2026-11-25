@@ -1,3 +1,5 @@
+import SwiftUI
+
 /// What a settings slider shows and saves (#1211): while the finger is down the value lives in a draft that only the slider's own
 /// screen reads, and the model, so the store, iCloud and every screen behind, gets the final value once, on release. Without it
 /// each tick of a 1,000-step slider wrote the store and rebuilt the app root. A change made while not dragging (VoiceOver's
@@ -23,5 +25,24 @@ struct SliderDraft<Value: Equatable> {
         let final = editing ? nil : draft
         draft = nil
         if let final { save(final) }
+    }
+}
+
+/// A `Slider` that follows `draft` while dragged and calls `save` once on release (#1211), the one place the three Réglages sliders
+/// share their wiring. The caller owns `draft` to read the shown value (readout, tint, previews).
+struct DraftSlider: View {
+    @Binding var draft: SliderDraft<Double>
+    /// The saved value the slider shows when no drag is on.
+    let saved: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    let save: (Double) -> Void
+
+    var body: some View {
+        Slider(
+            value: Binding(get: { draft.shown(saved: saved) }, set: { draft.move(to: $0, save: save) }),
+            in: range, step: step,
+            onEditingChanged: { draft.editingChanged($0, save: save) }
+        )
     }
 }

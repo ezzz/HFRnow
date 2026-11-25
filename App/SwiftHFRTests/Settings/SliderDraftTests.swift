@@ -11,7 +11,7 @@ struct SliderDraftTests {
         var draft = SliderDraft<Double>()
         // The same two calls the slider's binding and `onEditingChanged` make in the views.
         func move(_ value: Double) { draft.move(to: value) { model.darkBrightness = $0 } }
-        func editing(_ on: Bool) { draft.editingChanged(on) { model.darkBrightness = $0 } }
+        func editing(_ isOn: Bool) { draft.editingChanged(isOn) { model.darkBrightness = $0 } }
 
         editing(true)
         for tick in 1...199 { move(0.3 + Double(tick) * 0.001) }

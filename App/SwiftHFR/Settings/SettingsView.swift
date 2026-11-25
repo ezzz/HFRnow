@@ -197,15 +197,11 @@ private struct TextSizeRow: View {
         VStack(alignment: .leading, spacing: 4) {
             LabeledContent("Taille du texte", value: "\(percent) %")
                 .accessibilityHidden(true) // the slider below speaks both
-            Slider(
-                value: Binding(
-                    get: { Double(percent) },
-                    set: { draft.move(to: $0) { general.textSizePercent = Int($0.rounded()) } }
-                ),
-                in: Double(SettingKey.textSizePercentRange.lowerBound)...Double(SettingKey.textSizePercentRange.upperBound),
-                step: Double(SettingKey.textSizePercentStep),
-                onEditingChanged: { draft.editingChanged($0) { general.textSizePercent = Int($0.rounded()) } }
-            )
+            DraftSlider(
+                draft: $draft, saved: Double(general.textSizePercent),
+                range: Double(SettingKey.textSizePercentRange.lowerBound)...Double(SettingKey.textSizePercentRange.upperBound),
+                step: Double(SettingKey.textSizePercentStep)
+            ) { general.textSizePercent = Int($0.rounded()) }
             .accessibilityLabel("Taille du texte")
             .accessibilityValue("\(percent) %")
         }

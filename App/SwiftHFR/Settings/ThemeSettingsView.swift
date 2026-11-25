@@ -83,14 +83,7 @@ struct ThemeSettingsView: View {
                 Text(shownHue, format: .number.precision(.fractionLength(2)))
             }
             .accessibilityHidden(true) // the slider below speaks both
-            Slider(
-                value: Binding(
-                    get: { shownHue },
-                    set: { hueDraft.move(to: $0) { theme.accentHue = $0 } }
-                ),
-                in: 0...1, step: 0.001,
-                onEditingChanged: { hueDraft.editingChanged($0) { theme.accentHue = $0 } }
-            )
+            DraftSlider(draft: $hueDraft, saved: theme.accentHue, range: 0...1, step: 0.001) { theme.accentHue = $0 }
             .tint(Color(uiColor: ThemeAppearance.dayTint(hue: shownHue).uiColor))
             .accessibilityLabel("Teinte d'accent")
             .accessibilityValue(Text(shownHue, format: .number.precision(.fractionLength(2))))
@@ -122,14 +115,9 @@ struct ThemeSettingsView: View {
                     Text(shownBrightness, format: .percent.precision(.fractionLength(0)))
                 }
                 .accessibilityHidden(true)
-                Slider(
-                    value: Binding(
-                        get: { shownBrightness },
-                        set: { brightnessDraft.move(to: $0) { theme.darkBrightness = $0 } }
-                    ),
-                    in: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01,
-                    onEditingChanged: { brightnessDraft.editingChanged($0) { theme.darkBrightness = $0 } }
-                )
+                DraftSlider(
+                    draft: $brightnessDraft, saved: theme.darkBrightness, range: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01
+                ) { theme.darkBrightness = $0 }
                 .accessibilityLabel("Luminosité du thème sombre")
                 .accessibilityValue(Text(shownBrightness, format: .percent.precision(.fractionLength(0))))
             }
