@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Port of Classes/HFRNavigationController.m (userThemeDidChange, refreshTheme: the animated "snow" image behind the navigation
-// bar, `:85-90, 134-139`) and Classes/HFRplusAppDelegate.m (setTheme `:382-388`) @ 87fe0d1c. Differences (GAP-147): procedural
+// bar, `:85-90, 134-139`) and Classes/HFRplusAppDelegate.m (setTheme `:363-388`, the snow block at 382-388) @ 87fe0d1c. Differences (GAP-147): procedural
 // snow falling over the content, not frames in the bar.
 extension View {
     /// The seasonal layer of the app root (LOT-166): the active theme's decorations over the content, and the arrival alert

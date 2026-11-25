@@ -57,6 +57,34 @@ class LegacyPointerTests(unittest.TestCase):
         result = check(f"// Port of {LEGACY_PATH} (applyIconSelection :900-910) @ {SHA}.")
         self.assertIn("range outside the file", result.failures[0])
 
+    def test_two_files_in_one_header_are_checked_each_against_its_own_path(self):
+        # The second pair's items must not be read against the first path (probe of the round 1 review).
+        header = (
+            f"// Port of {LEGACY_PATH} (AppSettingsView) and Other/AnswerView.swift (title, composerHeader `:765-819`) @ {SHA}."
+        )
+        self.assertEqual(check(header).failures, [])
+        both = (
+            f"// Port of {LEGACY_PATH} (applyIconSelection :221-231) and {LEGACY_PATH} (Picker, lines 411-416) @ {SHA}."
+        )
+        self.assertEqual(check(both).checked, 2)
+
+    def test_a_range_after_prose_is_not_attached_to_a_word_of_the_prose(self):
+        header = f"// Port of {LEGACY_PATH} (initOrResetMP:fromView:, the creation alert, lines 1-3) @ {SHA}."
+        result = check(header)
+        self.assertEqual((result.failures, result.checked), ([], 0))
+
+    def test_a_bare_colon_range_after_a_list_is_unchecked(self):
+        # « A, B, :a-b »: the range may cover the group, so it is not read as B's (52 real headers, no false alarm).
+        header = f"// Port of {LEGACY_PATH} (ReplyDraftPickerSheet, applyIconSelection, :300-310) @ {SHA}."
+        result = check(header)
+        self.assertEqual((result.failures, result.checked), ([], 0))
+
+    def test_a_plain_word_before_a_range_is_prose_not_a_symbol(self):
+        result = check(f"// Port of {LEGACY_PATH} (applyIconSelection :221-231, alerts `:300-310`) @ {SHA}.")
+        self.assertEqual((result.failures, result.checked), ([], 1))
+        result = check(f"// Port of {LEGACY_PATH} (alerts :300-310) @ {SHA}.")
+        self.assertEqual((result.failures, result.checked), ([], 0))
+
     def test_what_cannot_be_checked_never_fails(self):
         for header in (
             f"// Port of {LEGACY_PATH} (AppSettingsView) @ {SHA}. Differences: none.",  # no range

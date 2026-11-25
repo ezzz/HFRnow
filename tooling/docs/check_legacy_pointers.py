@@ -20,10 +20,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterator, Optional
 
-HEADER = re.compile(r"Port of (\S+) \((.+?)\)(?: and \S+)? @ ([0-9a-f]{7,40})\b")
+PORT = re.compile(r"Port of ")
+PAIR = re.compile(r"\s*(?:and\s+)?(\S+) \(([^)]*)\)")
+SHA = re.compile(r"(?: and \S+)?\s*@ ([0-9a-f]{7,40})\b")
 SYMBOL_RANGE = re.compile(r"^(?P<sym>[A-Za-z_][\w.]*)\s*(?:lines\s+)?:?\s*(?P<a>\d+)-(?P<b>\d+)$")
-LINES_ONLY = re.compile(r"^lines\s+(?P<a>\d+)-(?P<b>\d+)$")
+RANGE_ONLY = re.compile(r"^lines\s+(?P<a>\d+)-(?P<b>\d+)$")
 LAST_WORD = re.compile(r"([A-Za-z_]\w*)\s*$")
+CODE_LIKE = re.compile(r"^(?:[A-Z]\w*|[a-z]+[A-Z]\w*)$")
 
 Reader = Callable[[str, str], Optional[list]]
 
@@ -62,31 +65,54 @@ def header_blocks(text: str) -> Iterator[tuple]:
             block = []
 
 
+def code_symbol(item: str) -> Optional[str]:
+    """The identifier ending `item` when it looks like code (camelCase, PascalCase, or written in backticks), else None."""
+    word = LAST_WORD.search(item.replace("`", ""))
+    if word and (item.rstrip().endswith("`") or CODE_LIKE.match(word[1])):
+        return word[1]
+    return None
+
+
 def parse(file: str, text: str) -> tuple:
     """(pointers with a symbol and a range, number of items or headers that cannot be checked)."""
     pointers: list = []
     unchecked = 0
     for start, block in header_blocks(text):
-        for match in HEADER.finditer(block):
-            path, items, sha = match.group(1), match.group(2), match.group(3)
-            previous = ""
-            attached = False
-            for raw in items.replace("`", "").split(","):
-                item = raw.strip()
-                found = SYMBOL_RANGE.match(item)
-                lines_only = LINES_ONLY.match(item)
-                # `Common.swift:108-110` names another file, not a symbol of this one: unchecked.
-                if found and not lines_only and not re.search(r"\.(swift|m|h)$", found["sym"]):
-                    pointers.append(Pointer(file, start, path, found["sym"].split(".")[-1], int(found["a"]), int(found["b"]), sha))
-                    attached = True
-                elif lines_only and previous and not attached and (word := LAST_WORD.search(previous)):
-                    # « icon Picker, lines 411-416 »: the range belongs to the item before it.
-                    pointers.append(Pointer(file, start, path, word[1], int(lines_only["a"]), int(lines_only["b"]), sha))
-                    attached = True
-                else:
-                    unchecked += 1
-                    attached = False
-                previous = item
+        for port in PORT.finditer(block):
+            rest = block[port.end():]
+            pairs: list = []
+            while match := PAIR.match(rest):  # `A (…) and B (…) @ sha`: each file has its own items
+                pairs.append((match.group(1), match.group(2)))
+                rest = rest[match.end():]
+            sha = SHA.match(rest)
+            if not pairs or not sha:
+                unchecked += 1
+                continue
+            for path, items in pairs:
+                previous = ""
+                attached = False
+                for raw in items.split(","):
+                    item = raw.strip()
+                    plain = item.replace("`", "")
+                    found = SYMBOL_RANGE.match(plain)
+                    only = RANGE_ONLY.match(plain)
+                    symbol = found["sym"].split(".")[-1] if found else ""
+                    # `Common.swift:108-110` names another file, not a symbol of this one; a plain word (`alerts :4618-4640`)
+                    # is prose: both unchecked. A symbol is camelCase, PascalCase or written in backticks.
+                    if (
+                        found and not only and not re.search(r"\.(swift|m|h)$", found["sym"])
+                        and (CODE_LIKE.match(symbol) or item.startswith("`"))
+                    ):
+                        pointers.append(Pointer(file, start, path, symbol, int(found["a"]), int(found["b"]), sha[1]))
+                        attached = True
+                    elif only and previous and not attached and (symbol := code_symbol(previous)):
+                        # « icon Picker, lines 411-416 »: the range belongs to the item before it.
+                        pointers.append(Pointer(file, start, path, symbol, int(only["a"]), int(only["b"]), sha[1]))
+                        attached = True
+                    else:
+                        unchecked += 1
+                        attached = False
+                    previous = item
     return pointers, unchecked
 
 
@@ -135,9 +161,15 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--fetch", action="store_true", help="fetch legacy/duo-inner-cover first")
     args = parser.parse_args(argv)
     repo = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+    fetched = True
     if args.fetch:
-        subprocess.run(["git", "-C", str(repo), "fetch", "--quiet", "--no-tags", "origin", "legacy/duo-inner-cover"], check=False)
+        fetch = ["git", "-C", str(repo), "fetch", "--quiet", "--no-tags", "origin", "legacy/duo-inner-cover"]
+        fetched = subprocess.run(fetch, check=False).returncode == 0
+        if not fetched:
+            print("::warning::legacy/duo-inner-cover could not be fetched: pointers whose sha is missing stay unchecked")
     result = check(repo / args.root, git_reader(repo), repo)
+    if result.checked == 0 and fetched:
+        print("::warning::no legacy pointer could be read against its sha: nothing was checked")
     for failure in result.failures:
         print(f"error: {failure}")
     print(f"legacy pointers: {result.checked} checked, {result.unchecked} unchecked, {len(result.failures)} wrong")
