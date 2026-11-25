@@ -1,3 +1,4 @@
+import HFRModels
 import HFRStorage
 
 // LOT-140: what the MP notifications need from the list (GAP-011), apart from the model's main file.
@@ -11,6 +12,14 @@ extension MessageListModel {
               let thread = loader.value?.threads.first(where: { $0.summary.topicID?.topic == topic }) else { return }
         if !segment.contains(thread) { chooseSegment(thread.isGroup ? .group : .oneToOne, remember: false) }
         selected = thread
+    }
+
+    /// `thread`, marked unread here, to the ledger alone (#1006), with the reply count and last post its row shows: the member's
+    /// own mark unread is not news. Page 1's rows only, as the ledger's set is page 1's; nothing without a thread number.
+    func recordUnread(_ thread: PrivateMessageThread) async {
+        guard let ledgerThread, loader.value?.page == 1, let topic = thread.summary.topicID?.topic else { return }
+        let summary = thread.summary
+        await ledgerThread(topic, UnreadThreadMark(topic: topic, repliesCount: summary.repliesCount, lastPost: summary.lastPost?.date))
     }
 
     /// Page 1's unread conversations as shown now (HFR's state, less what was read here, plus what was marked unread here),

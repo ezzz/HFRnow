@@ -209,7 +209,8 @@ struct MessageListReadStateTests {
         }
         #expect(model.isUnread(read))
         #expect(count.latest == 1)
-        #expect(recorder.summaries.last?.unreadThreads == [7])
+        // The member's own mark unread reaches the ledger as that conversation alone (#1006), not as the stale page's set.
+        #expect(recorder.summaries.allSatisfy { $0.unreadThreads?.contains(7) != true })
     }
 
     @Test func aRowWithoutAThreadLinkStaysUnread() async throws {

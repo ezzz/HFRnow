@@ -168,6 +168,11 @@ final class RootModel {
                 { @Sendable (summary: NotificationSummary) async in
                     await MPNotificationLedger.recordSeen(summary, account: account)
                 }
+            },
+            ledgerThread: environment.currentAccountName.map { account in
+                { @Sendable (topic: Int, unread: UnreadThreadMark?) async in
+                    await MPNotificationLedger.recordThread(topic, unread: unread, account: account)
+                }
             }
         )
     }
