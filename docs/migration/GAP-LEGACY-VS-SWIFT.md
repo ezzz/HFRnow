@@ -68,6 +68,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-1058 | Favoris unread filter | None: only collapse state and the empty-sections setting filter the sections. | Favorites.swift:581-594 @ 87fe0d1c | A « Non lus / Tous » button in the top bar keeps the rows with unread pages (flag behind the last page); sections it empties are hidden unless empty sections show; persisted per device, default « Tous ». | #1058 | new | operator feedback 2026-11-17 | b·operator |
 | GAP-1073 | List style in an iPad column | Favoris, a category's topic list and the MP list set no list style; Favoris and the topic list paint the theme palette behind the list (`scrollContentBackground(.hidden)`). Their iPad look is not measured (`87fe0d1c` does not build). | `Favorites.swift:666, 744-745`; `MainWindow.swift:663, 789-790`; `MPListView.swift:580` @ `87fe0d1c` | Explicit inset-grouped style on Catégories, Messages and the topic lists (Favoris, Drapeaux, a category): the same rounded block on the grouped column in every width; the automatic style was a plain list in an iPad column (measured). | #427, #576, #803, #1073 | UX change | new UX: the iPad choice is pending the operator's answer on #648 | b |
 | GAP-1107 | List look | No list style; lists drawn on the theme palette. | `Favorites.swift:666, 744-745`; `MainWindow.swift:663, 789-790` @ `87fe0d1c` | One look for every list: the Favoris card (inset-grouped, wide margins) by default; behind Réglages › Expérimental › « Lignes denses », rows edge to edge on the plain list background (or the theme's) with no card, flagged rows as strips, and a shorter Catégories list with its icons. | #1107, #572, #905 | UX change | new UX: operator decision on #1107 | b |
+| GAP-1347 | Selected row in an iPad split | Selected topic or MP row: solid `actionTintColor` rounded rectangle, white text, state tint dropped. | `Common.swift:3669-3676`, `:3372-3392` @ `87fe0d1c` | Selected row (classic and dense look): the accent at 20 % in light, 30 % in dark and with Increase Contrast, text in its normal colours, the state pill kept over it. | #1073 | UX change | new UX: operator feedback 2026-11-17 | b·operator |
 
 ## Reader
 
@@ -311,11 +312,11 @@ Gap issues: #1309 state views (needs a decision), #1310 haptics, #1311 row menus
 | same | 31 |
 | ported with changes | 67 |
 | ported with changes (engine only) | 1 |
-| UX change | 61 |
+| UX change | 62 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 2 |
-| **Total** | **194** |
+| **Total** | **195** |
 
 ## Convergence notes
 
@@ -345,14 +346,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (157)
+### GAP rows of type `ported with changes`, `UX change` or `new` (158)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 005, 007, 020, 021, 022, 023, 026, 027, 032, 033, 037, 038, 040, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595, 1039 | 52 |
 | a·master | 002, 093, 117, 150, 152, 210, 217, 219, 682, 713 | 10 |
 | b·needed | 024, 036, 056, 058, 070, 089, 133, 181, 192 | 9 |
-| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297 | 45 |
+| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297, 1347 | 46 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 912, 1073, 1074, 1107 | 41 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
