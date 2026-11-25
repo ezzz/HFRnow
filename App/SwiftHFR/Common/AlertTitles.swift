@@ -24,6 +24,8 @@ enum AlertTitles {
     static let blocklistSyncQuestion = "Synchroniser la liste noire ?"
     /// The first bookmark of an account that never chose: switch MPStorage on?
     static let mpStorageQuestion = "Activer le stockage MP ?"
+    /// « Non » to the MPStorage creation question: confirm going on without it?
+    static let mpStorageRefusalQuestion = "Continuer sans stockage MP ?"
     /// The first image upload: send images to the host?
     static let imageHostQuestion = "Envoyer les images à l’hébergeur ?"
     /// The first GIF search: go through Giphy?

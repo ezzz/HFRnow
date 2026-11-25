@@ -8,11 +8,11 @@ struct AlertTitlesTests {
         AlertTitles.iconChangeFailed, AlertTitles.accountSwitchFailed, AlertTitles.accountRemoveFailed,
         AlertTitles.markUnreadFailed, AlertTitles.flagRemoveFailed, AlertTitles.blocklistSyncQuestion, AlertTitles.mpStorageQuestion,
         AlertTitles.imageHostQuestion, AlertTitles.gifServiceQuestion, AlertTitles.qualityNoticeQuestion,
-        AlertTitles.qualityAdditionQuestion
+        AlertTitles.qualityAdditionQuestion, AlertTitles.mpStorageRefusalQuestion
     ]
 
     @Test func noTitleIsTheGenericOneTheIssueNames() {
-        let generic = ["Erreur", "Icône", "Action impossible", "Stockage MP", "Hébergeur d'images", "Service de GIF", "Alerte Qualitay"]
+        let generic = ["Erreur", "Icône", "Action impossible", "Stockage MP", "Hébergeur d'images", "Service de GIF", "Alerte Qualitay", "Sans stockage MP"]
         #expect(!all.contains { generic.contains($0) })
     }
 
@@ -23,10 +23,11 @@ struct AlertTitlesTests {
     @Test func questionsEndWithAQuestionMarkAndFailuresDoNot() {
         let questions = [
             AlertTitles.blocklistSyncQuestion, AlertTitles.mpStorageQuestion, AlertTitles.imageHostQuestion,
-            AlertTitles.gifServiceQuestion, AlertTitles.qualityNoticeQuestion, AlertTitles.qualityAdditionQuestion
+            AlertTitles.gifServiceQuestion, AlertTitles.qualityNoticeQuestion, AlertTitles.qualityAdditionQuestion,
+            AlertTitles.mpStorageRefusalQuestion
         ]
         #expect(questions.allSatisfy { $0.hasSuffix(" ?") })
-        #expect(!AlertTitles.accountSwitchFailed.hasSuffix("?") && !AlertTitles.markUnreadFailed.hasSuffix("?"))
+        #expect(all.filter { !questions.contains($0) }.allSatisfy { !$0.hasSuffix("?") })
     }
 
     @Test func eachTitleNamesItsSituation() {
