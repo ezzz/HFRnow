@@ -28,7 +28,7 @@ struct GifPickerView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
                 }
-                .alert("Service de GIF", isPresented: $isAskingNotice) {
+                .alert(AlertTitles.gifServiceQuestion, isPresented: $isAskingNotice) {
                     Button("Annuler", role: .cancel) { dismiss() }
                     Button("Continuer") { Task { await model.acceptNotice() } }
                 } message: {

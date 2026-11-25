@@ -6,11 +6,13 @@ struct AlertTitlesTests {
     private let all = [
         AlertTitles.pseudoAddFailed, AlertTitles.pseudoAlreadyListed, AlertTitles.pseudoRemoveFailed, AlertTitles.listResetFailed,
         AlertTitles.iconChangeFailed, AlertTitles.accountSwitchFailed, AlertTitles.accountRemoveFailed,
-        AlertTitles.markUnreadFailed, AlertTitles.flagRemoveFailed, AlertTitles.blocklistSyncQuestion, AlertTitles.mpStorageQuestion
+        AlertTitles.markUnreadFailed, AlertTitles.flagRemoveFailed, AlertTitles.blocklistSyncQuestion, AlertTitles.mpStorageQuestion,
+        AlertTitles.imageHostQuestion, AlertTitles.gifServiceQuestion, AlertTitles.qualityNoticeQuestion,
+        AlertTitles.qualityAdditionQuestion
     ]
 
     @Test func noTitleIsTheGenericOneTheIssueNames() {
-        #expect(!all.contains { ["Erreur", "Icône", "Action impossible", "Stockage MP"].contains($0) })
+        #expect(!all.contains { ["Erreur", "Icône", "Action impossible", "Stockage MP", "Hébergeur d'images", "Service de GIF", "Alerte Qualitay"].contains($0) })
     }
 
     @Test func eachTitleIsDistinct() {
@@ -18,7 +20,11 @@ struct AlertTitlesTests {
     }
 
     @Test func questionsEndWithAQuestionMarkAndFailuresDoNot() {
-        #expect(AlertTitles.blocklistSyncQuestion.hasSuffix(" ?") && AlertTitles.mpStorageQuestion.hasSuffix(" ?"))
+        let questions = [
+            AlertTitles.blocklistSyncQuestion, AlertTitles.mpStorageQuestion, AlertTitles.imageHostQuestion,
+            AlertTitles.gifServiceQuestion, AlertTitles.qualityNoticeQuestion, AlertTitles.qualityAdditionQuestion
+        ]
+        #expect(questions.allSatisfy { $0.hasSuffix(" ?") })
         #expect(!AlertTitles.accountSwitchFailed.hasSuffix("?") && !AlertTitles.markUnreadFailed.hasSuffix("?"))
     }
 

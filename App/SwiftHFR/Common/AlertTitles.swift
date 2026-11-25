@@ -1,4 +1,5 @@
-/// The titles of the error and question alerts (#1175, HIG › Alerts: a title says what failed or what is asked, never « Erreur »).
+/// The titles of the error and question alerts (#1175, HIG › Alerts: a title says what failed or what is asked,
+/// never « Erreur »).
 /// Constants so a test pins them; the detail stays in each alert's message.
 enum AlertTitles {
     /// A pseudo could not be added to the blocklist or the whitelist.
@@ -23,4 +24,12 @@ enum AlertTitles {
     static let blocklistSyncQuestion = "Synchroniser la liste noire ?"
     /// The first bookmark of an account that never chose: switch MPStorage on?
     static let mpStorageQuestion = "Activer le stockage MP ?"
+    /// The first image upload: send images to the host?
+    static let imageHostQuestion = "Envoyer les images à l’hébergeur ?"
+    /// The first GIF search: go through Giphy?
+    static let gifServiceQuestion = "Chercher des GIF via Giphy ?"
+    /// The first Alerte Qualitay of an account that never accepted the notice: publish it?
+    static let qualityNoticeQuestion = "Publier sur Alertes Qualitay ?"
+    /// The message is already reported: add it to that alert?
+    static let qualityAdditionQuestion = "Plussoyer l’alerte existante ?"
 }

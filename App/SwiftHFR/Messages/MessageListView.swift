@@ -102,7 +102,8 @@ struct MessageListView: View {
         // Separate from the list's load, which never waits for MPStorage (LOT-130): the flags appear when the copy is read.
         .task { await model.mpStorage?.start() }
         .alert(
-            AlertTitles.markUnreadFailed, isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
+            AlertTitles.markUnreadFailed,
+            isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
         ) {
             Button("OK", role: .cancel) {}
         } message: {
