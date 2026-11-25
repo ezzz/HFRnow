@@ -19,6 +19,17 @@ enum MPNotificationLedger {
 
     /// The unread conversations of an MP list page 1 the app showed.
     static func seenSummary(of page: PrivateMessageListPage) -> NotificationSummary {
-        NotificationSummary(unreadThreads: Set(page.threads.filter(\.isUnread).compactMap { $0.summary.topicID?.topic }))
+        seenSummary(of: page.threads.filter(\.isUnread))
+    }
+
+    /// The conversations in `unread` with their reply count and last post (#571): a reply in a conversation that was
+    /// already unread moves only those (HFR-PROTOCOL §6c LOT-140), so the ledger keeps them and the background check
+    /// notifies it; a reply the member saw in the list is recorded here and not notified.
+    static func seenSummary(of unread: [PrivateMessageThread]) -> NotificationSummary {
+        let rows = unread.compactMap { thread in thread.summary.topicID.map { ($0.topic, thread.summary) } }
+        return NotificationSummary(
+            unreadThreads: Set(rows.map(\.0)),
+            unreadThreadMarks: rows.map { UnreadThreadMark(topic: $0.0, repliesCount: $0.1.repliesCount, lastPost: $0.1.lastPost?.date) }
+        )
     }
 }

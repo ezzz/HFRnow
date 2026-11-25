@@ -174,6 +174,35 @@ struct MPBackgroundCheckTests {
         #expect(await ready.delivery.delivered.isEmpty)
     }
 
+    /// An MP list page 1 whose conversation 5 is unread with `replies` replies, last posted `minutes` after `start` (#571).
+    private static func unreadPage(replies: Int, minutes: Double) -> PrivateMessageListPage {
+        var thread = messageThread(5, unread: true)
+        thread.summary.repliesCount = replies
+        thread.summary.lastPost = LastPost(author: "pseudo5", path: "/last", date: start.addingTimeInterval(minutes * 60))
+        return PrivateMessageListPage(threads: [thread])
+    }
+
+    @Test("A reply in an already-unread conversation is notified once; one the app showed is not (#571)")
+    func replyInAnUnreadConversation() async {
+        let ready = ready([
+            MPForumReading(count: 1, page: Self.unreadPage(replies: 0, minutes: 1)),
+            MPForumReading(count: 1, page: Self.unreadPage(replies: 1, minutes: 2)),
+            MPForumReading(count: 1, page: Self.unreadPage(replies: 1, minutes: 2)),
+            MPForumReading(count: 1, page: Self.unreadPage(replies: 2, minutes: 3))
+        ])
+        #expect(await run(ready, times: 1) == [.checked(notifications: 0)])
+        // The second check sees the reply (R336 → R337).
+        #expect(await ready.check.run(now: Self.start.addingTimeInterval(1800)) == .checked(notifications: 1))
+        // Nothing moved since: no second notification.
+        #expect(await ready.check.run(now: Self.start.addingTimeInterval(3600)) == .checked(notifications: 0))
+        // The member saw the next reply in the list before the check: the foreground record is the baseline.
+        await MPNotificationLedger.recordSeen(
+            MPNotificationLedger.seenSummary(of: Self.unreadPage(replies: 2, minutes: 3)), account: "fakeuser", store: ready.ledger
+        )
+        #expect(await ready.check.run(now: Self.start.addingTimeInterval(5400)) == .checked(notifications: 0))
+        #expect(await ready.delivery.delivered.count == 1)
+    }
+
     @Test("The list was read and no conversation became unread: nothing, even when the count rose (review r3 #1)")
     func countRoseWithoutNewConversation() async {
         let ready = ready([
