@@ -12,7 +12,8 @@ struct AlertTitlesTests {
     ]
 
     @Test func noTitleIsTheGenericOneTheIssueNames() {
-        #expect(!all.contains { ["Erreur", "Icône", "Action impossible", "Stockage MP", "Hébergeur d'images", "Service de GIF", "Alerte Qualitay"].contains($0) })
+        let generic = ["Erreur", "Icône", "Action impossible", "Stockage MP", "Hébergeur d'images", "Service de GIF", "Alerte Qualitay"]
+        #expect(!all.contains { generic.contains($0) })
     }
 
     @Test func eachTitleIsDistinct() {
