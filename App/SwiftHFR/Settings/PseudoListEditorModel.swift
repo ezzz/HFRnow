@@ -18,6 +18,8 @@ final class PseudoListEditorModel {
     var draft = ""
     /// The error of the last add or removal, for an alert; the view clears it.
     var errorMessage: String?
+    /// What `errorMessage` is about, for the alert's title (#1175); set with it.
+    var errorTitle = AlertTitles.pseudoAddFailed
     /// Set when the stored lists cannot be read or written: the list shown is then not the stored one.
     private(set) var unreadableMessage: String?
     /// True once `load()` finished once, so the empty message does not flash before the first read.
@@ -86,6 +88,7 @@ final class PseudoListEditorModel {
         do {
             try await manager.discardUnreadableData()
         } catch {
+            errorTitle = AlertTitles.listResetFailed
             errorMessage = UnreadableDataRecovery.failure
         }
         await load()
@@ -101,8 +104,12 @@ final class PseudoListEditorModel {
         do {
             let added = try await manager.add(pseudo, to: kind)
             if draft == submitted { draft = "" }
-            if !added { errorMessage = "\(pseudo) est déjà dans la liste." }
+            if !added {
+                errorTitle = AlertTitles.pseudoAlreadyListed
+                errorMessage = "\(pseudo) est déjà dans la liste."
+            }
         } catch {
+            errorTitle = AlertTitles.pseudoAddFailed
             errorMessage = kind.addFailure
         }
         await load()
@@ -125,6 +132,7 @@ final class PseudoListEditorModel {
                 do {
                     try await manager.remove(pseudo, from: kind)
                 } catch {
+                    errorTitle = AlertTitles.pseudoRemoveFailed
                     errorMessage = kind.removeFailure(pseudo)
                 }
             }

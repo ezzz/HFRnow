@@ -30,6 +30,9 @@ final class QualityAlertsModel {
 
         var id: String { item.id }
 
+        /// What VoiceOver hears besides the text: the state the weight shows (#1160, as topic rows say « Non lu »).
+        var accessibilityState: String { isNew ? "Nouvelle" : "" }
+
         /// The topic title as lists show it (legacy abbreviates "topic unique" and its spellings).
         var title: String { TopicTitle.displayed(item.topicTitle) }
     }

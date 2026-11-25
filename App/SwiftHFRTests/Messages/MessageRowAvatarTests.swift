@@ -26,6 +26,17 @@ struct MessageRowAvatarTests {
         #expect(groupSubject.isGroup && groupSubject.pseudo == nil)
     }
 
+    @Test("A group row says so to VoiceOver, a one-to-one row says nothing (#1158)")
+    func groupRowIsSpoken() throws {
+        let rows = try threads("R13u1-mp-list-recipient-unread.html")
+        for row in rows {
+            #expect(MessageRowView.accessibilityValue(of: row) == (row.isGroup ? "Conversation de groupe" : ""))
+        }
+        #expect(rows.contains { $0.isGroup } && rows.contains { !$0.isGroup })
+        // Same rule as the icon: a row that only carries the label of a group is a group too.
+        #expect(MessageRowView.accessibilityValue(of: thread(starter: "Interlocuteurs multiples")) == "Conversation de groupe")
+    }
+
     @Test("A group row never leaks a member's pseudo (R123a)")
     func everyRow() throws {
         for name in ["R13u1-mp-list-recipient-unread.html", "R123a-mp-list-group-owner.html"] {

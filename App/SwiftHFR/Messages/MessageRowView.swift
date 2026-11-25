@@ -52,6 +52,7 @@ struct MessageRowView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityValue(Self.accessibilityValue(of: thread))
         .listRowInsets(density.rowInsets)
     }
 
@@ -103,6 +104,12 @@ struct MessageRowView: View {
         let name = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
         if thread.isGroup || name.caseInsensitiveCompare(label) == .orderedSame { return (nil, true) }
         return (name.isEmpty ? nil : name, false)
+    }
+
+    /// What VoiceOver hears for a group row besides its text: the group icon is hidden from it and the visible row no longer says
+    /// « Interlocuteurs multiples » (#900), so the state is spoken (#1158; legacy read that text, `MPListView.swift:775-787` @ 87fe0d1c).
+    static func accessibilityValue(of thread: PrivateMessageThread) -> String {
+        avatarSubject(of: thread).isGroup ? "Conversation de groupe" : ""
     }
 
     /// The accent tint of an unread, unselected row; nil leaves the system background (#570).

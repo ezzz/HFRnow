@@ -12,6 +12,8 @@ struct AccountsView: View {
     @State private var pendingRemoval: AccountRow?
     @State private var confirmErase = false
     @State private var actionError: String?
+    /// What `actionError` is about, for the alert's title (#1175).
+    @State private var actionErrorTitle = AlertTitles.accountSwitchFailed
 
     var body: some View {
         ThemedNavigationStack {
@@ -65,7 +67,7 @@ struct AccountsView: View {
             .confirmationDialog("Effacer les comptes enregistrés ?", isPresented: $confirmErase, titleVisibility: .visible) {
                 Button("Effacer", role: .destructive) { Task { await accounts.eraseStoredAccounts() } }
             }
-            .alert("Action impossible", isPresented: errorBinding) {
+            .alert(actionErrorTitle, isPresented: errorBinding) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(actionError ?? "")
@@ -101,6 +103,7 @@ struct AccountsView: View {
         do {
             try accounts.select(row.id)
         } catch {
+            actionErrorTitle = AlertTitles.accountSwitchFailed
             actionError = AccountMessages.message(for: error)
         }
     }
@@ -122,6 +125,7 @@ struct AccountsView: View {
         do {
             try accounts.remove(row.id)
         } catch {
+            actionErrorTitle = AlertTitles.accountRemoveFailed
             actionError = AccountMessages.message(for: error)
         }
     }
