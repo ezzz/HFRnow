@@ -1,4 +1,5 @@
 import HFRModels
+import HFRStorage
 @testable import SwiftHFR
 import SwiftUI
 import Testing
@@ -33,7 +34,10 @@ struct QualityAlertRowHostedTests {
 
     @Test(.timeLimit(.minutes(1)))
     func aNewRowIsSpokenAsNewAndASeenOneIsNot() async throws {
-        let model = Support.model(source: FakeQualityAlertsSource(items: try Support.capturedItems()))
+        // With the oracle's last check two rows are new and 23 are seen; an empty store would make all 25 new.
+        let store = InMemorySettingsStore()
+        store.set(Support.lastCheckOfTheOracle, for: SettingKey.aqLastCheck)
+        let model = Support.model(source: FakeQualityAlertsSource(items: try Support.capturedItems()), store: store)
         await model.load()
         let new = try #require(model.rows.first(where: { $0.isNew && $0.target != nil }))
         let seen = try #require(model.rows.first(where: { !$0.isNew && $0.target != nil }))
