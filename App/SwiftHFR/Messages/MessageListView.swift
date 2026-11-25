@@ -39,7 +39,7 @@ struct MessageListView: View {
                         )
                         .themedRowText()
                         // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
-                        .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
+                        .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread)))
                         .listLookRow(isSelected: model.selected == thread)
                         .tag(thread)
                         // The legacy quick actions, then (#676) "Marquer non lu" and "Supprimer" after a divider.

@@ -112,9 +112,9 @@ struct MessageRowView: View {
         avatarSubject(of: thread).isGroup ? "Conversation de groupe" : ""
     }
 
-    /// The accent tint of an unread, unselected row; nil leaves the system background (#570).
-    static func rowTint(isUnread: Bool, isSelected: Bool) -> RowTint? {
-        isUnread && !isSelected ? RowTint() : nil
+    /// The accent tint of an unread row (the selected one too, over the selection tint, #1073); nil leaves the system background (#570).
+    static func rowTint(isUnread: Bool) -> RowTint? {
+        isUnread ? RowTint() : nil
     }
 
     /// Primary and semibold when unread, secondary and regular when read (#651).

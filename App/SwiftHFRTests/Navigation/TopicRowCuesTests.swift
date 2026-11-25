@@ -50,14 +50,13 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 9, pages: 5)) == nil)
     }
 
-    @Test("Accent per flag; the super favourite wins; the selected row has none")
+    @Test("Accent per flag; the super favourite wins; the selected row keeps it (#1073)")
     func accent() {
-        #expect(TopicRowCues.accent(flag: .yellow, isSuperFavorite: false, isSelected: false) == .yellowFlag)
-        #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: false, isSelected: false) == .blueFlag)
-        #expect(TopicRowCues.accent(flag: .red, isSuperFavorite: false, isSelected: false) == .redFlag)
-        #expect(TopicRowCues.accent(flag: nil, isSuperFavorite: false, isSelected: false) == nil)
-        #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: true, isSelected: false) == .superFavorite)
-        #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: true, isSelected: true) == nil)
+        #expect(TopicRowCues.accent(flag: .yellow, isSuperFavorite: false) == .yellowFlag)
+        #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: false) == .blueFlag)
+        #expect(TopicRowCues.accent(flag: .red, isSuperFavorite: false) == .redFlag)
+        #expect(TopicRowCues.accent(flag: nil, isSuperFavorite: false) == nil)
+        #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: true) == .superFavorite)
     }
 
     @Test("The pill stops 4 pt short of the block edge, 4 pt above and below a flagged row's content, 6 above a super favourite's (#803)")
@@ -82,9 +81,9 @@ struct TopicRowCuesTests {
     @Test("Favoris tints only the super favourite, as legacy; the category lists tint every flagged row (#803)")
     func favorisPillsOnlySuperFavorites() {
         let flagged = topic(flag: .blue)
-        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, isSelected: false, flagPills: false) == nil)
-        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: true, isSelected: false, flagPills: false) != nil)
-        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, isSelected: false) != nil)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, flagPills: false) == nil)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: true, flagPills: false) != nil)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false) != nil)
     }
 
     @Test("Favoris and Drapeaux, legacy's one Favoris view, pill no flag; categories do (#803)")
@@ -96,13 +95,12 @@ struct TopicRowCuesTests {
 
     @Test("The accent weight: quieter for a flag, full for the super favourite")
     func rowTintWeight() throws {
-        let flagged = try #require(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: false))
+        let flagged = try #require(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false))
         #expect(flagged.weight < 1)
-        let sup = try #require(TopicListView.rowTint(topic: topic(), isSuperFavorite: true, isSelected: false))
+        let sup = try #require(TopicListView.rowTint(topic: topic(), isSuperFavorite: true))
         #expect(sup.weight == 1)
-        #expect(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: true) == nil)
         // A flag removal HFR confirmed hides the icon, the capsule and the footer: the tint goes too.
-        #expect(TopicListView.rowTint(topic: topic(flag: .blue), showsFlag: false, isSuperFavorite: false, isSelected: false) == nil)
+        #expect(TopicListView.rowTint(topic: topic(flag: .blue), showsFlag: false, isSuperFavorite: false) == nil)
     }
 
     @Test("A clickable section title keeps the category name as its label and says the action as a hint (#769)")
