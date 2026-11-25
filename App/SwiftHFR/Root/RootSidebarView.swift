@@ -103,9 +103,9 @@ struct RootSidebarView: View {
     /// The labels' colour: the system's primary for Legacy, as before; a theme's `textPrimary` (#842).
     private var primaryText: Color { appearance.listColors.map { Color(uiColor: $0.text) } ?? Color.primary }
 
-    /// A sidebar list selects an optional; deselecting keeps the current destination.
+    /// A sidebar list selects an optional; deselecting keeps the current destination, and the row already shown reloads its list (#426).
     private var selection: Binding<SidebarDestination?> {
-        Binding(get: { model.sidebarDestination }, set: { if let new = $0 { model.selectedDestination = new } })
+        Binding(get: { model.sidebarDestination }, set: { if let new = $0 { model.selectFromSidebar(new) } })
     }
 
     @ViewBuilder

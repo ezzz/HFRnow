@@ -97,6 +97,12 @@ final class NavigationModel {
         }
     }
 
+    /// Reloads the list the selection shows, as a re-selection of its tab does (#426).
+    func reloadSelectedTopicList() async {
+        guard let source = selectedSource else { return }
+        await topicList(for: source).refresh()
+    }
+
     /// The model of `source`, created once so going back keeps rows, page and scroll position.
     func topicList(for source: TopicSource) -> TopicListModel {
         if let existing = topicLists[source] { return existing }

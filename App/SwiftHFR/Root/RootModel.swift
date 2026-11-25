@@ -111,6 +111,7 @@ final class RootModel {
     private(set) var minimizesTabBarOnScroll: Bool
 
     @ObservationIgnored private let store: any SettingsStore
+    @ObservationIgnored private let haptics: HapticFeedback
 
     /// Creates the root state. `initial` is what the user was on before a rebuild (a new session generation); only the first
     /// creation (nil) reads the start tab from the start-screen setting (`HFRswiftStartupScreen`), as legacy keeps the tab
@@ -121,8 +122,9 @@ final class RootModel {
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
         mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount(),
         blocklistSync: BlocklistSyncModel? = nil, clearsIconBadgeBeforeCount: Bool = false,
-        qualityAlerts: QualityAlertsModel? = nil
+        qualityAlerts: QualityAlertsModel? = nil, haptics: HapticFeedback = .live
     ) {
+        self.haptics = haptics
         self.clearsIconBadgeBeforeCount = clearsIconBadgeBeforeCount
         self.mpStorage = mpStorage
         self.blocklistSync = blocklistSync
@@ -332,6 +334,41 @@ final class RootModel {
         }
         if badge != privateMessageBadgeEnabled { privateMessageBadgeEnabled = badge }
         if minimize != minimizesTabBarOnScroll { minimizesTabBarOnScroll = minimize }
+    }
+
+    /// The tab the user tapped again reloads its list with a light haptic (UXD-04, GAP-007, #426). Legacy posts `.rootTabReselected`
+    /// from the tab bar (`MainWindow.swift:2444-2494` @ 87fe0d1c) and each list listens: Catégories' forum list (`:229-238`, haptic
+    /// and load) and its topic list (`:893-900`), Favoris' list (`Favorites.swift:785-794`), Messages' (`MPListView.swift:658-667`).
+    /// Plus and Recherche have nothing to reload; the reader is not reloaded (GAP-008, UXD-02). Differences: one haptic, at the start
+    /// (legacy plays one at the start and one at the end of a refresh, `Common.swift:108-114`; the pull to refresh plays one, #1207).
+    func reselect(_ tab: RootTab) async {
+        switch tab {
+        case .categories:
+            haptics.impact(.light)
+            async let forumList: Void = categories.forums.reload()
+            async let topicList: Void = categories.reloadSelectedTopicList()
+            _ = await (forumList, topicList)
+        case .favorites:
+            haptics.impact(.light)
+            await favorites.reloadSelectedTopicList()
+        case .messages:
+            haptics.impact(.light)
+            await messages.refresh()
+        case .more, .search:
+            break
+        }
+    }
+
+    /// A tap on a row of the split root's sidebar: the destination already selected is a re-selection, another row is selected (Plus
+    /// is shown as Réglages, which is not the selected `.tab(.more)`). Returns the reload the re-selection started, nil otherwise.
+    @discardableResult
+    func selectFromSidebar(_ destination: SidebarDestination) -> Task<Void, Never>? {
+        guard destination == selectedDestination else {
+            selectedDestination = destination
+            return nil
+        }
+        guard case .tab(let tab) = destination else { return nil }
+        return Task { await reselect(tab) }
     }
 
     /// Sources the Favoris tab can show: the favourites and, where legacy shows them with the favourites, the flags.
