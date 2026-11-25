@@ -53,7 +53,7 @@ struct SheetCloseSourceTests {
             "Reader/Viewer/ImageViewerView.swift", "Reader/VideoPlayerSheet.swift", "Polls/PollSheet.swift",
             "FilteredPosts/FilteredPostsView.swift", "Smileys/SmileyPickerView.swift", "Composer/Gif/GifPickerView.swift",
             "Composer/ArchivedDraftsView.swift", "Profile/UserProfileView.swift", "Composer/ImageUpload/ImageUploadView.swift",
-            "Reader/ReaderPageSheet.swift",
+            "Reader/ReaderPageSheet.swift"
         ]
         let all = try Self.sources()
         for sheet in sheets {
