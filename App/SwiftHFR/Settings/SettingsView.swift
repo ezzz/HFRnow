@@ -200,11 +200,11 @@ private struct TextSizeRow: View {
             Slider(
                 value: Binding(
                     get: { Double(percent) },
-                    set: { if let saved = draft.move(to: $0) { general.textSizePercent = Int(saved.rounded()) } }
+                    set: { draft.move(to: $0) { general.textSizePercent = Int($0.rounded()) } }
                 ),
                 in: Double(SettingKey.textSizePercentRange.lowerBound)...Double(SettingKey.textSizePercentRange.upperBound),
                 step: Double(SettingKey.textSizePercentStep),
-                onEditingChanged: { if let saved = draft.editingChanged($0) { general.textSizePercent = Int(saved.rounded()) } }
+                onEditingChanged: { draft.editingChanged($0) { general.textSizePercent = Int($0.rounded()) } }
             )
             .accessibilityLabel("Taille du texte")
             .accessibilityValue("\(percent) %")

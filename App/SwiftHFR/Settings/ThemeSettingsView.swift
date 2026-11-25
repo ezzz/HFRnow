@@ -21,10 +21,13 @@ struct ThemeSettingsView: View {
     /// The appearance this screen's previews draw: the model's, with the values being dragged.
     private var previewAppearance: ThemeAppearance {
         var appearance = theme.appearance
+        // Only a drag overrides: with none, the stored colours show as they are (they may not be the hue's own tints).
         guard theme.theme.isLegacy else { return appearance }
-        appearance.dayAccent = ThemeAppearance.dayTint(hue: shownHue)
-        appearance.nightAccent = ThemeAppearance.nightTint(hue: shownHue)
-        appearance.darkBrightness = shownBrightness
+        if hueDraft.draft != nil {
+            appearance.dayAccent = ThemeAppearance.dayTint(hue: shownHue)
+            appearance.nightAccent = ThemeAppearance.nightTint(hue: shownHue)
+        }
+        if brightnessDraft.draft != nil { appearance.darkBrightness = shownBrightness }
         return appearance
     }
 
@@ -83,10 +86,10 @@ struct ThemeSettingsView: View {
             Slider(
                 value: Binding(
                     get: { shownHue },
-                    set: { if let saved = hueDraft.move(to: $0) { theme.accentHue = saved } }
+                    set: { hueDraft.move(to: $0) { theme.accentHue = $0 } }
                 ),
                 in: 0...1, step: 0.001,
-                onEditingChanged: { if let saved = hueDraft.editingChanged($0) { theme.accentHue = saved } }
+                onEditingChanged: { hueDraft.editingChanged($0) { theme.accentHue = $0 } }
             )
             .tint(Color(uiColor: ThemeAppearance.dayTint(hue: shownHue).uiColor))
             .accessibilityLabel("Teinte d'accent")
@@ -122,10 +125,10 @@ struct ThemeSettingsView: View {
                 Slider(
                     value: Binding(
                         get: { shownBrightness },
-                        set: { if let saved = brightnessDraft.move(to: $0) { theme.darkBrightness = saved } }
+                        set: { brightnessDraft.move(to: $0) { theme.darkBrightness = $0 } }
                     ),
                     in: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01,
-                    onEditingChanged: { if let saved = brightnessDraft.editingChanged($0) { theme.darkBrightness = saved } }
+                    onEditingChanged: { brightnessDraft.editingChanged($0) { theme.darkBrightness = $0 } }
                 )
                 .accessibilityLabel("Luminosité du thème sombre")
                 .accessibilityValue(Text(shownBrightness, format: .percent.precision(.fractionLength(0))))

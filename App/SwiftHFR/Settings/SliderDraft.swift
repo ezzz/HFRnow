@@ -10,18 +10,18 @@ struct SliderDraft<Value: Equatable> {
     /// The value the slider and its readout show: the draft while dragging, else what is saved.
     func shown(saved: Value) -> Value { draft ?? saved }
 
-    /// The slider moved to `value`. Returns the value to save now, nil while dragging.
-    mutating func move(to value: Value) -> Value? {
-        guard isEditing else { return value }
+    /// The slider moved to `value`: kept as the draft while dragging, else `save` runs at once.
+    mutating func move(to value: Value, save: (Value) -> Void) {
+        guard isEditing else { return save(value) }
         draft = value
-        return nil
     }
 
-    /// The drag started or ended. Returns the value to save when it ended on a draft, nil otherwise.
-    mutating func editingChanged(_ editing: Bool) -> Value? {
+    /// The drag started or ended: on its end `save` runs once with the dragged value, if the slider moved. A row that disappears
+    /// mid-drag may never get the end, and the dragged value is then dropped.
+    mutating func editingChanged(_ editing: Bool, save: (Value) -> Void) {
         isEditing = editing
         let final = editing ? nil : draft
         draft = nil
-        return final
+        if let final { save(final) }
     }
 }
