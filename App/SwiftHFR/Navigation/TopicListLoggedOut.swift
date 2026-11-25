@@ -15,6 +15,27 @@ struct SignInPrompt: Equatable {
     let target: LoginTarget
 }
 
+extension SignInPrompt {
+    /// The prompt for the account state, shared by Favoris and Messages: no account adds one, any current account signs in
+    /// again (whatever its status: a current account the page was not fetched with needs its session back, not a second
+    /// pseudo). `loading` completes "pour charger …".
+    static func make(current: AccountRow?, title: String, systemImage: String, loading: String) -> SignInPrompt {
+        guard let current else {
+            return SignInPrompt(
+                title: title, message: "Ajoutez un pseudo pour charger \(loading).", systemImage: systemImage,
+                action: "Ajouter un pseudo", target: .newAccount
+            )
+        }
+        let message = current.status == .expired
+            ? "Votre session a expiré : reconnectez-vous pour charger \(loading)."
+            : "Reconnectez-vous pour charger \(loading)."
+        return SignInPrompt(
+            title: title, message: message, systemImage: systemImage, action: "Se reconnecter",
+            target: .existing(id: current.id, displayName: current.displayName)
+        )
+    }
+}
+
 /// Why Favoris, Suivis and Lus cannot be chosen when logged out: a bold title and a subtitle.
 struct FilterNote: Equatable {
     let title: String
@@ -28,25 +49,9 @@ extension TopicListModel {
     /// current account signs in again (`AccountMenuButton.swift:53-56`).
     func signInPrompt(current: AccountRow?) -> SignInPrompt? {
         guard source.isFavoritesList, case .signInRequired? = loader.value?.emptyReason else { return nil }
-        if let current {
-            // Whatever the status: a current account the page was not fetched with needs its session back, not a second pseudo.
-            let message = current.status == .expired
-                ? "Votre session a expiré : reconnectez-vous pour charger vos favoris et vos drapeaux."
-                : "Reconnectez-vous pour charger vos favoris et vos drapeaux."
-            return SignInPrompt(
-                title: "Connectez-vous pour accéder aux favoris",
-                message: message,
-                systemImage: "star.slash",
-                action: "Se reconnecter",
-                target: .existing(id: current.id, displayName: current.displayName)
-            )
-        }
-        return SignInPrompt(
-            title: "Connectez-vous pour accéder aux favoris",
-            message: "Ajoutez un pseudo pour charger vos favoris et vos drapeaux.",
-            systemImage: "star.slash",
-            action: "Ajouter un pseudo",
-            target: .newAccount
+        return SignInPrompt.make(
+            current: current, title: "Connectez-vous pour accéder aux favoris", systemImage: "star.slash",
+            loading: "vos favoris et vos drapeaux"
         )
     }
 

@@ -139,6 +139,16 @@ final class MessageListModel {
     /// Looks for rows of the current segment in later pages when the page on screen has none (bounded).
     func searchForSegment() async { await advanceWhileSegmentEmpty() }
 
+    /// Messages without a usable account: legacy's prompt (`MPListView.swift:588` @ 87fe0d1c, `if !isLoggedIn`); nil once the
+    /// list is loaded for an account. Same account states as Favoris (`SignInPrompt.make`).
+    func signInPrompt(current: AccountRow?) -> SignInPrompt? {
+        guard case .signInRequired? = loader.value?.emptyReason else { return nil }
+        return SignInPrompt.make(
+            current: current, title: "Connectez-vous pour accéder aux MP", systemImage: "envelope.badge",
+            loading: "vos messages privés"
+        )
+    }
+
     /// Whether the Tous / MP / MP multiples switch is shown: the list has rows (not logged out, not an empty mailbox).
     var showsSegmentSwitch: Bool { loader.value.map { !$0.threads.isEmpty } == true }
 
