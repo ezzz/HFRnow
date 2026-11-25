@@ -30,4 +30,11 @@ extension MessageListModel {
         guard let ledgerSeen, let content = loader.value, content.page == 1, content != .signedOut else { return }
         await ledgerSeen(MPNotificationLedger.seenSummary(of: content.threads.filter(isUnread)))
     }
+
+    /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
+    /// later load may have made stale (a row since read must not take a second one off the badge, #762). Off the page, the
+    /// thread's "opened here" mark is kept by `load`, so the fallback still reads as read.
+    func listed(_ thread: PrivateMessageThread) -> PrivateMessageThread {
+        loader.value?.threads.first { $0.id == thread.id } ?? thread
+    }
 }
