@@ -301,6 +301,50 @@ struct ThemedListTests {
         #expect(await until { near(pixel(of: legacy, x: thirdRow.x, y: thirdRow.y), hex(0x1C1C1E)) })
     }
 
+    /// #1125: the large-title row under a theme is clear (the screen's `background`, black here), in both looks, where the
+    /// rows around it paint `surface` (#1A2430); Legacy keeps the system card (#1C1C1E). Fails without the theme case of
+    /// `listLookTitleRow()`: the row would keep the card or the surface.
+    @Test func theLargeTitleRowIsOnTheBackgroundUnderATheme() async throws {
+        func list(_ look: ListLook) -> some View {
+            List {
+                Group {
+                    Section { Text("").frame(height: 200).listLookTitleRow() }
+                    Section { ForEach(0..<2, id: \.self) { _ in Text("").frame(height: 200) } }
+                }.listLookRows()
+            }
+            .listStyle(.insetGrouped)
+            .environment(\.listLook, look)
+        }
+        for look in [ListLook.classic, .dense] {
+            let themed = try showSwatch(list(look), appearance: try swatchAppearance())
+            defer { themed.isHidden = true }
+            #expect(await until { near(pixel(of: themed, x: firstRow.x, y: firstRow.y), hex(0x000000)) }, "\(look)")
+        }
+        let legacy = try showSwatch(list(.classic), appearance: .standard)
+        defer { legacy.isHidden = true }
+        #expect(await until { near(pixel(of: legacy, x: firstRow.x, y: firstRow.y), hex(0x1C1C1E)) })
+    }
+
+    /// #1125: in the list look, a `listLookRow(isSelected:)` row paints `selection` (#2A3A50) and its neighbours `surface`, and a
+    /// row of a `Section` with a header inside the themed Group still paints `surface`.
+    @Test func aSelectedRowAndASectionUnderTheListLookFollowTheTheme() async throws {
+        let list = List {
+            Group {
+                Section {
+                    Text("").frame(height: 200).listLookRow(isSelected: true)
+                    Text("").frame(height: 200).listLookRow(isSelected: false)
+                } header: { Text("En-tête").themedSectionHeader() }
+            }.listLookRows()
+        }
+        .listStyle(.insetGrouped)
+        let window = try showSwatch(list, appearance: try swatchAppearance())
+        defer { window.isHidden = true }
+        // Rows are 200 pt tall under a header: centres at about 100 + header, 300 + header, 500 + header.
+        let selected = await until { near(pixel(of: window, x: 150, y: 150), hex(0x2A3A50)) }
+        #expect(selected, "selected \(pixel(of: window, x: 150, y: 150))")
+        #expect(await until { near(pixel(of: window, x: 150, y: 350), hex(0x1A2430)) }, "row \(pixel(of: window, x: 150, y: 350))")
+    }
+
     /// The `errorText` of the contrast rules is the app's error colour, so the rule checks what a themed row draws.
     @Test func theErrorTextRuleIsTheAppsErrorColour() throws {
         let tokens = try #require(try ThemeFixtures.testTheme().variants?.light)
