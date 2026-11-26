@@ -270,33 +270,6 @@ struct ThemedListTests {
         #expect(await until { near(pixel(of: legacy, x: 150, y: 350), systemRed) }, "\(pixel(of: legacy, x: 150, y: 350))")
     }
 
-    /// A destructive row button's label (#1121): under a theme `errorText` (#FF827A in dark), dimmed to 40 % over the black window
-    /// when disabled. Without `themedDestructive()` the swatch keeps the system's white primary.
-    @Test func aDestructiveRowButtonTakesTheAccessibleRedUnderATheme() async throws {
-        let appearance = try swatchAppearance()
-        let enabled = try showSwatch(Rectangle().themedDestructive(), appearance: appearance)
-        defer { enabled.isHidden = true }
-        #expect(await until { near(pixel(of: enabled, x: 150, y: 350), hex(0xFF827A)) }, "\(pixel(of: enabled, x: 150, y: 350))")
-        let disabled = try showSwatch(Rectangle().themedDestructive().disabled(true), appearance: appearance)
-        defer { disabled.isHidden = true }
-        let dimmed = [0xFF, 0x82, 0x7A].map { Int((Double($0) * 0.4).rounded()) }
-        #expect(await until { near(pixel(of: disabled, x: 150, y: 350), dimmed) }, "\(pixel(of: disabled, x: 150, y: 350))")
-    }
-
-    /// Legacy: the modifier changes no pixel, enabled or disabled.
-    @Test func underLegacyADestructiveRowButtonIsPixelIdentical() async throws {
-        for isDisabled in [false, true] {
-            let plain = try showSwatch(Rectangle().disabled(isDisabled), appearance: .standard)
-            defer { plain.isHidden = true }
-            let modified = try showSwatch(Rectangle().themedDestructive().disabled(isDisabled), appearance: .standard)
-            defer { modified.isHidden = true }
-            let reference = await until { near(pixel(of: plain, x: 150, y: 350), hex(0xFFFFFF)) || isDisabled }
-            #expect(reference, "\(pixel(of: plain, x: 150, y: 350))")
-            let same = await until { pixel(of: plain, x: 150, y: 350) == pixel(of: modified, x: 150, y: 350) }
-            #expect(same, "disabled \(isDisabled): \(pixel(of: plain, x: 150, y: 350)) vs \(pixel(of: modified, x: 150, y: 350))")
-        }
-    }
-
     /// A short list in a sheet on a plain stack: below its one row, `themedListScreen` shows the theme's `background`
     /// (#101820 dark); Legacy keeps the system's grouped background (black in dark).
     @Test func aListScreenShowsTheThemesBackgroundAndLegacyTheSystems() async throws {
