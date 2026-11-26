@@ -301,6 +301,18 @@ struct ThemedListTests {
         #expect(await until { near(pixel(of: legacy, x: thirdRow.x, y: thirdRow.y), hex(0x1C1C1E)) })
     }
 
+    /// The `errorText` of the contrast rules is the app's error colour, so the rule checks what a themed row draws.
+    @Test func theErrorTextRuleIsTheAppsErrorColour() throws {
+        let tokens = try #require(try ThemeFixtures.testTheme().variants?.light)
+        for dark in [false, true] {
+            let app = AccessibleColors.rgb(.errorText, dark: dark)
+            #expect(tokens.color(named: "errorText", inLight: !dark) == ThemeRGB(red: app.red, green: app.green, blue: app.blue))
+        }
+    }
+}
+
+/// #1125's hosted checks, apart so the suite's body stays within the lint limit.
+extension ThemedListTests {
     /// #1125: the large-title row under a theme is clear (the screen's `background`, black here), in both looks, where the
     /// rows around it paint `surface` (#1A2430); Legacy keeps the system card (#1C1C1E). Fails without the theme case of
     /// `listLookTitleRow()`: the row would keep the card or the surface.
@@ -343,15 +355,6 @@ struct ThemedListTests {
         let selected = await until { near(pixel(of: window, x: 150, y: 150), hex(0x2A3A50)) }
         #expect(selected, "selected \(pixel(of: window, x: 150, y: 150))")
         #expect(await until { near(pixel(of: window, x: 150, y: 350), hex(0x1A2430)) }, "row \(pixel(of: window, x: 150, y: 350))")
-    }
-
-    /// The `errorText` of the contrast rules is the app's error colour, so the rule checks what a themed row draws.
-    @Test func theErrorTextRuleIsTheAppsErrorColour() throws {
-        let tokens = try #require(try ThemeFixtures.testTheme().variants?.light)
-        for dark in [false, true] {
-            let app = AccessibleColors.rgb(.errorText, dark: dark)
-            #expect(tokens.color(named: "errorText", inLight: !dark) == ThemeRGB(red: app.red, green: app.green, blue: app.blue))
-        }
     }
 }
 
