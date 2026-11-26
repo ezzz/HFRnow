@@ -83,6 +83,7 @@ struct AccountsView: View {
             switch problem {
             case .corrupted:
                 Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }
+                    .themedDestructive()
             case .unavailable:
                 Button("Réessayer") { Task { await accounts.retryRestore() } }
                     .disabled(accounts.isRestoring)
