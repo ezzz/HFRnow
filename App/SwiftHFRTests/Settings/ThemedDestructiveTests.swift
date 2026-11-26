@@ -84,14 +84,16 @@ struct ThemedDestructiveTests {
         #expect(near(pixel, [0xFF, 0x82, 0x7A]), "\(pixel)")
     }
 
-    /// Disabled, the themed label is dimmer than enabled (not left at full strength by the explicit style) and still not the
-    /// row's own surface (#1A2430): dimmed, not dropped.
+    /// Disabled, the themed label is `errorText` dimmed over the row's surface (about [117, 74, 78]): redder than the surface,
+    /// darker than enabled. The system's own disabled red would also be dark, so the hue is checked, not only the brightness.
     @Test func underAThemeADisabledLabelIsDimmed() async throws {
         let window = try show(Root(model: try model(themed: true), modified: true, isDisabled: true))
         defer { window.isHidden = true }
-        let pixel = await settled(window) { $0.reduce(0, +) < 0xFF + 0x82 + 0x7A - 60 }
-        #expect(pixel.reduce(0, +) < 0xFF + 0x82 + 0x7A - 60, "\(pixel)")
-        #expect(!near(pixel, [0x1A, 0x24, 0x30]), "\(pixel)")
+        func dimmedRed(_ pixel: [Int]) -> Bool {
+            pixel[0] > pixel[1] + 25 && pixel.reduce(0, +) > 0x1A + 0x24 + 0x30 + 60 && pixel.reduce(0, +) < 0xFF + 0x82 + 0x7A - 60
+        }
+        let pixel = await settled(window, until: dimmedRed)
+        #expect(dimmedRed(pixel), "\(pixel)")
     }
 
     /// Legacy: the modifier changes no pixel, enabled or disabled.

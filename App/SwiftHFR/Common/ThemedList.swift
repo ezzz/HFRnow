@@ -67,9 +67,9 @@ extension View {
 
     /// A destructive `Button` that is a row of a themed list (#1121): under a theme its label takes `AccessibleColors.errorText`
     /// (the system red measures 3.75:1 on some themes' `surface`), dimmed while disabled, since an explicit foreground style
-    /// may stop the system's disabled look (#1121, #1118 round 4). Apply it **before** `.disabled(_:)`, which sets `isEnabled` for what it wraps, never
-    /// on a `.plain` button (the role's red does not reach its glyph), an alert, a dialog, a swipe action or a toolbar. Legacy:
-    /// nothing.
+    /// may stop the system's disabled look (#1118 round 4). Apply it **before** `.disabled(_:)`, which sets `isEnabled` for
+    /// what it wraps. Never on a `.plain` button (the role's red does not reach its glyph), an alert, a dialog, a swipe action
+    /// or a toolbar. Legacy: nothing.
     func themedDestructive() -> some View { modifier(ThemedDestructive()) }
 
     /// A screen's large title under the theme (#842): `title`, which holds 4.5:1 on `background`. Legacy: nothing.
