@@ -50,6 +50,17 @@ extension View {
     }
 }
 
+private extension View {
+    /// A bordered glass button with a 44 pt hit region (HIG › Buttons), not the text box of a plain button (#1152).
+    func bannerButton() -> some View {
+        buttonStyle(.glass)
+            .controlSize(.small)
+            .font(.footnote.weight(.semibold))
+            .frame(minHeight: 44)
+            .contentShape(.rect)
+    }
+}
+
 /// "N posts | page X/Y" with a cancel button while a run reads pages, or an information with "OK" (legacy
 /// `FavoritePostFilterProgressBanner`, `Favorites.swift:1099-1135`).
 struct FilteredPostsBanner: View {
@@ -66,21 +77,16 @@ struct FilteredPostsBanner: View {
             Text(model.bannerText ?? "").font(.footnote).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1).monospacedDigit()
             Spacer(minLength: 8)
             if model.statusMessage == nil {
-                Button("Annuler") { model.cancel() }.font(.footnote.weight(.semibold))
+                Button("Annuler") { model.cancel() }.bannerButton()
             } else {
-                Button("OK") { model.dismissStatus() }.font(.footnote.weight(.semibold))
+                Button("OK") { model.dismissStatus() }.bannerButton()
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .glassEffect(.regular, in: .rect(cornerRadius: 10))
         .accessibilityElement(children: .combine)
-        // Legacy hid an information after 3 seconds.
-        .task(id: model.statusMessage) {
-            guard model.statusMessage != nil else { return }
-            try? await Task.sleep(for: .seconds(3))
-            if !Task.isCancelled { model.dismissStatus() }
-        }
+        // The information goes by itself on the model's timer, never under VoiceOver (#1152; legacy used a 3 s view task).
     }
 }
 

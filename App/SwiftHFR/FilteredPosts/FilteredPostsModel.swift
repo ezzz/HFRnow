@@ -63,6 +63,11 @@ final class FilteredPostsModel {
     /// Title of the topic being filtered.
     private(set) var title = ""
 
+    /// Clears the information by itself after `ConfirmationAutoDismiss.delay`, and never under VoiceOver (#1152, #864).
+    let statusTimer = ConfirmationAutoDismiss()
+    /// Speaks the information when it appears (VoiceOver); replaceable in tests.
+    var announce: @MainActor (String) -> Void = { ReaderAccessibility.announce($0) }
+
     private let services: FilteredPostsServices
     private var task: Task<Void, Never>?
     /// The latest run's task, kept after it ends or is cancelled so a test can wait for a stale run (test seam).
@@ -117,7 +122,7 @@ final class FilteredPostsModel {
     /// Filters `topic` from `page`, skipping the messages up to `message` on that page.
     func start(topic: TopicID, title: String, page: Int, after message: Int?, knownMaxPage: Int? = nil) {
         guard !isRunning, !isAdvancing else { return }
-        statusMessage = nil
+        clearStatus()
         errorMessage = nil
         self.title = title
         isRunning = true
@@ -131,7 +136,7 @@ final class FilteredPostsModel {
             case .success(let batch):
                 guard let batch else { return }
                 if batch.page.messages.isEmpty {
-                    statusMessage = "Aucun post n'a été trouvé"
+                    show(status: "Aucun post n'a été trouvé")
                 } else {
                     result = batch
                 }
@@ -158,7 +163,7 @@ final class FilteredPostsModel {
                 guard let batch else { return }
                 if batch.page.messages.isEmpty {
                     result = shown.markingFinished()
-                    statusMessage = "Aucun autre post trouvé"
+                    show(status: "Aucun autre post trouvé")
                 } else {
                     result = batch
                 }
@@ -184,12 +189,24 @@ final class FilteredPostsModel {
     func closeResult() {
         cancel()
         result = nil
+        clearStatus()
+    }
+
+    /// The information is a result HFR gave: say it, and let it go by itself unless VoiceOver runs; the cross is the other way.
+    private func show(status: String) {
+        statusMessage = status
+        announce(status)
+        statusTimer.arm { [weak self] in self?.clearStatus() }
+    }
+
+    private func clearStatus() {
         statusMessage = nil
+        statusTimer.cancel()
     }
 
     /// Hides the information line.
     func dismissStatus() {
-        statusMessage = nil
+        clearStatus()
     }
 
     /// Hides the failure alert.
