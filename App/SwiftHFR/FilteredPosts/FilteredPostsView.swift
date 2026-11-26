@@ -51,13 +51,11 @@ extension View {
 }
 
 private extension View {
-    /// A bordered glass button with a 44 pt hit region (HIG › Buttons), not the text box of a plain button (#1152).
+    /// A bordered glass capsule, not the text box of a plain button (#1152; legacy `Favorites.swift:1215-1255`).
     func bannerButton() -> some View {
         buttonStyle(.glass)
             .controlSize(.small)
             .font(.footnote.weight(.semibold))
-            .frame(minHeight: 44)
-            .contentShape(.rect)
     }
 }
 
@@ -86,7 +84,7 @@ struct FilteredPostsBanner: View {
         .padding(.vertical, 8)
         .glassEffect(.regular, in: .rect(cornerRadius: 10))
         .accessibilityElement(children: .combine)
-        // The information goes by itself on the model's timer, never under VoiceOver (#1152; legacy used a 3 s view task).
+        // The information goes by itself on the model's timer, never under VoiceOver (#1152; legacy hid it after 3 s).
     }
 }
 

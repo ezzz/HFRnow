@@ -1,7 +1,8 @@
 import Foundation
 import UIKit
 
-/// The timer behind every success confirmation HFR sends back (reply, edit, delete, new topic, new MP, mark unread): it
+/// The timer behind every success confirmation HFR sends back (reply, edit, delete, new topic, new MP, mark unread) and the
+/// post filter's result line (#1152; legacy hid that one after 3 s): it
 /// clears the sentence 4 s after the last one was shown (#864, operator range 3-5 s). It belongs to the model, not to a
 /// view's `.task`: a view that is rebuilt or covered while the page reloads after the send used to cancel the sleep and
 /// leave the sentence up. Errors and "unconfirmed" messages never arm it: the member must read those. While VoiceOver
