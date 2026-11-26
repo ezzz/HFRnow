@@ -95,45 +95,6 @@ struct UserProfileQuickActions {
     let onWhitelist: (String) -> Void
 }
 
-enum UserProfileLoadingError: LocalizedError {
-    case invalidProfile
-
-    var errorDescription: String? {
-        switch self {
-        case .invalidProfile:
-            return "Profil impossible à lire."
-        }
-    }
-}
-
-protocol UserProfileServicing {
-    func fetchProfile(url: URL) async throws -> UserProfile
-}
-
-struct UserProfileService: UserProfileServicing {
-    var session: URLSession = .shared
-
-    func fetchProfile(url: URL) async throws -> UserProfile {
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: HFRNetworkTimeout.content)
-        let (data, _) = try await session.data(for: request)
-        let html = Self.decodeHTML(data)
-        return try UserProfileHTMLParser.parse(html: html, sourceURL: url)
-    }
-
-    private static func decodeHTML(_ data: Data) -> String {
-        if let utf8 = String(data: data, encoding: .utf8) {
-            return utf8
-        }
-        if let latin1 = String(data: data, encoding: .isoLatin1) {
-            return latin1
-        }
-        if let cp1252 = String(data: data, encoding: .windowsCP1252) {
-            return cp1252
-        }
-        return String(decoding: data, as: UTF8.self)
-    }
-}
-
 enum UserProfileHTMLParser {
     private struct Cell {
         let className: String
