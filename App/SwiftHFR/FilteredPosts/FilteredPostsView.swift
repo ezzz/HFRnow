@@ -6,7 +6,8 @@ import UIKit
 // HFRswift/Swift/MessagesView.swift (the filter mode: subtitle, "Résultats suivants" bottom bar) @ 2440d79.
 // Differences: the filtered posts open in a sheet over the list or the reader, not pushed on the list's stack (the entry
 // points are two, and a sheet works in every layout); "Résultats suivants" can be cancelled and says what it reads; links
-// open in the in-app browser (a forum link does not open a reader from here yet).
+// open in the in-app browser (a forum link does not open a reader from here yet); the result line stays under VoiceOver, is
+// announced and goes after 4 s otherwise, not legacy's 3 s timer (#1152, `Favorites.swift:1054-1063` @ 87fe0d1c).
 // LOT-185: "Résultats suivants" is a `safeAreaBar` with `.glassProminent`, not legacy's `.bottomBar` toolbar item (it holds a
 // state line, a hint and Cancel); the banner is glass; GAP row pending #545.
 
@@ -50,6 +51,15 @@ extension View {
     }
 }
 
+private extension View {
+    /// A bordered glass capsule, not the text box of a plain button (#1152; legacy `Favorites.swift:1215-1255`).
+    func bannerButton() -> some View {
+        buttonStyle(.glass)
+            .controlSize(.small)
+            .font(.footnote.weight(.semibold))
+    }
+}
+
 /// "N posts | page X/Y" with a cancel button while a run reads pages, or an information with "OK" (legacy
 /// `FavoritePostFilterProgressBanner`, `Favorites.swift:1099-1135`).
 struct FilteredPostsBanner: View {
@@ -66,21 +76,16 @@ struct FilteredPostsBanner: View {
             Text(model.bannerText ?? "").font(.footnote).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1).monospacedDigit()
             Spacer(minLength: 8)
             if model.statusMessage == nil {
-                Button("Annuler") { model.cancel() }.font(.footnote.weight(.semibold))
+                Button("Annuler") { model.cancel() }.bannerButton()
             } else {
-                Button("OK") { model.dismissStatus() }.font(.footnote.weight(.semibold))
+                Button("OK") { model.dismissStatus() }.bannerButton()
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .glassEffect(.regular, in: .rect(cornerRadius: 10))
         .accessibilityElement(children: .combine)
-        // Legacy hid an information after 3 seconds.
-        .task(id: model.statusMessage) {
-            guard model.statusMessage != nil else { return }
-            try? await Task.sleep(for: .seconds(3))
-            if !Task.isCancelled { model.dismissStatus() }
-        }
+        // The information goes by itself on the model's timer, never under VoiceOver (#1152; legacy hid it after 3 s).
     }
 }
 
