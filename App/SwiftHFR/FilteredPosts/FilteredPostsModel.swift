@@ -66,7 +66,7 @@ final class FilteredPostsModel {
     /// Clears the information by itself after `ConfirmationAutoDismiss.delay`, and never under VoiceOver (#1152, #864).
     let statusTimer = ConfirmationAutoDismiss()
     /// Speaks the information when it appears (VoiceOver); replaceable in tests.
-    var announce: @MainActor (String) -> Void = { ReaderAccessibility.announce($0) }
+    @ObservationIgnored var announce: @MainActor (String) -> Void = { ReaderAccessibility.announce($0) }
 
     private let services: FilteredPostsServices
     private var task: Task<Void, Never>?

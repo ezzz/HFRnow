@@ -6,7 +6,8 @@ import UIKit
 // HFRswift/Swift/MessagesView.swift (the filter mode: subtitle, "Résultats suivants" bottom bar) @ 2440d79.
 // Differences: the filtered posts open in a sheet over the list or the reader, not pushed on the list's stack (the entry
 // points are two, and a sheet works in every layout); "Résultats suivants" can be cancelled and says what it reads; links
-// open in the in-app browser (a forum link does not open a reader from here yet).
+// open in the in-app browser (a forum link does not open a reader from here yet); the result line stays under VoiceOver, is
+// announced and goes after 4 s otherwise, not legacy's 3 s timer (#1152, `Favorites.swift:1054-1063` @ 87fe0d1c).
 // LOT-185: "Résultats suivants" is a `safeAreaBar` with `.glassProminent`, not legacy's `.bottomBar` toolbar item (it holds a
 // state line, a hint and Cancel); the banner is glass; GAP row pending #545.
 
