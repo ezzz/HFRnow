@@ -4,12 +4,12 @@ import HFRModels
 import Testing
 import UIKit
 
-/// Secondary text on the tinted whitelist surfaces keeps WCAG AA (4.5:1) in the real reader (#644): the classic whitelist header's
+/// Secondary text on the tinted allowlist surfaces keeps WCAG AA (4.5:1) in the real reader (#644): the classic whitelist header's
 /// date (`--love`) and the folded blocked quote header inside a whitelisted author's message (a tint over `--love`), modern and
 /// classic, light and dark. The background under the text is composited from the element's ancestors, as the engine paints it.
 @MainActor
 @Suite(.serialized)
-struct ReaderWhitelistContrastWebTests: ReaderWebTesting {
+struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
     private func document(token: Int, style: ThemeStyle) -> ReaderDocument {
         let html = """
             <p>texte</p><table class="citation quote-blocked"><tr class="none"><td><b class="s1">Citation masquée</b><br>\
@@ -22,11 +22,12 @@ struct ReaderWhitelistContrastWebTests: ReaderWebTesting {
         let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
         let options = ReaderRenderOptions(style: style, visibility: VisibilityPolicy(allowlist: ["ami"]))
         return ReaderDocument(
-            token: token, html: TopicHTMLBuilder.document(for: page, token: token, options: options), anchor: nil, keepsScrollPosition: false
+            token: token, html: TopicHTMLBuilder.document(for: page, token: token, options: options),
+            anchor: nil, keepsScrollPosition: false
         )
     }
 
-    /// [header date contrast, blocked quote header contrast] of the first message.
+    /// [header date contrast, blocked quote header contrast, 1 when the header date is drawn in the page text colour] of the first message.
     private let probe = """
         const rgba = (c) => {
             if (c === 'transparent') { return [0, 0, 0, 0]; }
@@ -51,7 +52,13 @@ struct ReaderWhitelistContrastWebTests: ReaderWebTesting {
         };
         const root = document.querySelector('article.message.whitelist');
         if (!root) { return 'null'; }
-        return JSON.stringify([ratio(root.querySelector('.header .date')), ratio(root.querySelector('table.quote-blocked b.s1'))]);
+        const textProbe = document.createElement('i');
+        textProbe.style.color = 'var(--text)';
+        document.body.appendChild(textProbe);
+        const date = root.querySelector('.header .date');
+        const dateIsText = getComputedStyle(date).color === getComputedStyle(textProbe).color;
+        textProbe.remove();
+        return JSON.stringify([ratio(date), ratio(root.querySelector('table.quote-blocked b.s1')), dateIsText ? 1 : 0]);
         """
 
     private func read(style: UIUserInterfaceStyle, theme: ThemeStyle, token: Int) async -> [Double]? {
@@ -75,6 +82,8 @@ struct ReaderWhitelistContrastWebTests: ReaderWebTesting {
         }
         #expect(seen[0] >= 4.5, "whitelist header date: \(seen[0])")
         #expect(seen[1] >= 4.5, "blocked quote header in a whitelisted message: \(seen[1])")
+        // #1210: the classic header's date is drawn in the page text colour in dark; the light fix must not override it.
+        if style == .dark, theme == .classic { #expect(seen[2] == 1, "classic dark keeps the date in the page text colour") }
     }
 
     @Test func inModernLightSecondaryTextHoldsAA() async { await check(style: .light, theme: .modern, token: 1) }

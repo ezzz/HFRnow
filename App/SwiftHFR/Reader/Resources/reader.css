@@ -317,10 +317,11 @@ a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top
 .message.mode .content { background: var(--modo); }
 table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); }
 /* Secondary text on the tinted whitelist surfaces (#644): `--secondary` is 4.45:1 on the classic header's `--love` and 4.05:1 on the
-   folded blocked quote's tint over `--love` (4.45 in modern). Pulling it 20 % toward the page text gives 6.2 and 5.6 in light; in dark
-   the text is lighter than `--secondary`, so the mix only raises the contrast. Follows the themes, which set `--secondary` and `--text`. */
+   folded blocked quote's tint over `--love` (4.45 in modern). Pulling it 20 % toward the page text gives 5.67 and 5.15 in light; the
+   quote header rule also holds in dark (the text is lighter than `--secondary`). The classic header date is light only: in dark #1210
+   draws it in `--text`, which a rule of higher specificity here would undo. Follows the themes, which set `--secondary` and `--text`. */
 .message.whitelist { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
-.style-classic .message.whitelist .header .date { color: var(--secondary-tinted); }
+@media not (prefers-color-scheme: dark) { .style-classic .message.whitelist .header .date { color: var(--secondary-tinted); } }
 .message.whitelist table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
 table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
 table.quote-blocked { background: color-mix(in srgb, var(--text) var(--blocked-tint), transparent); }
