@@ -337,24 +337,31 @@ extension ThemedListTests {
         #expect(await until { near(pixel(of: legacy, x: firstRow.x, y: firstRow.y), hex(0x1C1C1E)) })
     }
 
-    /// #1125: in the list look, a `listLookRow(isSelected:)` row paints `selection` (#2A3A50) and its neighbours `surface`, and a
-    /// row of a `Section` with a header inside the themed Group still paints `surface`.
+    /// #1125: in the list look, a `listLookRow(isSelected:)` row paints `selection` (#2A3A50) in both looks, and the row
+    /// next to it in a `Section` with a header follows the look (`surface` classic, clear dense).
     @Test func aSelectedRowAndASectionUnderTheListLookFollowTheTheme() async throws {
-        let list = List {
-            Group {
-                Section {
-                    Text("").frame(height: 200).listLookRow(isSelected: true)
-                    Text("").frame(height: 200).listLookRow(isSelected: false)
-                } header: { Text("En-tête").themedSectionHeader() }
-            }.listLookRows()
+        func list(_ look: ListLook) -> some View {
+            List {
+                Group {
+                    Section {
+                        Text("").frame(height: 200).listLookRow(isSelected: true)
+                        Text("").frame(height: 200).listLookRow(isSelected: false)
+                    } header: { Text("En-tête").themedSectionHeader() }
+                }.listLookRows()
+            }
+            .listStyle(.insetGrouped)
+            .environment(\.listLook, look)
         }
-        .listStyle(.insetGrouped)
-        let window = try showSwatch(list, appearance: try swatchAppearance())
-        defer { window.isHidden = true }
-        // Rows are 200 pt tall under a header: centres at about 100 + header, 300 + header, 500 + header.
-        let selected = await until { near(pixel(of: window, x: 150, y: 150), hex(0x2A3A50)) }
-        #expect(selected, "selected \(pixel(of: window, x: 150, y: 150))")
-        #expect(await until { near(pixel(of: window, x: 150, y: 350), hex(0x1A2430)) }, "row \(pixel(of: window, x: 150, y: 350))")
+        // Two 200 pt rows under a header: y 150 is inside the first, y 350 inside the second. The unselected row is `surface` in
+        // the classic look and clear (the screen's black) in the dense one; the selected row paints `selection` in both.
+        for (look, other) in [(ListLook.classic, 0x1A2430), (.dense, 0x000000)] {
+            let window = try showSwatch(list(look), appearance: try swatchAppearance())
+            defer { window.isHidden = true }
+            let selected = await until { near(pixel(of: window, x: 150, y: 150), hex(0x2A3A50)) }
+            #expect(selected, "selected \(look) \(pixel(of: window, x: 150, y: 150))")
+            let neighbour = await until { near(pixel(of: window, x: 150, y: 350), hex(other)) }
+            #expect(neighbour, "row \(look) \(pixel(of: window, x: 150, y: 350))")
+        }
     }
 }
 
