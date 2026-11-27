@@ -5,7 +5,8 @@ import HFRParsing
 import Testing
 
 /// `MemberAvatarPrefetcher` and its live lookup (#714): a one-to-one correspondent with no cached avatar is looked up on their
-/// profile, cookie-less, one lookup at a time, at most once per pseudo. Every transport is a `MockTransport` (LESSONS 56).
+/// profile (id cookie-less, profile with the session since #1363), one lookup at a time, at most once per pseudo. Every
+/// transport is a `MockTransport` (LESSONS 56).
 struct MemberAvatarPrefetcherTests {
     private static let avatar = URL(string: "https://forum-images.hardware.fr/images/perso/a.png")!
 
@@ -172,10 +173,10 @@ struct MemberAvatarPrefetcherTests {
         let anonymous: MockTransport
     }
 
-    /// `profilebdd.php` answers the `301` of `R716a`/`R716c` (with the id of the `R56b` member); the profile is `R56b`.
-    /// The session answers the same, so only the request counts catch a lookup that would use it.
+    /// `profilebdd.php` answers the `301` of `R716a`/`R716c` (a member id); the profile served is `R1363b`.
+    /// Both clients answer the same, so only the request counts catch a lookup that would use the wrong one.
     private func liveRig(location: String = "/hfr/profil-910002.htm") throws -> LiveRig {
-        let profile = try LiveTopicPageSourceTests.capture("R56b-profile-other-member-anon.html")
+        let profile = try LiveTopicPageSourceTests.capture("R1363b-profile-own-user1.html")
         let handler: MockTransport.Handler = { request async throws(NetworkError) -> HTTPResponse in
             if request.url.path() == "/profilebdd.php" {
                 return HTTPResponse(statusCode: 301, headers: ["Location": location], url: request.url)
@@ -186,25 +187,41 @@ struct MemberAvatarPrefetcherTests {
         }
         let session = MockTransport(handler: handler)
         let anonymous = MockTransport(handler: handler)
+        let fetcher = PageFetcher(session: session, anonymous: anonymous)
         return LiveRig(
-            lookup: LiveMemberAvatarLookup(fetcher: PageFetcher(session: session, anonymous: anonymous)),
+            lookup: LiveMemberAvatarLookup(
+                fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true })
+            ),
             session: session, anonymous: anonymous
         )
     }
 
-    @Test func theLiveLookupReadsTheAvatarOfTheRedirectedProfileWithoutCookies() async throws {
+    /// The id lookup leaves without cookies (`R716c`); the profile goes through the session, HFR refusing it without (#1363).
+    @Test func theLiveLookupFindsTheIdWithoutCookiesAndReadsTheProfileWithTheSession() async throws {
         let rig = try liveRig()
-        let html = try #require(String(data: try LiveTopicPageSourceTests.capture("R56b-profile-other-member-anon.html"), encoding: .utf8))
+        let data = try LiveTopicPageSourceTests.capture("R1363b-profile-own-user1.html")
+        let html = try #require(String(data: data, encoding: .utf8))
         let expected = try #require(try UserProfileParser.parse(html: html).avatarURL)
         #expect(await rig.lookup.avatar(forPseudo: "user two") == .avatar(expected))
-        #expect(await rig.session.requests.isEmpty)
-        let requests = await rig.anonymous.requests
-        #expect(requests.map(\.url.absoluteString) == [
-            "https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user%20two",
-            "https://forum.hardware.fr/hfr/profil-910002.htm"
-        ])
-        #expect(requests.first?.redirectPolicy == .doNotFollow)
-        #expect(requests.allSatisfy { $0.headers["Cookie"] == nil })
+        let anonymous = await rig.anonymous.requests
+        #expect(anonymous.map(\.url.absoluteString) == ["https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user%20two"])
+        #expect(anonymous.first?.redirectPolicy == .doNotFollow)
+        #expect(anonymous.allSatisfy { $0.headers["Cookie"] == nil })
+        #expect(await rig.session.requests.map(\.url.absoluteString) == ["https://forum.hardware.fr/hfr/profil-910002.htm"])
+    }
+
+    /// HFR's 403 to a profile (`R1363a`) is a failure, asked again later, not "no avatar".
+    @Test func aRefusedProfileIsAFailure() async {
+        let redirect = MockTransport { request async throws(NetworkError) -> HTTPResponse in
+            HTTPResponse(statusCode: 301, headers: ["Location": "/hfr/profil-910002.htm"], url: request.url)
+        }
+        let refused = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
+            throw .httpStatus(code: 403, url: url("https://forum.hardware.fr/hfr/profil-910002.htm"))
+        }
+        let fetcher = PageFetcher(session: refused, anonymous: redirect)
+        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true }))
+        #expect(await lookup.avatar(forPseudo: "user2") == .failed)
+        #expect(await refused.requests.count == 1)
     }
 
     /// An unknown pseudo (`R716d`: empty id) stops after the first request, as HFR's answer; a location that is not a profile too.
@@ -219,7 +236,8 @@ struct MemberAvatarPrefetcherTests {
     /// A failed exchange is `.failed`, not "no avatar", so the prefetcher asks again later.
     @Test func aTransportFailureIsAFailure() async {
         let offline = MockTransport { _ async throws(NetworkError) -> HTTPResponse in throw .offline }
-        let lookup = LiveMemberAvatarLookup(fetcher: PageFetcher(session: MockTransport(replies: []), anonymous: offline))
+        let fetcher = PageFetcher(session: MockTransport(replies: []), anonymous: offline)
+        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true }))
         #expect(await lookup.avatar(forPseudo: "user2") == .failed)
     }
 }

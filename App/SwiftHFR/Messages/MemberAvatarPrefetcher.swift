@@ -18,11 +18,13 @@ protocol MemberAvatarLookup: Sendable {
     func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult
 }
 
-/// The live lookup, two cookie-less GETs: `profilebdd.php`'s `301` gives the member id without being followed (`R716a`, the
-/// same without cookies `R716c`; an unknown pseudo names an empty id and stops there, `R716d`), then the public profile
-/// (`R56a`, `R56b`) through `LiveUserProfileSource`, which reads only `/hfr/profil-<id>.htm` and parses it with `UserProfileParser`.
+/// The live lookup, two GETs: `profilebdd.php`'s `301`, cookie-less, gives the member id without being followed (`R716a`, the
+/// same without cookies `R716c`; an unknown pseudo names an empty id and stops there, `R716d`), then the public profile through
+/// `profiles` (`LiveUserProfileSource`, which sends the account's session since HFR refuses it without, `R1363a`, #1363, reads
+/// only `/hfr/profil-<id>.htm` and parses it with `UserProfileParser`).
 struct LiveMemberAvatarLookup: MemberAvatarLookup {
     let fetcher: PageFetcher
+    let profiles: any UserProfileSource
 
     func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult {
         let memberID: Int?
@@ -34,7 +36,7 @@ struct LiveMemberAvatarLookup: MemberAvatarLookup {
         // An empty id (`R716d`) or another answer: HFR names no member.
         guard let memberID else { return .none }
         do throws(ListLoadError) {
-            let profile = try await LiveUserProfileSource(fetcher: fetcher).profile(memberID: memberID)
+            let profile = try await profiles.profile(memberID: memberID)
             return profile.avatarURL.map(MemberAvatarLookupResult.avatar) ?? .none
         } catch {
             return .failed
@@ -83,12 +85,13 @@ actor MemberAvatarPrefetcher {
         self.offer = offer
     }
 
-    /// The app's prefetcher: cookie-less lookups through `fetcher`, the standard avatar cache, `store` for the download.
+    /// The app's prefetcher: cookie-less id lookups through `fetcher`, profiles through `profiles`, the standard avatar cache,
+    /// `store` for the download.
     static func live(
-        fetcher: PageFetcher, store: AvatarStore, cache: AvatarCache = AvatarCache(cache: .standard)
+        fetcher: PageFetcher, profiles: any UserProfileSource, store: AvatarStore, cache: AvatarCache = AvatarCache(cache: .standard)
     ) -> MemberAvatarPrefetcher {
         MemberAvatarPrefetcher(
-            lookup: LiveMemberAvatarLookup(fetcher: fetcher), spacing: liveSpacing, retryDelay: liveRetryDelay,
+            lookup: LiveMemberAvatarLookup(fetcher: fetcher, profiles: profiles), spacing: liveSpacing, retryDelay: liveRetryDelay,
             // Any entry, even a stale one: the rows show it, and the pages read refresh it (`AvatarFillingTopicPageSource`).
             hasAvatar: { pseudo in (try? cache.entry(forPseudo: pseudo)) != nil },
             offer: { pseudo, url in await store.offer(pseudo: pseudo, url: url) }

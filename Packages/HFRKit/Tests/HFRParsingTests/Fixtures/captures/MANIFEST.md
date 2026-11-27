@@ -581,6 +581,8 @@ identical. The test image is left on the host.
 | R716c | meta only | `R716a`'s link without cookies: the same `301` to the same `/hfr/profil-<id>.htm` (its target, logged out, is `R56a`) | — | #714, 027 |
 | R716d | meta only | `profilebdd.php` with a pseudo that does not exist, logged in: `301` with `Location: /hfr/profil-.htm` (empty id) | — | #714 |
 | R716e | `R716e-profile-empty-id-404.html` | `R716d`'s target `/hfr/profil-.htm`: the web server's `404 Not Found` page (`text/html; charset=iso-8859-1`, 213 bytes), not a forum page | — | #714 |
+| R1363a | `R1363a-profile-anon-403.html` | #1363 (2026-11-27): user1's public profile `/hfr/profil-<id>.htm`, logged out: **403**, the web server's default page (`text/html; charset=iso-8859-1`), not a forum page; `R56a`/`R56b` (2026-10-26) predate the change | R56 | #1363, 116 |
+| R1363b | `R1363b-profile-own-user1.html` | The same URL logged in (user1 viewing its own profile), 2026-11-27: `200`, no redirect, no cookie set; `h6` "(En ligne dans la catégorie … du forum …)", avatar, 6 personal smileys `[:code]`…`[:code:5]`, a "Couleurs personnalisées" row (`/setperso.php?config=hfr.inc&util=<pseudo>`, a value cell with `colspan=2`), two transaction rows, "Ajouter <pseudo> à votre liste de contacts" (on one's own profile too) and the session's grey-skin style sheets | R56 | #1363, 027, 116 |
 
 ## Not captured
 
