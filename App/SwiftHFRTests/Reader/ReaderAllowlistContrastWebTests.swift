@@ -7,7 +7,8 @@ import UIKit
 /// Secondary text on the tinted allowlist surfaces keeps WCAG AA (4.5:1) in the real reader (#644): the classic whitelist header's
 /// date (`--love`) and the folded blocked quote header inside a whitelisted author's message (a tint over `--love`), modern and
 /// classic, light and dark; and (#1358) the folded quote header of a moderation message and the date and folded quote header of a
-/// continuation (75 % opacity). The background under the text is composited from the element's ancestors, as the engine paints it.
+/// continuation (75 % opacity); and (#1360) its ordinary quote header, signature, trailer and count bubble. The background under the
+/// text is composited from the element's ancestors, as the engine paints it.
 @MainActor
 @Suite(.serialized)
 struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
@@ -21,7 +22,7 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
             """
         let message = ReaderMessage(
             numreponse: 1, author: author, isDeleted: false, isContinuation: isContinuation, avatarURL: nil,
-            dateText: "27-10-2026 10:01:00", editNote: "ami", quotedByCount: nil,
+            dateText: "27-10-2026 10:01:00", editNote: "ami", quotedByCount: 2,
             content: MessageContent(html: html, signatureHTML: "<i>ma signature</i>")
         )
         let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
@@ -34,7 +35,7 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
     }
 
     /// [header date contrast, folded quote header contrast, 1 when the header date is drawn in the page text colour, ordinary quote header
-    /// contrast, signature contrast, trailer contrast] of the first message.
+    /// contrast, signature contrast, trailer contrast, count bubble contrast] of the first message.
     private func probe(root rootSelector: String) -> String { """
         const rgba = (c) => {
             if (c === 'transparent') { return [0, 0, 0, 0]; }
@@ -75,7 +76,7 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
         return JSON.stringify([
             ratio(date), ratio(root.querySelector('table.quote-blocked b.s1')), dateIsText ? 1 : 0,
             ratio(root.querySelector('table.citation:not(.quote-blocked) b.s1')), ratio(root.querySelector('.signature')),
-            ratio(root.querySelector('.trailer'))
+            ratio(root.querySelector('.trailer')), ratio(root.querySelector('.trailer .quoted-bubble'))
         ]);
         """ }
 
@@ -179,10 +180,11 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
         let seen = await read(
             style: style, theme: theme, token: token, author: surface.author, isContinuation: true, root: surface.root
         )
-        guard let seen, seen.count == 6 else { Issue.record("the reader did not answer"); return }
+        guard let seen, seen.count == 7 else { Issue.record("the reader did not answer"); return }
         #expect(seen[3] >= 4.5, "ordinary quote header in a \(surface.rawValue) continuation: \(seen[3])")
         #expect(seen[4] >= 4.5, "signature in a \(surface.rawValue) continuation: \(seen[4])")
         #expect(seen[5] >= 4.5, "trailer in a \(surface.rawValue) continuation: \(seen[5])")
+        #expect(seen[6] >= 4.5, "count bubble in a \(surface.rawValue) continuation: \(seen[6])")
     }
 
     @Test func plainContinuationTextInModernLight() async { await checkContinuationText(.plain, .light, .modern, 17) }

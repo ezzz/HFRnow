@@ -334,12 +334,15 @@ table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); 
   .message.continuation .date, .message.continuation .continuation-note, .message.whitelist.continuation .header .date { color: var(--text); }
 }
 .message.continuation table.quote-blocked > * > tr > td > b.s1 { color: var(--text); }
-/* The other `--secondary` texts of a continuation (#1360): the ordinary quote header, the signature and the trailer, whose 75 % fade puts
-   them at 2.8 to 3.4:1 in the worst surface (allowlist or moderation tint, light and dark). 70 % toward the page text gives 5.0 in
-   light and 5.7 in dark there and keeps them softer than the body. A dedicated variable: a custom property cannot refer to itself.
-   The image link, the deleted note and a blocked summary are not covered. */
+/* The other `--secondary` texts of a continuation (#1360): the ordinary quote header, the signature, the trailer and its count bubble.
+   The 75 % fade puts them at 2.8 to 4.1:1: the quote header on the allowlist or moderation tint down to 2.8, the signature and the
+   trailer on the page at 3.15 in light and 3.61 in dark, the bubble (`--background` on `--secondary`) the same. 70 % toward the page
+   text gives 5.0 in light and 5.7 in dark on the worst surface and keeps them softer than the body. A dedicated variable: a custom
+   property cannot refer to itself. The image link, the deleted note and a blocked summary share the colour and the surface of those
+   texts and follow the same rule; no hosted test draws them. */
 .message.continuation { --secondary-faded: color-mix(in srgb, var(--secondary) 30%, var(--text)); }
-.message.continuation b.s1, .message.continuation .signature, .message.continuation .trailer { color: var(--secondary-faded); }
+.message.continuation :is(b.s1, .signature, .trailer, .image-link, .deleted-note, .blocked-summary) { color: var(--secondary-faded); }
+.message.continuation .quoted-bubble { background: var(--secondary-faded); }
 table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
 table.quote-blocked { background: color-mix(in srgb, var(--text) var(--blocked-tint), transparent); }
 /* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */
