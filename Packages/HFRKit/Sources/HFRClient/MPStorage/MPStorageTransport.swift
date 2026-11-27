@@ -15,6 +15,10 @@ public struct MPStorageTransport: Sendable {
     /// Pages of the MP list searched before giving up: past it the thread may exist, so nothing is created.
     public static let maximumListPages = 50
 
+    /// Idle limit of the storage forms: legacy read them through ASIHTTPRequest at its 10 s default (`Classes/MPStorage.m:769-775`,
+    /// `ASIHTTPRequest.m:53` @ 87fe0d1c), not the composer's 60 s (#1375).
+    static let formTimeout = RequestTimeout.standard
+
     let posting = PostingFlow()
 
     /// Creates the transport.
@@ -182,7 +186,9 @@ extension MPStorageTransport {
             try HFREndpoint.newPrivateMessageForm(to: MPStorageDocument.recipient)
         }
         do {
-            let form = try await posting.loadForm(at: request.url, through: session)
+            let form = try await posting.loadForm(
+                at: request.url, through: session, timeout: Self.formTimeout
+            )
             _ = try await posting.newPrivateMessage(
                 to: MPStorageDocument.recipient, subject: MPStorageDocument.subject, text: text, with: form
             )
@@ -200,7 +206,7 @@ extension MPStorageTransport {
     ) async throws(MPStorageTransportError) -> (form: PostingForm, snapshot: MPStorageSnapshot) {
         let form: PostingForm
         do {
-            form = try await posting.loadForm(at: location.editURL, through: session)
+            form = try await posting.loadForm(at: location.editURL, through: session, timeout: Self.formTimeout)
         } catch {
             throw .posting(error)
         }

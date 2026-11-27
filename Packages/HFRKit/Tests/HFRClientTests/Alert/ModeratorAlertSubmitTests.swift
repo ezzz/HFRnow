@@ -33,6 +33,8 @@ struct ModeratorAlertSubmitTests {
         #expect(outcome.post?.redirectPolicy == .doNotFollow)
         #expect(outcome.post?.timeout == PostingFlow.postTimeout)
         #expect(outcome.requests.map(\.method) == [.get, .post])
+        // Legacy's SwiftUI reader fetched the alert form with URLSession's 60 s idle default (#1375).
+        #expect(outcome.requests.first?.timeout == 60)
     }
 
     @Test("Line breaks are sent as CRLF, as a browser and legacy did")

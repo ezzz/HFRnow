@@ -66,6 +66,8 @@ struct MPStorageTransportWriteTests {
         // Form, POST, read-back: the read-back is a GET of the same edit form.
         #expect(outcome.requests.map(\.method) == [.get, .post, .get])
         #expect(outcome.requests.last?.url == (try MPStorageCapture.editURL()))
+        // Legacy read the storage forms at ASIHTTPRequest's 10 s, not the composer's 60 s (#1375).
+        #expect(outcome.requests.filter { $0.method == .get }.map(\.timeout) == [10, 10])
     }
 
     @Test func aConcurrentWriteIsMergedNotOverwritten() async throws {
@@ -240,6 +242,7 @@ struct MPStorageTransportWriteTests {
         // a POST before the first search.
         #expect(outcome.requests.map(\.method) == [.get, .get, .post, .get, .get, .get, .get])
         #expect(outcome.requests[1].url == (try HFREndpoint.newPrivateMessageForm(to: MPStorageDocument.recipient).url))
+        #expect(outcome.requests[1].timeout == 10)
         #expect(outcome.posts.first?.url.absoluteString == "https://forum.hardware.fr/bddpost.php?config=hfr.inc")
         #expect(outcome.postField("dest") == MPStorageDocument.recipient)
         #expect(outcome.postField("sujet") == MPStorageDocument.subject)

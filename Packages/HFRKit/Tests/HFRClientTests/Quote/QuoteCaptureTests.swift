@@ -28,6 +28,8 @@ struct QuoteCaptureTests {
         let requests = await session.requests
         #expect(requests.map(\.url) == [url])
         #expect(requests.first?.method == .get)
+        // Legacy's quote fetch had URLSession's 60 s idle limit (`ReplyService.swift:804-809` @ 87fe0d1c, #1375).
+        #expect(requests.first?.timeout == 60)
         #expect(composer.form.shape == .reply)
         #expect(composer.selection == nil)
     }
