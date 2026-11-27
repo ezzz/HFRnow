@@ -1,0 +1,16 @@
+{
+  "id": "R1363b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/hfr/profil-{id}.htm",
+  "url": "https://forum.hardware.fr/hfr/profil-900001.htm",
+  "final_url": "https://forum.hardware.fr/hfr/profil-900001.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 11:45:25 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "#1363: the same profile, logged in (user1 viewing its own profile): 200, the profile page",
+  "file": "R1363b-profile-own-user1.html",
+  "private": false
+}
