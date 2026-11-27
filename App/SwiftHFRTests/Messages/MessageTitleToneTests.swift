@@ -24,7 +24,7 @@ struct MessageTitleToneTests {
         }
 
         /// `RowTint`'s strength in this theme.
-        var tintStrength: Double {
+        @MainActor var tintStrength: Double {
             RowTint.strength(scheme: dark ? .dark : .light, contrast: increasedContrast ? .increased : .standard)
         }
 
