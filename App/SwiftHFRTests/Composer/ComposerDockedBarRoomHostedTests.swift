@@ -5,9 +5,10 @@ import Testing
 import UIKit
 
 /// #1285, #1286: the docked bar's bottom stays on the keyboard (here the window's bottom safe area) whatever the page under it
-/// needs. The reader's page has a minimum height (its bottom pull icon keeps 96 pt under it, #1207, about 135 pt measured on the
-/// iPhone 18 Pro simulator, iOS 27.2): once the bar and that minimum were taller than the space, the stack overflowed both ways and
-/// the bar's bottom went behind the keyboard, past about 8 lines of a reply there, at once on a smaller screen.
+/// needs (the presenter's backstop). The reader's page once had a minimum height (its bottom pull icon kept 96 pt under it, #1207,
+/// about 135 pt measured on the iPhone 18 Pro simulator, iOS 27.2): once the bar and that minimum were taller than the space, the
+/// stack overflowed both ways and the bar's bottom went behind the keyboard, past about 8 lines of a reply there. The source is
+/// fixed in `ReaderStateOverlay` (`ReaderDockedComposerInsetsHostedTests`); this guards any other page.
 @MainActor
 @Suite(.serialized)
 struct ComposerDockedBarRoomHostedTests {
@@ -47,7 +48,13 @@ struct ComposerDockedBarRoomHostedTests {
         let card = try #require(box.frames[.card])
         let send = try #require(box.frames[.send])
         let bottom = window.bounds.maxY - host.view.safeAreaInsets.bottom
-        let navigationBottom = try #require(Self.navigationBarBottom(in: window))
+        let navigationBar = try #require(Self.navigationBar(in: window))
+        let navigationBottom = navigationBar.maxY
+        // The room estimate's navigation bar is the one laid out (#1286: 54 pt on iOS 27.2, not the HIG's 44 pt).
+        #expect(
+            abs(navigationBar.height - ComposerCardLayout.navigationBarHeight) < 0.5,
+            "the navigation bar is \(navigationBar.height) pt, the room assumes \(ComposerCardLayout.navigationBarHeight)"
+        )
         #expect(abs(card.height - box.layout.textCardHeight) < 1, "the card at its cap: \(card.height), \(box.layout.textCardHeight)")
         // The gap under the card is the modern chrome's (`ComposerChrome.cardInsets`).
         let gap = ComposerChrome.docked.cardInsets.bottom
@@ -55,9 +62,10 @@ struct ComposerDockedBarRoomHostedTests {
         #expect(send.minY >= navigationBottom - 0.5, "the buttons \(send) under the navigation bar \(navigationBottom)")
     }
 
-    private static func navigationBarBottom(in view: UIView) -> CGFloat? {
-        if let bar = view as? UINavigationBar, let window = bar.window { return bar.convert(bar.bounds, to: window).maxY }
-        return view.subviews.lazy.compactMap { navigationBarBottom(in: $0) }.first
+    /// The navigation bar's frame in window coordinates.
+    private static func navigationBar(in view: UIView) -> CGRect? {
+        if let bar = view as? UINavigationBar, let window = bar.window { return bar.convert(bar.bounds, to: window) }
+        return view.subviews.lazy.compactMap { navigationBar(in: $0) }.first
     }
 }
 
@@ -85,7 +93,7 @@ private final class BarState {
 }
 
 /// The reader's layout in short: a page under an inline navigation bar, the docked presenter on it. The page fills what it is
-/// given and cannot be shorter than `minimum`, as `ReaderStateOverlay`'s bottom pull icon makes the reader's.
+/// given and cannot be shorter than `minimum`, as `ReaderStateOverlay`'s bottom pull icon once made the reader's.
 private struct BarHost: View {
     @Bindable var state: BarState
     let minimum: CGFloat
