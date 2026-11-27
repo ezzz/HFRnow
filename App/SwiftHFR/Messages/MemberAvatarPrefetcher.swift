@@ -66,6 +66,40 @@ struct LiveMemberAvatarLookup: MemberAvatarLookup {
 /// 401/403, #1363) stops every lookup, each would be refused the same way, until the session's login changes (a re-login keeps
 /// the same session and environment, #1195).
 actor MemberAvatarPrefetcher {
+    /// Remembers, across launches, the pseudos HFR answered for with no avatar (#1397): without it each launch and root rebuild
+    /// repeats the two requests of the lookup for every correspondent who has none (legacy sends none, GAP-230).
+    struct Misses: Sendable {
+        /// Whether `key` (lowercased pseudo) had no avatar less than `freshness` ago.
+        var isFresh: @Sendable (_ key: String) -> Bool
+        /// Records that `key` had no avatar now.
+        var record: @Sendable (_ key: String) -> Void
+
+        /// Remembers nothing: the lookup repeats per prefetcher (tests, previews).
+        static let forgetful = Misses(isFresh: { _ in false }, record: { _ in })
+
+        /// How long a "no avatar" answer holds, like an avatar's freshness (LOT-066).
+        static let freshness: TimeInterval = 24 * 60 * 60
+
+        /// Kept in `defaults`, one date per lowercased pseudo, on the device (a pseudo is already in the avatar cache's file names).
+        static func persisted(in defaults: UserDefaults = .standard, now: @escaping @Sendable () -> Date = { Date() }) -> Misses {
+            let key = "memberAvatarMisses"
+            return Misses(
+                isFresh: { pseudo in
+                    guard let at = (defaults.dictionary(forKey: key) as? [String: Date])?[pseudo] else { return false }
+                    return now().timeIntervalSince(at) < freshness
+                },
+                record: { pseudo in
+                    var all = (defaults.dictionary(forKey: key) as? [String: Date]) ?? [:]
+                    let current = now()
+                    // Expired entries leave with the next write, so the list stays as long as the correspondents of a day.
+                    all = all.filter { current.timeIntervalSince($0.value) < freshness }
+                    all[pseudo] = current
+                    defaults.set(all, forKey: key)
+                }
+            )
+        }
+    }
+
     /// The time between two lookups of the live prefetcher: each lookup is two page requests.
     static let liveSpacing = Duration.seconds(1)
     /// The time before a failed lookup of the live prefetcher may run again.
@@ -76,6 +110,7 @@ actor MemberAvatarPrefetcher {
     private let hasAvatar: @Sendable (_ pseudo: String) -> Bool
     private let spacing: Duration
     private let retryDelay: Duration
+    private let misses: Misses
     private var tried: Set<String> = []
     /// Pseudos whose last lookup failed, with the time it may run again.
     private var retryAt: [String: ContinuousClock.Instant] = [:]
@@ -88,9 +123,10 @@ actor MemberAvatarPrefetcher {
     /// A prefetcher that offers what `lookup` finds to `offer`, skipping pseudos for which `hasAvatar` is true.
     init(
         lookup: any MemberAvatarLookup, spacing: Duration = .zero, retryDelay: Duration = .seconds(60),
-        hasAvatar: @escaping @Sendable (_ pseudo: String) -> Bool,
+        misses: Misses = .forgetful, hasAvatar: @escaping @Sendable (_ pseudo: String) -> Bool,
         offer: @escaping @Sendable (_ pseudo: String, _ url: URL) async -> Void
     ) {
+        self.misses = misses
         self.lookup = lookup
         self.spacing = spacing
         self.retryDelay = retryDelay
@@ -105,7 +141,7 @@ actor MemberAvatarPrefetcher {
     ) -> MemberAvatarPrefetcher {
         let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(session: session))
         return MemberAvatarPrefetcher(
-            lookup: lookup, spacing: liveSpacing, retryDelay: liveRetryDelay,
+            lookup: lookup, spacing: liveSpacing, retryDelay: liveRetryDelay, misses: .persisted(),
             // Any entry, even a stale one: the rows show it, and the pages read refresh it (`AvatarFillingTopicPageSource`).
             hasAvatar: { pseudo in (try? cache.entry(forPseudo: pseudo)) != nil },
             offer: { pseudo, url in await store.offer(pseudo: pseudo, url: url) }
@@ -141,6 +177,9 @@ actor MemberAvatarPrefetcher {
         switch outcome {
         case .answered:
             retryAt[key] = nil
+        case .noAvatar:
+            retryAt[key] = nil
+            misses.record(key)
         case .failed:
             tried.remove(key)
             retryAt[key] = ContinuousClock.now.advanced(by: retryDelay)
@@ -151,7 +190,7 @@ actor MemberAvatarPrefetcher {
     }
 
     private enum LookupOutcome {
-        case answered, failed, refused
+        case answered, noAvatar, failed, refused
     }
 
     /// What a lookup's result means for the pseudo; an avatar is offered first.
@@ -161,7 +200,7 @@ actor MemberAvatarPrefetcher {
     ) async -> LookupOutcome {
         switch result {
         case .none:
-            return .answered
+            return .noAvatar
         case .failed:
             return .failed
         case .refused:
@@ -178,7 +217,7 @@ actor MemberAvatarPrefetcher {
 
     /// Whether `key` may be looked up now: not suspended, never answered for, and past its retry time after a failure.
     private func isDue(_ key: String) -> Bool {
-        guard suspendedGeneration == nil, !tried.contains(key) else { return false }
+        guard suspendedGeneration == nil, !tried.contains(key), !misses.isFresh(key) else { return false }
         guard let retry = retryAt[key] else { return true }
         return ContinuousClock.now >= retry
     }

@@ -23,8 +23,13 @@ struct ReaderImageFetcher: Sendable {
 
     let transport: any HTTPTransport
 
-    /// Creates a fetcher on `transport`, the cookie-less one by default.
-    init(transport: any HTTPTransport = AnonymousTransport()) {
+    /// The cookie-less transport every default fetcher shares (#1397): one pair of `URLSession`s for the app's images instead of one
+    /// per smiley cell or reader, and identical GETs in flight (35 cells of one smiley, an avatar repeated down a page) cost one
+    /// request. Cookie-less and cache-less like `AnonymousTransport` itself; nothing is kept once an exchange ends.
+    static let sharedTransport: any HTTPTransport = CoalescingTransport(base: AnonymousTransport())
+
+    /// Creates a fetcher on `transport`, the shared cookie-less one by default.
+    init(transport: any HTTPTransport = ReaderImageFetcher.sharedTransport) {
         self.transport = transport
     }
 

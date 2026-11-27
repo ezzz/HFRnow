@@ -76,6 +76,8 @@ final class ReplyComposerModel: Identifiable {
     nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
 
     let services: ComposerServices
+    /// What the smiley picker read, kept across its openings (#1397).
+    @ObservationIgnored let smileyMemos = SmileyListMemos()
     private let autosaveDelay: Duration
     /// What the sheet opens with besides the draft (LOT-086): merged into the restored text. Only a reply takes one.
     private let initialQuote: ReplyQuote?

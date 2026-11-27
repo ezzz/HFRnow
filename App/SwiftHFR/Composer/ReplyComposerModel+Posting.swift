@@ -55,7 +55,11 @@ extension ReplyComposerModel {
 
     /// What the smiley picker needs: the favourites store, the account key and a fresh search (LOT-105).
     var smileyServices: SmileyPanelServices {
-        services.smileyPanel(formURL: target.formURL)
+        var panel = services.smileyPanel(formURL: target.formURL)
+        // The lists live as long as this composer, not as one opening of the picker (#1397).
+        if let load = panel.forumFavorites { panel.forumFavorites = smileyMemos.forum.memoized(load) }
+        if let load = panel.ownSmileys { panel.ownSmileys = smileyMemos.own.memoized(load) }
+        return panel
     }
 
     /// What the image panel needs (LOT-102).
