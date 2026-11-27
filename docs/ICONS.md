@@ -55,7 +55,7 @@ The orange of the forum logo, used as a fill (Orange, Noël HFR, Halloween HFR, 
 ## 5. Submitting an icon (agents and humans)
 
 1. Open an issue `[SwiftHFR] Icon: <name>` (`### Summary`, pack, window), wait for `status: ready`, claim it.
-2. Add `App/SwiftHFR/Icon-<PACK>-<NAME>.icon` with Default, Dark and Tinted annotations and its master; add a case to `AppIconOption` (title, name, `pack`, `window`: data only) and the name to the alternate names in both configurations; run `scripts/icon-previews.sh Icon-<PACK>-<NAME>` and commit the `IconPreview-…` image set. A full-art PNG icon gets its Dark and Tinted layers from `swift tooling/icons/make-variants.swift <Default PNG>` unless drawn by hand.
+2. Add `App/SwiftHFR/Icon-<PACK>-<NAME>.icon` with Default, Dark and Tinted annotations and its master; add a case to `AppIconOption` (title, name, `pack`, `window`: data only) and the name to the alternate names in every build configuration (Debug, Release, Beta); run `scripts/icon-previews.sh Icon-<PACK>-<NAME>` and commit the `IconPreview-…` image set. A full-art PNG icon gets its Dark and Tinted layers from `swift tooling/icons/make-variants.swift <Default PNG>` unless drawn by hand. A layered vector icon (REDFACE, CLASSIC, the Liquid Glass pack) may leave Dark, Clear and Tinted to the system: same fill for dark, no tinted annotation; check each rendition with `ictool` instead.
 3. PR checklist:
    - [ ] screenshots at 1024 px and on light and dark Home Screens, in Clear and Tinted
    - [ ] readable at 29 pt
