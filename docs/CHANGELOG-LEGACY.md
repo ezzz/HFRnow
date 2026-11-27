@@ -168,5 +168,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 1333 | UX | Les alertes disent ce qui a échoué ou ce qu'on demande (« Ajout impossible », « Activer le stockage MP ? ») au lieu de « Erreur » et « Stockage MP ». | #1333 | `AppSettingsView.swift:735` et `Classes/MPStorage.m:91` @ `87fe0d1c`, #1175 |
 | 1342 | UX | « Page numéro » : la feuille peut être agrandie et défile aux grandes tailles de texte, au lieu de couper la ligne des boutons. | #1342 | `HFRswift/Swift/Common.swift:3212` @ `87fe0d1c`, #1167 |
 | 1351 | UX | Filtre de posts : le message de résultat reste affiché sous VoiceOver (4 s sinon, au lieu de 3 s) et est annoncé. | #1351 | `Favorites.swift:1054-1063` @ `87fe0d1c` |
+| 1379 | T | Profil d'un membre : la page est de nouveau chargée avec la session du compte courant, comme l'app d'origine depuis sa correction (#1349), car HFR refuse les profils sans cookies depuis le 26/11/2026 ; sans compte connecté aucune requête ne part (« Connexion requise ») et un refus de HFR (401/403) a son propre message. Annule la première partie de la ligne 65 (« chargée sans les cookies du compte »). | LOT-116 #1363 | `HFRswift/Swift/UserProfileService.swift:23-48` @ `bb58131d` ; pages `R1363a`/`R1363b` |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
