@@ -246,7 +246,8 @@ table.code *, table.fixed * { font-family: ui-monospace, Menlo, monospace; }
 table.code td, table.fixed td { overflow-x: auto; }
 .signature table.code, .signature table.fixed { font-size: var(--fs-7225-content); }
 ol.olcode { margin: 0; padding-left: 2.5em; white-space: pre; }
-/* Legacy turned the olcode keyword colour "blue" into the action colour (LinkItem.m:265, kept as served by LOT-034). */
+/* Legacy turned the olcode keyword colour "blue" into the action colour (LinkItem.m:265, kept as served by LOT-034); here it is `--link`, the
+   accent-derived text colour that holds 4.5:1 like a body link (#1374). */
 ol.olcode span[style="color:blue"] { color: var(--link) !important; }
 
 /* Spoilers: hidden until tapped (reader.js toggles .open). */
