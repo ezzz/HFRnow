@@ -437,7 +437,7 @@
  {
   "id": 88,
   "section": "UX",
-  "summary": "Lecteur iOS 27 (Liquid Glass) : les messages défilent sous les barres en verre ; ‹ › et « Répondre » sont des boutons système de la barre du bas, qui passent sur le côté sur l'écran externe de l'iPhone Duo ; le choix de page (page 1, « Page… », dernières pages, « Dernier post ») est un menu « N / M » dans la barre du bas, que les règles Apple réservent au débordement pour le « … » (les mêmes choix sont aussi dans le « … » du haut, voir 96) ; « Répondre » reste visible en paysage (le système le range dans le menu de débordement s'il manque de place)."
+  "summary": "Lecteur iOS 27 (Liquid Glass) : les messages défilent sous les barres en verre ; ‹ › et « Répondre » sont des boutons système de la barre du bas, qui passent sur le côté sur l'écran externe de l'iPhone Duo ; le choix de page (page 1, « Page… », dernières pages, « Dernier post ») est un menu « N / M » de la barre du bas, affiché en fin de page avec un second « Actualiser » (#820), que les règles Apple réservent au débordement pour le « … » (les mêmes choix sont aussi dans le « … » du haut, voir 96) ; « Répondre » reste visible en paysage (le système le range dans le menu de débordement s'il manque de place)."
  },
  {
   "id": 89,
@@ -477,7 +477,7 @@
  {
   "id": 96,
   "section": "UX",
-  "summary": "Menu de pages : « Première page », « Aller à la page… » et « Dernière page » (qui remplace le dernier « Page N », avant « Dernier post ») remplacent « Page 1 » et « Page ... » ; le même menu est dans le « … » du haut et dans le « N / M » du bas."
+  "summary": "Menu de pages : les libellés du legacy sont repris (« Page 1 », « Page … », les dernières pages, « Dernier post ») ; le même menu est dans le « … » du haut et dans le « N / M » du bas."
  },
  {
   "id": 589,
@@ -492,7 +492,7 @@
  {
   "id": 594,
   "section": "UX",
-  "summary": "Lecteur : le menu d'un message s'ouvre au niveau du « ⋯ » touché (une fenêtre ancrée sur le bouton, comme le menu du legacy), titré « Post de <pseudo> »."
+  "summary": "Lecteur : le menu d'un message s'ouvre au niveau du « + » touché (le glyphe du legacy), en bulle horizontale du système avec « › » pour les autres actions, comme le menu d'édition du legacy."
  },
  {
   "id": 598,
@@ -542,11 +542,276 @@
  {
   "id": 690,
   "section": "T",
-  "summary": "Pages de sujet en cache : supprimées après 1 jour et au-delà de 20 Mo, au lieu de 7 jours et 50 Mo dans le legacy ; le pied de la section « Maintenance » des réglages donnera la règle de SwiftHFR."
+  "summary": "Pages de sujet en cache : supprimées après 1 jour et au-delà de 20 Mo, au lieu de 7 jours et 50 Mo dans le legacy."
  },
  {
   "id": 705,
   "section": "UX",
   "summary": "Lecteur : un appui long sur un lien d'image propose aussi Ouvrir l'image (visionneuse) et Enregistrer dans Photos, comme le legacy, sans cookie de session."
+ },
+ {
+  "id": 718,
+  "section": "UX",
+  "summary": "Crédits : les liens vers les sujets [TU] Super HFR+ et bêta s'ouvrent dans l'app (lecteur), par identifiants, et non dans Safari."
+ },
+ {
+  "id": 719,
+  "section": "T",
+  "summary": "Alerte modérateur : une alerte que HFR n'a pas confirmée (réponse inattendue, coupure après l'envoi) ferme la feuille avec « Alerte non confirmée » et n'est jamais renvoyée ; le legacy gardait la feuille ouverte avec le motif, prête à renvoyer."
+ },
+ {
+  "id": 719,
+  "section": "UX",
+  "summary": "Alerte modérateur par e-mail (message sans lien d'alerte) : proposée seulement si la compilation fournit l'adresse (Q-10, hors du code source) ; le lien du message est encodé entièrement dans le corps (le legacy laissait un & le couper)."
+ },
+ {
+  "id": 719,
+  "section": "UX",
+  "summary": "Alerte modérateur sans compte connecté sur un message qui a un lien d'alerte (page lue avant une déconnexion) : l'e-mail est proposé s'il est configuré, au lieu d'ouvrir la page d'alerte sans session, qui ne peut qu'échouer."
+ },
+ {
+  "id": 721,
+  "section": "T",
+  "summary": "Stockage MP : un échec d'enregistrement ne bloque plus les rechargements suivants et les modifications locales sont réécrites à la synchro suivante ; « Dernier accès » est conservé par compte."
+ },
+ {
+  "id": 744,
+  "section": "UX",
+  "summary": "Catégories : liste plate avec icônes et « N sous-forums », filtre Tous / Favoris / Suivis / Lus mémorisé ; un titre de catégorie dans Favoris l'ouvre sur Favoris. Écarts voulus : filtre désactivé sur un sous-forum (le lien n'a pas d'identifiant, legacy perdait le sous-forum), choix mémorisé conservé hors connexion, « 1 sous-forum » au singulier."
+ },
+ {
+  "id": 745,
+  "section": "UX",
+  "summary": "« Supprimer mon compte » ouvre un écran : le compte appartient à HFR, lien vers sa page « Données personnelles » (plus de mail ni d’adresse dans l’app), et effacement des données d’un compte sur l’appareil."
+ },
+ {
+  "id": 749,
+  "section": "UX",
+  "summary": "Sur iPhone, l'éditeur de réponse est une carte posée sur le clavier, qui grandit avec le texte : le sujet reste visible et défilable au-dessus, avec un bouton plein écran et les images insérées en vignettes ; la barre de contrôle de l'app d'origine revient (vider le texte, annuler, rétablir, smileys, image, Aa pour les styles)."
+ },
+ {
+  "id": 761,
+  "section": "UX",
+  "summary": "La vidéo YouTube se lit dans la feuille du lecteur (l'application s'identifie auprès du lecteur YouTube, et de lui seul) ; une vidéo indisponible (Vimeo refusée, lecteur en erreur) affiche « Vidéo indisponible » et « Ouvrir le lien » au lieu d'une feuille vide."
+ },
+ {
+  "id": 805,
+  "section": "UX",
+  "summary": "L'icône « REDFACE 3D Big » a un liseré noir dans tous les modes (le legacy dessine un liseré rouge en clair)."
+ },
+ {
+  "id": 806,
+  "section": "T",
+  "summary": "La signature n'est plus précédée des 15 tirets de HFR (seuls ceux-là, pas les tirets tapés par un membre)."
+ },
+ {
+  "id": 828,
+  "section": "T",
+  "summary": "La création d'une AQ n'affiche plus un code de refus : toute réponse autre que « 1 » est « non confirmée » ; les valeurs que la base refuse (trop longues, hors BMP, numéros hors plage) sont refusées avant l'envoi ; le corps porte from=SwiftHFR."
+ },
+ {
+  "id": 923,
+  "section": "T",
+  "summary": "Un aperçu médium img3 (.md.) s'ouvre en pleine taille dans la visionneuse."
+ },
+ {
+  "id": 964,
+  "section": "UX",
+  "summary": "La liste des MP n'écrit plus « Interlocuteurs multiples » : un MP de groupe montre « ⚑ page lue / pages », un MP à deux l'interlocuteur, sur une seule ligne."
+ },
+ {
+  "id": 964,
+  "section": "UX",
+  "summary": "L'heure du dernier message d'un MP s'affiche « x min » (moins de 2 h), « x h » (moins de 24 h), puis la date."
+ },
+ {
+  "id": 964,
+  "section": "UX",
+  "summary": "La liste des MP a un pager « page x / y » avec un menu (Première page, Précédente, Suivante, Dernière page, Aller à la page…), visible en fin de liste."
+ },
+ {
+  "id": 994,
+  "section": "UX",
+  "summary": "Notifications de MP : une notification par conversation (interlocuteur et titre, ou titre du MP de groupe) au lieu d'un texte fixe, qui ouvre la conversation ; au-delà de 5, un résumé. Intervalle de vérification réglable (15 min à 4 h, Jamais)."
+ },
+ {
+  "id": 994,
+  "section": "UX",
+  "summary": "Le badge de l'icône est aussi mis à jour par la vérification en arrière-plan, pas seulement quand l'app est ouverte."
+ },
+ {
+  "id": 999,
+  "section": "UX",
+  "summary": "Réglages > Maintenance : « Pages HTML » compte et pèse les pages enregistrées pour la lecture hors ligne ; le pied de page donne leur règle (conservées quel que soit leur âge, limite de 200 Mo)."
+ },
+ {
+  "id": 999,
+  "section": "UX",
+  "summary": "Réglages > Maintenance : « Pages HTML » affiche « 1 fichier » (et non « 1 fichiers ») pour 0 ou 1 page."
+ },
+ {
+  "id": 1009,
+  "section": "T",
+  "summary": "Les délais réseau passent à 10 s sans donnée reçue (limite d'inactivité, comme l'app publiée) : une page lente mais qui continue d'arriver n'est plus coupée. La recherche globale garde en plus un plafond de 10 s sur tout le transfert ; le contrôle MP en arrière-plan reste à 5 s."
+ },
+ {
+  "id": 1018,
+  "section": "UX",
+  "summary": "Le bouton « + » répond comme le forum par défaut (« Répondre comme le forum »); un choix déjà enregistré est conservé."
+ },
+ {
+  "id": 1020,
+  "section": "T",
+  "summary": "Liste noire et stockage MP : chaque ajout ou retrait est d'abord enregistré sur l'appareil puis écrit dans le MP de stockage ; à chaque synchro, les pseudos présents seulement sur l'appareil sont ajoutés au MP, et un retrait fait ailleurs n'est appliqué que si la liste du forum n'est pas vide ou porte une trace de suppression."
+ },
+ {
+  "id": 1041,
+  "section": "UX",
+  "summary": "Un smiley ou une image en ligne repose sur la ligne de base du texte, comme dans l'app legacy (et non plus centré sur la ligne)."
+ },
+ {
+  "id": 1042,
+  "section": "UX",
+  "summary": "« MP multiples → dark topic » devient une option de Réglages › Expérimental, description sous l'interrupteur et sans ⓘ; Réglages › Stockage MP garde l'unique interrupteur; la question de création du MP de stockage présélectionne « Oui » et demande une confirmation, qui dit ce qui est perdu, avant d'enregistrer un « Non »."
+ },
+ {
+  "id": 1059,
+  "section": "UX",
+  "summary": "Le bouton du compte est en haut à gauche, avec l'avatar, sur Catégories, Favoris, Messages, Recherche et Plus."
+ },
+ {
+  "id": 1069,
+  "section": "UX",
+  "summary": "Le « + » du message a la taille de celui de l'app legacy : une croix de 16 pt aux traits de 2 pt, dans une zone de toucher de 44 pt."
+ },
+ {
+  "id": 1080,
+  "section": "UX",
+  "summary": "Favoris : un bouton « Non lus / Tous » dans la barre du haut filtre les sujets selon leurs pages non lues (nouveau, absent de l'app d'origine)."
+ },
+ {
+  "id": 1097,
+  "section": "UX",
+  "summary": "Réglages › Notifications MP : un interrupteur « Notifications » (activé par défaut) coupe les notifications de MP sans toucher au badge, et une alerte signale quand un réglage de l'app est contredit par les réglages de notifications d'iOS, avec un lien vers ces réglages."
+ },
+ {
+  "id": 1099,
+  "section": "UX",
+  "summary": "Comptes : sous un compte confirmé par le forum, la date où sa session expire sans visite, et une explication (HFR garde un compte connecté 30 jours, prolongés chaque fois que l’app ouvre le forum avec ce compte) ; « Session expirée : reconnectez-vous »."
+ },
+ {
+  "id": 1099,
+  "section": "UX",
+  "summary": "Multi-citation : chaque compte garde sa propre sélection ; changer de compte ne la perd plus et ne la passe jamais à l’autre compte."
+ },
+ {
+  "id": 1102,
+  "section": "UX",
+  "summary": "Un bookmark est enregistré même si le forum ne répond pas : il part sur le forum à la synchronisation suivante, au lieu d'échouer."
+ },
+ {
+  "id": 1102,
+  "section": "UX",
+  "summary": "Un compte qui n'a pas encore choisi le stockage MP peut créer un bookmark : l'app propose d'activer le stockage, au lieu de cacher l'action."
+ },
+ {
+  "id": 1102,
+  "section": "T",
+  "summary": "Deux bookmarks du même numéro de message dans deux catégories ne se confondent plus, et la suppression retire le bon."
+ },
+ {
+  "id": 1129,
+  "section": "UX",
+  "summary": "Les boutons fermer, brouillons et envoyer du composer prennent le diamètre, la taille et la graisse des outils de la carte."
+ },
+ {
+  "id": 1132,
+  "section": "UX",
+  "summary": "Réglage Vidéos : intégrée (par défaut, lecture au tap) ou lien."
+ },
+ {
+  "id": 1142,
+  "section": "UX",
+  "summary": "« AQ » dans le menu d'un message : on peut plussoyer une AQ d'un autre membre (au lieu d'un refus), notice avant la première création."
+ },
+ {
+  "id": 1202,
+  "section": "T",
+  "summary": "Un MP d'un autre membre portant le sujet MPStorage n'est plus pris pour le stockage du compte : il reste visible dans la liste, et la synchronisation trouve le vrai fil."
+ },
+ {
+  "id": 1239,
+  "section": "UX",
+  "summary": "Sur l'écran externe de l'iPhone Duo, une liste de forum ouverte depuis Catégories et un sujet ont « Retour » en bas de la colonne d'outils, à portée du pouce ; aucune liste n'y a de bouton « Actualiser » (le tirer rafraîchit, #1206 ; décision sur #1239), là où HFR+ en a un sur les quatre listes (en bas sur la liste d'un forum et Favoris, en haut sur Catégories et Messages : défaut signalé sur #372)."
+ },
+ {
+  "id": 1248,
+  "section": "T",
+  "summary": "Vignettes de l'historique d'envoi d'images et des images insérées dans la réponse : chargées par le chargeur d'images sans cookies et sa politique, depuis l'hébergeur configuré seulement, au lieu d'AsyncImage (toute adresse, cookies et cache partagés)."
+ },
+ {
+  "id": 1254,
+  "section": "UX",
+  "summary": "Notifications : l'autorisation n'est plus demandée au premier lancement, avant toute connexion, mais quand un compte devient actif (connexion, compte restauré ou changé), une seule fois et seulement si une option de notification ou de pastille est active ; Réglages la demande toujours quand on active les notifications ou la pastille."
+ },
+ {
+  "id": 1260,
+  "section": "UX",
+  "summary": "« Vider » (brouillons archivés) demande confirmation avant de supprimer tous les brouillons du topic."
+ },
+ {
+  "id": 1261,
+  "section": "UX",
+  "summary": "Les alertes « Supprimer ce message ? » et « Alerter les modérateurs par email ? » nomment l’action sur leurs boutons (Annuler / Supprimer, Annuler / Préparer l’email) au lieu de Non / Oui."
+ },
+ {
+  "id": 1263,
+  "section": "UX",
+  "summary": "« Alerte Modération », « Créer un sondage » et les feuilles de titre AQ et Bookmark : le texte saisi n'est plus perdu sans prévenir ; tant qu'un texte est tapé ou que le sondage a changé, le glissement vers le bas ne ferme plus la feuille et « Annuler » demande « Abandonner » ou « Continuer la saisie », comme l'éditeur de réponse."
+ },
+ {
+  "id": 1265,
+  "section": "UX",
+  "summary": "La question « Utiliser le presse-papiers ? » du composer propose des boutons nommés (Coller le lien, Insérer…) et un vrai « Annuler » qui n'insère rien, au lieu de Non / Oui dont le bouton d'annulation insérait la balise."
+ },
+ {
+  "id": 1268,
+  "section": "T",
+  "summary": "Le compteur « Message cité N fois » ouvre les messages qui citent celui-ci (page quote_only=1) dans un lecteur de l'app ; la bulle est légèrement remontée, avec une zone de toucher de 44 pt."
+ },
+ {
+  "id": 1277,
+  "section": "UX",
+  "summary": "Plus › Bookmarks et Alertes Qualitay : le sujet ouvert passe le pliage et le dépliage du Duo (poussé au-dessus de sa liste sur l'écran externe, à côté d'elle déplié ; Retour le ferme), au lieu de la liste seule ou d'un ancien sujet."
+ },
+ {
+  "id": 1279,
+  "section": "UX",
+  "summary": "Une image placée dans un lien ouvre l'image liée en grand dans la visionneuse quand le lien mène à une image, et demande confirmation (« Ce lien ouvre une page externe », avec le domaine) avant d'ouvrir toute autre page ; un lien du forum s'ouvre dans l'app sans avertissement."
+ },
+ {
+  "id": 1303,
+  "section": "UX",
+  "summary": "Déconnecté, les menus d'auteur et la fiche profil proposent « Connectez-vous pour bloquer », qui ouvre la connexion, au lieu de « Blacklist » qui affichait un succès sans rien enregistrer."
+ },
+ {
+  "id": 1333,
+  "section": "UX",
+  "summary": "Les alertes disent ce qui a échoué ou ce qu'on demande (« Ajout impossible », « Activer le stockage MP ? ») au lieu de « Erreur » et « Stockage MP »."
+ },
+ {
+  "id": 1342,
+  "section": "UX",
+  "summary": "« Page numéro » : la feuille peut être agrandie et défile aux grandes tailles de texte, au lieu de couper la ligne des boutons."
+ },
+ {
+  "id": 1351,
+  "section": "UX",
+  "summary": "Filtre de posts : le message de résultat reste affiché sous VoiceOver (4 s sinon, au lieu de 3 s) et est annoncé."
+ },
+ {
+  "id": 1379,
+  "section": "T",
+  "summary": "Profil d'un membre : la page est de nouveau chargée avec la session du compte courant, comme l'app d'origine depuis sa correction (#1349), car HFR refuse les profils sans cookies depuis le 26/11/2026 ; sans compte connecté aucune requête ne part (« Connexion requise ») et un refus de HFR (401/403) a son propre message. Annule la première partie de la ligne 65 (« chargée sans les cookies du compte »)."
  }
 ]
