@@ -320,7 +320,8 @@ table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); 
    folded blocked quote's tint over `--love` (4.45 in modern). Pulling it 20 % toward the page text gives 5.67 and 5.15 in light; the
    quote header rule also holds in dark (the text is lighter than `--secondary`). The classic header date is light only: in dark #1210
    draws it in `--text`, which a rule of higher specificity here would undo. Follows the themes, which set `--secondary` and `--text`. */
-.message.whitelist { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
+/* On `:root` (#1362): a header on a nested tint, or a message with no visibility rule, needs it too. */
+:root { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
 @media not (prefers-color-scheme: dark) { .style-classic .message.whitelist .header .date { color: var(--secondary-tinted); } }
 .message.whitelist table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
 /* More cases of the same class (#1358). A folded blocked quote on the moderation background (`--modo`) puts `--secondary` at 4.23:1 in
@@ -328,8 +329,27 @@ table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); 
    together: its date and note are 2.7 to 3.3:1 in light and its folded quote header 3.0 to 3.4 in both modes, whatever the author; the
    page text is above 6.4 there, as dark's date and note already use it (#1210). The other `--secondary` texts of a continuation
    (ordinary quote header, signature, trailer) are raised by the rule below (#1360). */
-.message.mode { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
 .message.mode table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
+/* The rest of the class (#1362). Every `--secondary` text drawn inside the content of an allowlisted, a moderation or an own message
+   (any quote header, an image link) is pulled toward the page text the same way, not only the folded quote's. Measured in the reader
+   before: the ordinary, allowlisted and own quote headers and an image link on the classic allowlist's `--love` 4.41 to 4.45:1 in
+   light; the own quote header on `--modo` 4.43 in dark; the folded quote header of an own message 4.49 in dark. The tint only moves
+   toward the page text, so it never lowers a ratio. A continuation keeps its own rules below (`:not`). Two more cases the reviews of
+   #1366 found: every header inside a tinted quote table (a quote folded in a folded quote, in a quote of mine, in an allowlisted
+   one: 3.9 to 4.5:1 whatever the message), and the classic header's date in light on any message: `--secondary` on 15 % of the
+   accent is 4.27:1 at hue 240 and under 4.5 at several hues (4.47 on « Doux »); dark draws it in `--text` (#1210). */
+:is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(b.s1, .image-link) { color: var(--secondary-tinted); }
+/* A tinted quote inside a tinted quote (three folded quotes on an allowlisted message: 4.27:1 with the 80 % tint): halfway to the text. */
+:root { --secondary-nested: color-mix(in srgb, var(--secondary) 50%, var(--text)); }
+.message:not(.continuation) :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(b.s1, .image-link) {
+  color: var(--secondary-nested);
+}
+/* The same nested headers and refused images in a continuation, like its folded quote headers: the page text (the 75 % fade left them at 4.27). */
+.message.continuation :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(b.s1, .image-link) {
+  color: var(--text);
+}
+@media not (prefers-color-scheme: dark) { .style-classic .message:not(.continuation) .header .date { color: var(--secondary-tinted); } }
+.message:not(.continuation):is(.whitelist, .mode, .me) .content :is(b.s1, .image-link) { color: var(--secondary-tinted); }
 @media not (prefers-color-scheme: dark) {
   .message.continuation .date, .message.continuation .continuation-note, .message.whitelist.continuation .header .date { color: var(--text); }
 }
