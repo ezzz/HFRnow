@@ -77,7 +77,8 @@ struct ComposerHeader: View {
 
     /// The hit area of each floating button: the capsule is drawn small, as the Claude app's (operator, 2026-11-13), the tap
     /// target keeps the 44 pt of the HIG.
-    static let hitSize: CGFloat = 44
+    /// A constant, so `nonisolated`: `MinimumHitRegion.overhang(of:)` reads it off the main actor (#1364).
+    nonisolated static let hitSize: CGFloat = 44
 
     /// A floating button's size: a circle of the card tools' diameter (#1126).
     static func capsuleSize(diameter: CGFloat) -> CGSize { CGSize(width: diameter, height: diameter) }

@@ -96,7 +96,7 @@ struct MessageRowView: View {
     /// HFR's "Interlocuteurs multiples" label (legacy `MPListView.swift:895-901` @ `87fe0d1c`, which tests the word "multiples";
     /// here the whole label, so a member whose pseudo holds that word keeps their avatar). A blank name has no avatar:
     /// the view then draws the monogram.
-    static func avatarSubject(of thread: PrivateMessageThread) -> (pseudo: String?, isGroup: Bool) {
+    nonisolated static func avatarSubject(of thread: PrivateMessageThread) -> (pseudo: String?, isGroup: Bool) {
         let label = "Interlocuteurs multiples"
         let candidate = thread.interlocutors.first ?? thread.summary.starterOrInterlocutors
         let name = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
