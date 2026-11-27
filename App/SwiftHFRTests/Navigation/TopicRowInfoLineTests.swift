@@ -15,6 +15,18 @@ struct TopicRowInfoLineTests {
         )
     }
 
+    @Test("Spoken leading: no glyph, the poll and the flag position in words (#1161)")
+    func spokenLeading() {
+        #expect(TopicRowInfoLine.spokenLeading(topic(pages: 12, flag: .blue, current: 3, poll: true)) == "Sondage, page 3 sur 12")
+        #expect(TopicRowInfoLine.spokenLeading(topic(pages: 12, flag: .blue, current: 3)) == "Page 3 sur 12")
+        #expect(TopicRowInfoLine.spokenLeading(topic(pages: 3, poll: true)) == "3 pages, sondage")
+        #expect(TopicRowInfoLine.spokenLeading(topic(pages: 5, flag: .blue, current: 2), showsFlag: false) == "5 pages")
+        #expect(TopicRowInfoLine.spokenLeading(topic(pages: 1)) == "1 page")
+        for spoken in [TopicRowInfoLine.spokenLeading(topic(pages: 3, flag: .red, current: 1, poll: true)), TopicRowInfoLine.spokenLeading(topic(pages: 3, poll: true))] {
+            #expect(!spoken.contains("⚑") && !spoken.contains("\u{2263}"))
+        }
+    }
+
     @Test("Dates: relative under 24 h, then dd/MM/yy")
     func dates() {
         #expect(TopicRowInfoLine.dateLabel(now.addingTimeInterval(-13 * 60), now: now) == "il y a 13 min")
