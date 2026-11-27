@@ -22,7 +22,8 @@ struct TopicRowInfoLineTests {
         #expect(TopicRowInfoLine.spokenLeading(topic(pages: 3, poll: true)) == "3 pages, sondage")
         #expect(TopicRowInfoLine.spokenLeading(topic(pages: 5, flag: .blue, current: 2), showsFlag: false) == "5 pages")
         #expect(TopicRowInfoLine.spokenLeading(topic(pages: 1)) == "1 page")
-        for spoken in [TopicRowInfoLine.spokenLeading(topic(pages: 3, flag: .red, current: 1, poll: true)), TopicRowInfoLine.spokenLeading(topic(pages: 3, poll: true))] {
+        let flaggedPoll = topic(pages: 3, flag: .red, current: 1, poll: true)
+        for spoken in [TopicRowInfoLine.spokenLeading(flaggedPoll), TopicRowInfoLine.spokenLeading(topic(pages: 3, poll: true))] {
             #expect(!spoken.contains("⚑") && !spoken.contains("\u{2263}"))
         }
     }
