@@ -229,6 +229,27 @@ struct TopicReaderModelTests {
         #expect(pages.requests.last == ReaderTarget(source: .topic(readerTopic), page: 4))
     }
 
+    /// #1394: a page change, a refresh and the reload after a reply are asked from the URL HFR served the page at, so the engine
+    /// requests the canonical path (one round trip) instead of `forum2.php` and its redirects; the first open has none.
+    @Test func pageChangesCarryTheServedPage() async throws {
+        let served = try #require(URL(string: "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm"))
+        let pages = FakeTopicPages { target in
+            var page = readerPage(page: target.page)
+            page.pageURL = served
+            return page
+        }
+        let reader = model(pages)
+        await reader.onAppear()
+        #expect(pages.requests.first?.servedPage == nil)
+        await reader.goToPage(2)
+        #expect(pages.requests.last == ReaderTarget(source: .topic(readerTopic), page: 2, servedPage: served))
+        await reader.refresh()
+        #expect(pages.requests.last == ReaderTarget(source: .topic(readerTopic), page: 2, servedPage: served))
+        await reader.showLatestPost()
+        #expect(pages.requests.last?.page == 6)
+        #expect(pages.requests.last?.servedPage == served)
+    }
+
     @Test func thePageServedWinsOverThePageAsked() async {
         let pages = FakeTopicPages { _ in readerPage(page: 5) }
         let reader = model(pages, page: 99)

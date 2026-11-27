@@ -20,8 +20,9 @@ extension HFREndpoint {
     ///
     /// Always `forum2.php?config=hfr.inc&cat=..&post=..&page=..`, which HFR redirects (301) to the canonical
     /// `/hfr/<forum>[/<sub-category>]/<slug>-sujet_<post>_<page>.htm` (HFR-PROTOCOL §6). The canonical path is never
-    /// rebuilt here because its sub-category segment cannot be derived. Redirects are followed, so the response's
-    /// final URL tells the page. `anchor` is the message number, added as the `#t<number>` fragment.
+    /// built from ids, because its sub-category segment cannot be derived; once a page was served, use
+    /// `topicPage(topic:page:servedAt:)`. Redirects are followed, so the final URL tells the page. `anchor` is the message
+    /// number, added as the `#t<number>` fragment.
     ///
     /// `numreponse` is the shape of a link to a message whose page is not known (R25, `page=1&numreponse=M`): the server
     /// ignores `page` then and redirects to the page holding the message, so pass page 1.
@@ -40,6 +41,40 @@ extension HFREndpoint {
         }
         return request
     }
+
+    /// R5 asked from a page of the same topic HFR already served (#1394): its canonical path with the page changed, one
+    /// round trip instead of the one or two 301 hops `forum2.php` costs, each on a new connection. Legacy changed pages the
+    /// same way (`TopicPageURLRouting.replacingPage`, `HFRswift/Swift/Common.swift:2818-2834` @ 87fe0d1c). HFR serves that
+    /// path in place (`R298a`'s last hop), redirects a page past the end to the last one (`R24`'s 302) and an outdated slug
+    /// to the current one (`R298e`).
+    ///
+    /// `served` counts only when it is a canonical page of this topic number on the forum origin (`https`, no port, no user
+    /// info): any other URL, and a private conversation (served at `forum2.php` in place, `R388a`), gives the `forum2.php`
+    /// request of `topicPage(topic:page:)`.
+    public static func topicPage(topic: TopicID, page: Int, servedAt served: URL?) throws -> HTTPRequest {
+        try requirePage(page)
+        guard topic.category != .privateMessages, let served, let stem = canonicalStem(of: served, topic: topic.topic) else {
+            return try topicPage(topic: topic, page: page)
+        }
+        return try .get(url(path: "\(stem)_\(page).htm"))
+    }
+
+    /// The path of `served` up to `sujet_<topic>`, when `served` is a canonical topic page of the forum origin
+    /// (`/hfr/<forum>[/<sub-category>]/<slug>-sujet_<topic>_<page>.htm`, HFR-PROTOCOL R5).
+    static func canonicalStem(of served: URL, topic: Int) -> String? {
+        guard served.scheme?.lowercased() == "https", served.host()?.lowercased() == forumHostName, served.port == nil,
+              served.user() == nil, served.password() == nil else { return nil }
+        let path = served.path(percentEncoded: true)
+        guard let match = path.wholeMatch(of: canonicalPagePattern), Int(match.output.2) == topic else { return nil }
+        return String(match.output.1)
+    }
+
+    /// The forum's host name, as `host` names it.
+    static let forumHostName = "forum.hardware.fr"
+
+    // `Regex` is not `Sendable`; this literal captures only `Substring`s and is compiled once by the runtime.
+    nonisolated(unsafe) private static let canonicalPagePattern =
+        /(\/hfr\/[^\/]+\/(?:[^\/]+\/)?[^\/]+-sujet_([0-9]+))_[0-9]+\.htm/.ignoresCase()
 
     /// R5 for a known message: the page holding it, with its `#t<numreponse>` anchor.
     public static func topicPage(post: PostID, page: Int) throws -> HTTPRequest {
