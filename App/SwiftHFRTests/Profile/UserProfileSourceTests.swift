@@ -106,18 +106,22 @@ struct UserProfileSourceTests {
         await #expect(throws: ListLoadError.offline) { try await source.profile(memberID: 1) }
     }
 
-    /// The app's source asks the session it sends with: a logged-out `HFRSession` sends nothing, a logged-in one sends.
-    @Test func theSessionSourceChecksTheSessionsLogin() async {
-        let transport = MockTransport(replies: [])
-        let loggedOut = LiveUserProfileSource(fetcher: PageFetcher(session: transport, anonymous: transport), session: HFRSession())
+    /// The app's source is built from one session, which it checks and sends with: a logged-out `HFRSession` sends nothing, a
+    /// logged-in one reads as logged in (no request is sent here: it would reach the forum).
+    @Test func theSessionSourceChecksItsSessionsLogin() async {
+        let loggedOut = LiveUserProfileSource(session: HFRSession())
         await #expect(throws: ListLoadError.profileLoginRequired) { try await loggedOut.profile(memberID: 1) }
-        #expect(await transport.requests.isEmpty)
-        let loggedIn = LiveUserProfileSource(
-            fetcher: PageFetcher(session: transport, anonymous: MockTransport(replies: [])),
-            session: HFRSession(cookies: Fake.cookies(user: "user1"))
-        )
-        // The scripted transport has no reply: reaching it is the point.
-        await #expect(throws: ListLoadError.other) { try await loggedIn.profile(memberID: 1) }
-        #expect(await transport.requests.count == 1)
+        #expect(await LiveUserProfileSource(session: HFRSession(cookies: Fake.cookies(user: "user1"))).isLoggedIn())
+    }
+
+    /// `AppEnvironment` wires the reader's profiles to the environment's session: logged out, the sheet's load sends nothing.
+    @Test func theEnvironmentsProfilesFollowItsSession() async throws {
+        let loggedOut = AppEnvironment.make(session: HFRSession(), accountName: nil)
+        await #expect(throws: ListLoadError.profileLoginRequired) { try await loggedOut.reader.profiles.profile(memberID: 1) }
+        #expect(loggedOut.memberAvatars == nil)
+        let name = "ProfileWiringTest"
+        let loggedIn = AppEnvironment.make(session: HFRSession(cookies: Fake.cookies(user: name)), accountName: name)
+        let source = try #require(loggedIn.reader.profiles as? LiveUserProfileSource)
+        #expect(await source.isLoggedIn())
     }
 }

@@ -54,7 +54,7 @@ Nothing is inferred for these; the screen shows what the parser returns, or "Pag
 - ~~A profile seen **logged in**~~: captured (`R716b`, `R124p1`, `R1363b`): the same page plus an "ajouter à la liste de contacts"
   row (legacy `addContact`), parsed by `UserProfileLoggedInTests` (#1363).
 - An **expired or refused session** on a profile: HFR's 403 or the stale-session `.hop` (HFR-PROTOCOL §6c LOT-044) is not captured;
-  the first is `.profileAccessDenied`, the second `.unreadable`.
+  the first is `.profileAccessDenied`, the second `.unreadable` (capture issue #1383).
 - A **banned or deleted** member, and an unknown id: the answer (page, redirect, status) is not captured.
 - A **real birth date and signature** (HTML or BBCode in a value cell), a status other than "Membre", a smiley file name with an
   apostrophe or a space, a non-`jpg` avatar.

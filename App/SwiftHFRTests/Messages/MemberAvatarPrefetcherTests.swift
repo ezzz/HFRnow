@@ -210,20 +210,6 @@ struct MemberAvatarPrefetcherTests {
         #expect(await rig.session.requests.map(\.url.absoluteString) == ["https://forum.hardware.fr/hfr/profil-910002.htm"])
     }
 
-    /// HFR's 403 to a profile (`R1363a`) is a failure, asked again later, not "no avatar".
-    @Test func aRefusedProfileIsAFailure() async {
-        let redirect = MockTransport { request async throws(NetworkError) -> HTTPResponse in
-            HTTPResponse(statusCode: 301, headers: ["Location": "/hfr/profil-910002.htm"], url: request.url)
-        }
-        let refused = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
-            throw .httpStatus(code: 403, url: url("https://forum.hardware.fr/hfr/profil-910002.htm"))
-        }
-        let fetcher = PageFetcher(session: refused, anonymous: redirect)
-        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true }))
-        #expect(await lookup.avatar(forPseudo: "user2") == .failed)
-        #expect(await refused.requests.count == 1)
-    }
-
     /// An unknown pseudo (`R716d`: empty id) stops after the first request, as HFR's answer; a location that is not a profile too.
     @Test(arguments: ["/hfr/profil-.htm", "/forum2.php?config=hfr.inc", "https://evil.example/hfr/profil-910002.htm"])
     func anUnknownMemberCostsOneRequest(location: String) async throws {
@@ -239,5 +225,44 @@ struct MemberAvatarPrefetcherTests {
         let fetcher = PageFetcher(session: MockTransport(replies: []), anonymous: offline)
         let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true }))
         #expect(await lookup.avatar(forPseudo: "user2") == .failed)
+    }
+}
+
+// #1363: a refusal (no login, HFR's 401/403) stops the lookups instead of retrying them every 60 s.
+extension MemberAvatarPrefetcherTests {
+    /// HFR's 403 to a profile (`R1363a`) is a refusal, not "no avatar" nor a failure to retry.
+    @Test func aRefusedProfileIsARefusal() async {
+        let redirect = MockTransport { request async throws(NetworkError) -> HTTPResponse in
+            HTTPResponse(statusCode: 301, headers: ["Location": "/hfr/profil-910002.htm"], url: request.url)
+        }
+        let refused = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
+            throw .httpStatus(code: 403, url: url("https://forum.hardware.fr/hfr/profil-910002.htm"))
+        }
+        let fetcher = PageFetcher(session: refused, anonymous: redirect)
+        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true }))
+        #expect(await lookup.avatar(forPseudo: "user2") == .refused)
+        #expect(await refused.requests.count == 1)
+    }
+
+    /// Without a login the profile would be refused: not even the cookie-less id lookup leaves.
+    @Test func aLoggedOutLookupSendsNothing() async {
+        let session = MockTransport(replies: [])
+        let anonymous = MockTransport(replies: [])
+        let fetcher = PageFetcher(session: session, anonymous: anonymous)
+        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { false }))
+        #expect(await lookup.avatar(forPseudo: "user2") == .refused)
+        #expect(await session.requests.isEmpty)
+        #expect(await anonymous.requests.isEmpty)
+    }
+
+    /// One refusal suspends the prefetcher: no other pseudo, and not the same one after its retry delay, is looked up.
+    @Test func aRefusalStopsEveryLookup() async throws {
+        let lookup = ScriptedLookup { _ in .refused }
+        let prefetcher = prefetcher(lookup, retryDelay: .milliseconds(50))
+        await prefetcher.prefetch(pseudo: "user2")
+        await prefetcher.prefetch(pseudo: "user3")
+        try await Task.sleep(for: .milliseconds(100))
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2"])
     }
 }

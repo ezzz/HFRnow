@@ -29,9 +29,9 @@ struct LiveUserProfileSource: UserProfileSource {
         self.isLoggedIn = isLoggedIn
     }
 
-    /// The source of `session`, the transport `fetcher` sends its authenticated requests with.
-    init(fetcher: PageFetcher, session: HFRSession) {
-        self.init(fetcher: fetcher, isLoggedIn: { await session.isLoggedIn() })
+    /// The source of `session`: its login is checked and its requests leave through it, one value for both.
+    init(session: HFRSession) {
+        self.init(fetcher: PageFetcher(session: session), isLoggedIn: { await session.isLoggedIn() })
     }
 
     func profile(memberID: Int) async throws(ListLoadError) -> UserProfile {

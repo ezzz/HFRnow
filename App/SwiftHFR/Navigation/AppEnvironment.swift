@@ -67,7 +67,7 @@ struct AppEnvironment {
                 pseudoLists: { lists.current }
             ),
             // HFR serves profiles to a logged-in session only (#1363, `R1363a`); without a login no request leaves.
-            profiles: LiveUserProfileSource(fetcher: fetcher, session: session),
+            profiles: LiveUserProfileSource(session: session),
             positions: LiveReaderPositionRecorder.live(account: accountName),
             // DISABLED(offline, #822): kept for a later design (#846), not reachable. No offline services, so no screen can offer it.
             offline: OfflineSaveAvailability.isReachable ? .live(fetcher: fetcher) : nil,
@@ -97,7 +97,7 @@ struct AppEnvironment {
             favoriteStores: .live(account: accountName),
             flagActions: flagActions,
             // Only the MP list asks, and it needs an account; the id lookup never carries the session, the profile does (#1363).
-            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, profiles: reader.profiles, store: avatars),
+            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, session: session, store: avatars),
             pseudoListsSnapshot: lists, blocklistChanges: blocklistChanges,
             privateMessageCount: privateMessageCount,
             qualityAlertsSource: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:])
