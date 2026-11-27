@@ -24,7 +24,7 @@ struct ReaderImageFetcher: Sendable {
     let transport: any HTTPTransport
 
     /// Creates a fetcher on `transport`, the cookie-less one by default.
-    init(transport: any HTTPTransport = AnonymousTransport()) {
+    init(transport: any HTTPTransport = AnonymousTransport.shared) {
         self.transport = transport
     }
 

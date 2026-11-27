@@ -21,9 +21,9 @@ public struct GlobalSearchFlow: Sendable {
     /// Where every request goes: a transport that sends and stores no cookie.
     let transport: any HTTPTransport
 
-    /// Creates the flow over its own cookie-less transport.
+    /// Creates the flow over the shared cookie-less transport (`AnonymousTransport.shared`).
     public init() {
-        self.init(transport: AnonymousTransport())
+        self.init(transport: AnonymousTransport.shared)
     }
 
     /// A flow over `transport` (tests: a scripted one).

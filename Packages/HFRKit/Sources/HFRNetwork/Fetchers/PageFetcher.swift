@@ -12,7 +12,7 @@ public struct PageFetcher: Sendable {
     private let anonymous: any HTTPTransport
 
     /// Creates a fetcher from the account's session and a cookie-less transport.
-    public init(session: any HTTPTransport, anonymous: any HTTPTransport = AnonymousTransport()) {
+    public init(session: any HTTPTransport, anonymous: any HTTPTransport = AnonymousTransport.shared) {
         self.session = session
         self.anonymous = anonymous
     }
