@@ -229,6 +229,9 @@ private struct CategoriesSidebarColumn: View {
                         model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
                         composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source)
                     )
+                    // A new view per source, as the tabs' `TopicsColumn` has: the « Sous-forum » picker replaces the source while
+                    // this list is shown, and the load task of the first one would not run for the new model (#1403).
+                    .id(source)
                     .appScreenBackground()
                 }
         }
