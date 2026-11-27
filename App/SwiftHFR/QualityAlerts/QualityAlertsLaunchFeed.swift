@@ -23,9 +23,10 @@ final class QualityAlertsLaunchFeed {
         pending = task
         let result = await task.value
         pending = nil
-        // A failed read is not kept: the next root asks again.
-        if let result { items = result }
-        return result
+        // A feed kept meanwhile (the list was loaded) is newer than this read: it stays. A failed read is not kept, so the next
+        // root asks again.
+        if items == nil, let result { items = result }
+        return items ?? result
     }
 
     /// Keeps `items`, read by the list or a count, for the next root.

@@ -6,13 +6,17 @@ import Synchronization
 
 /// One `URLSession` with its own in-memory cookie jar, as an `HFRSession` sends through it.
 ///
-/// `@unchecked Sendable`: every stored property is immutable, `URLSession` and `URLSessionTransport` are Sendable, and
-/// `HTTPCookieStorage` is documented thread-safe; the jar is only written by the one `HFRSession` that holds the
-/// connection at a time (`ProbeConnectionPool`).
+/// `@unchecked Sendable`: the stored properties are immutable or behind a `Mutex`, `URLSession` and `URLSessionTransport`
+/// are Sendable, and `HTTPCookieStorage` is documented thread-safe; the jar is only written by the one `HFRSession` that
+/// holds the connection at a time, and by the pool while no session holds it (`ProbeConnectionPool`).
 final class SessionConnection: @unchecked Sendable {
     let urlSession: URLSession
     let cookieStorage: HTTPCookieStorage
     let transport: URLSessionTransport
+    private let invalidated = Mutex(false)
+
+    /// Whether `invalidate()` ran (tests).
+    var isInvalidated: Bool { invalidated.withLock { $0 } }
 
     /// A new connection from a copy of `base` (the caller's configuration is never changed), with cookies on, its own
     /// jar, no shared cache or credential store, and redirects limited to `hosts`.
@@ -43,6 +47,7 @@ final class SessionConnection: @unchecked Sendable {
 
     /// Ends the session once its running tasks finish; the connection is never used again.
     func invalidate() {
+        invalidated.withLock { $0 = true }
         urlSession.finishTasksAndInvalidate()
     }
 
@@ -109,11 +114,13 @@ package final class ProbeConnectionPool: Sendable {
 
     /// Takes `connection` back for the next probe, or invalidates it when `reusable` is false or the pool is full.
     func checkIn(_ connection: SessionConnection, reusable: Bool) {
+        // Emptied before it is idle: once in `idle`, another thread may take it and seed it at once.
+        if reusable { connection.emptyJar() }
         let kept = reusable && state.withLock { state in
             guard state.idle.count < Self.idleLimit else { return false }
             state.idle.append(connection)
             return true
         }
-        if kept { connection.emptyJar() } else { connection.invalidate() }
+        if !kept { connection.invalidate() }
     }
 }

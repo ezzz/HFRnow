@@ -39,6 +39,9 @@ struct AppEnvironment {
     /// Where the Plus tab's AQ list and badge come from (LOT-133); nil in an environment built by hand (tests), so no root
     /// fetches the live feed with the address of the Info.plist. `make` sets the live one.
     var qualityAlertsSource: (any QualityAlertsSource)?
+    /// Whether the roots of this environment count from the app's AQ feed already read (`QualityAlertsLaunchFeed.shared`, #1398);
+    /// false in an environment built by hand (tests), whose roots each keep their own, so no test leaves a feed to another.
+    var sharesQualityAlertsFeed = false
 
     /// The environment for `session`.
     static func make(
@@ -100,7 +103,7 @@ struct AppEnvironment {
             memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, session: session, store: avatars),
             pseudoListsSnapshot: lists, blocklistChanges: blocklistChanges,
             privateMessageCount: privateMessageCount,
-            qualityAlertsSource: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:])
+            qualityAlertsSource: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:]), sharesQualityAlertsFeed: true
         )
     }
 

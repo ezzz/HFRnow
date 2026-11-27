@@ -133,24 +133,28 @@ final class QualityAlertsModel {
         if launchFeed.items == nil {
             do { try await sleep(delay) } catch { return }
         }
-        countTicket += 1
-        let ticket = countTicket
-        let lastCheck = self.lastCheck
-        guard let items = await launchFeed.feed(fetch: { try? await source.feed() }) else { return }
-        let visible = await visibleItems(items)
-        guard ticket == countTicket else { return }
-        unreadCount = AQClient.newCount(in: visible, since: lastCheck)
+        await count { await launchFeed.feed(fetch: { try? await source.feed() }) }
     }
 
     /// Fetches the feed and sets the badge, without touching the list or the last check. A failed answer says nothing and keeps the
     /// count (legacy's silent `catch`); an answer that is overtaken by a newer count request or by a load is dropped.
     func refreshCount() async {
         guard let source else { return }
+        await count {
+            guard let items = try? await source.feed() else { return nil }
+            launchFeed.keep(items)
+            return items
+        }
+    }
+
+    /// Sets the badge from the feed `read` gives (nil: nothing learned, the count stays), after the hidden category is removed for
+    /// the current viewer; a read overtaken by a newer count request or by a load is dropped. The one count of the launch check
+    /// and of `refreshCount`.
+    private func count(_ read: () async -> [AQFeedItem]?) async {
         countTicket += 1
         let ticket = countTicket
         let lastCheck = self.lastCheck
-        guard let items = try? await source.feed() else { return }
-        launchFeed.keep(items)
+        guard let items = await read() else { return }
         let visible = await visibleItems(items)
         guard ticket == countTicket else { return }
         unreadCount = AQClient.newCount(in: visible, since: lastCheck)

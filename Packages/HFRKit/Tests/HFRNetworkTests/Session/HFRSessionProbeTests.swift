@@ -128,3 +128,60 @@ struct HFRSessionProbeConnectionTests {
         #expect(source.probeConnections.connectionsCreated == 0)
     }
 }
+
+/// The pool itself (#1398): its bounds, its end, and its jars under concurrent release. Offline.
+struct ProbeConnectionPoolTests {
+    private static func makeSource() -> HFRSession {
+        HFRSession(cookies: [], hashCheck: nil, now: Date(), configuration: .ephemeral, hosts: .exactHost("127.0.0.1"))
+    }
+
+    /// A probe released on one thread while another takes its connection must not empty the newcomer's seed (round 1, #1412).
+    @Test func aRecycledProbeKeepsItsSeedUnderConcurrentRelease() async {
+        let source = Self.makeSource()
+        let lost = await withTaskGroup(of: Int.self) { group in
+            for worker in 0..<8 {
+                group.addTask {
+                    var lost = 0
+                    for index in 0..<1500 {
+                        let value = "w\(worker)i\(index)"
+                        let seed = (0..<4).map { StoredCookie(name: "seed\($0)", value: value, domain: "127.0.0.1", path: "/") }
+                        let probe = source.probe(cookies: seed, now: Date())
+                        await Task.yield()
+                        if await probe.cookies().map(\.value) != [value, value, value, value] { lost += 1 }
+                    }
+                    return lost
+                }
+            }
+            var total = 0
+            for await count in group { total += count }
+            return total
+        }
+        #expect(lost == 0)
+    }
+
+    @Test func thePoolKeepsAtMostItsLimitAndInvalidatesTheRest() {
+        let pool = ProbeConnectionPool(configuration: .ephemeral, hosts: .exactHost("127.0.0.1"))
+        // Two idle connections per account: enough for a check and a poll at the same time, no more sockets kept open.
+        let connections = (0..<3).map { _ in pool.checkOut() }
+        for connection in connections { pool.checkIn(connection, reusable: true) }
+        #expect(pool.idleCount == 2)
+        #expect(connections.map(\.isInvalidated) == [false, false, true])
+    }
+
+    @Test func aConnectionNotReusableIsInvalidated() {
+        let pool = ProbeConnectionPool(configuration: .ephemeral, hosts: .exactHost("127.0.0.1"))
+        let connection = pool.checkOut()
+        pool.checkIn(connection, reusable: false)
+        #expect(connection.isInvalidated)
+        #expect(pool.idleCount == 0)
+    }
+
+    @Test func aReleasedPoolInvalidatesItsIdleConnections() {
+        var pool: ProbeConnectionPool? = ProbeConnectionPool(configuration: .ephemeral, hosts: .exactHost("127.0.0.1"))
+        let connection = pool?.checkOut()
+        if let connection { pool?.checkIn(connection, reusable: true) }
+        #expect(connection?.isInvalidated == false)
+        pool = nil
+        #expect(connection?.isInvalidated == true)
+    }
+}
