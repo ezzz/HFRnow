@@ -109,15 +109,26 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
         let seen = await read(
             style: style, theme: theme, token: token, author: VisibilityPolicy.moderationName, root: "article.message.mode"
         )
-        guard let seen else { return Issue.record("the reader did not answer") }
+        guard let seen else { Issue.record("the reader did not answer"); return }
         #expect(seen[1] >= 4.5, "blocked quote header in a moderation message: \(seen[1])")
     }
 
     /// #1358: the date of an allowlisted continuation (75 % opacity), light and dark, both looks.
     private func checkContinuation(style: UIUserInterfaceStyle, theme: ThemeStyle, token: Int) async {
         let seen = await read(style: style, theme: theme, token: token, isContinuation: true)
-        guard let seen else { return Issue.record("the reader did not answer") }
+        guard let seen else { Issue.record("the reader did not answer"); return }
         #expect(seen[0] >= 4.5, "allowlisted continuation date: \(seen[0])")
+        #expect(seen[1] >= 4.5, "blocked quote header in an allowlisted continuation: \(seen[1])")
+    }
+
+    /// #1358: the same in a continuation of an author with no visibility rule (the date and the folded quote header).
+    private func checkPlainContinuation(style: UIUserInterfaceStyle, theme: ThemeStyle, token: Int) async {
+        let seen = await read(
+            style: style, theme: theme, token: token, author: "inconnu", isContinuation: true, root: "article.message.continuation"
+        )
+        guard let seen else { Issue.record("the reader did not answer"); return }
+        #expect(seen[0] >= 4.5, "continuation date: \(seen[0])")
+        #expect(seen[1] >= 4.5, "blocked quote header in a continuation: \(seen[1])")
     }
 
     @Test func moderationQuoteHeaderInModernLightHoldsAA() async { await checkModeration(style: .light, theme: .modern, token: 5) }
@@ -128,4 +139,8 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
     @Test func continuationDateInModernDarkHoldsAA() async { await checkContinuation(style: .dark, theme: .modern, token: 10) }
     @Test func continuationDateInClassicLightHoldsAA() async { await checkContinuation(style: .light, theme: .classic, token: 11) }
     @Test func continuationDateInClassicDarkHoldsAA() async { await checkContinuation(style: .dark, theme: .classic, token: 12) }
+    @Test func plainContinuationInModernLightHoldsAA() async { await checkPlainContinuation(style: .light, theme: .modern, token: 13) }
+    @Test func plainContinuationInModernDarkHoldsAA() async { await checkPlainContinuation(style: .dark, theme: .modern, token: 14) }
+    @Test func plainContinuationInClassicLightHoldsAA() async { await checkPlainContinuation(style: .light, theme: .classic, token: 15) }
+    @Test func plainContinuationInClassicDarkHoldsAA() async { await checkPlainContinuation(style: .dark, theme: .classic, token: 16) }
 }
