@@ -3,8 +3,9 @@ import Foundation
 // MARK: - Local change
 
 extension AccountSync {
-    /// Records `change`, made at `now`, in the state: its stamp, imported set and removal marker. `raw` is the copy the push
-    /// will compare against (nil while off).
+    /// Records `change`, made at `now`, in the state: its stamp, imported set and removal marker, each dated after what the
+    /// copy and this device already hold for that account (#1390). `raw` is the copy the push will compare against (nil
+    /// while off).
     static func record(_ change: AccountSyncChange, at now: Date, in state: inout AccountSyncState, copy raw: Data?) {
         switch change {
         case .login(let pseudo):
@@ -19,9 +20,11 @@ extension AccountSync {
             state.stamps[key] = stamp(login: false, of: key, at: now, in: state, copy: raw)
         case .removal(let pseudo):
             let key = AccountKey.make(pseudo)
+            // Dated after the last login the copy holds, so a removal on a device whose clock is late still wins.
+            let removedAt = later(now, than: floorStamp(of: key, in: state, copy: raw).consentAt)
             state.stamps[key] = nil
             state.imported.remove(key)
-            if state.isOn { state.removed[key] = now }
+            if state.isOn { state.removed[key] = removedAt }
         }
     }
 

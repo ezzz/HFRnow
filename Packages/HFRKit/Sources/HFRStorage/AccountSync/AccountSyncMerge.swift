@@ -36,21 +36,29 @@ struct AccountSyncMerge {
         var removed = localRemoved.merging(remoteRemoved) { max($0, $1) }
         var merged: [SyncedAccount] = []
         var deviceAccounts: [Account] = []
+        var copyMain: [String: Bool] = [:]
         for key in order {
             let localEntry = local.accounts.first { AccountKey.make($0.pseudo) == key }
                 .map { SyncedAccount(account: $0, stamp: localStamps[key] ?? .unknown) }
             let remoteEntry = remoteByKey[key]
             // Same login on both sides (#1390): only cookie dates or details can differ, which are not new credentials. The
-            // copy keeps its entry, so a renewed expiry never rewrites the item nor reads as `replaced` on another device,
-            // and this device keeps its own account, with the expiries its jar renewed, whatever the stamps say.
+            // copy keeps its entry and dates, so a renewed expiry neither rewrites the item at every check nor reads as
+            // `replaced` on another device, and this device keeps its own account, with the expiries its jar renewed.
             let sameLogin = localEntry.map { local in remoteEntry.map { Self.sameLogin(local.account, $0.account) } ?? false } ?? false
             guard var kept = sameLogin ? remoteEntry : Self.newer(localEntry, remoteEntry) else { continue }
             kept.consentAt = max(localEntry?.consentAt ?? .distantPast, remoteEntry?.consentAt ?? .distantPast)
             if let removal = removed[key], removal >= kept.consentAt { continue }
             removed[key] = nil
-            kept.account.isMain = key == localMainKey
+            if sameLogin, let localEntry, let remoteEntry {
+                // The copy's main flag stays: devices with different main accounts would rewrite it at every merge.
+                copyMain[key] = remoteEntry.account.isMain
+                // A copy whose cookies lag far behind this device's takes them, or a device bootstrapping from it would
+                // import cookies past their expiry; the margin keeps it to one write per account and period, not per check.
+                let lagging = Self.loginExpiry(of: remoteEntry.account).addingTimeInterval(Self.renewalMargin)
+                if Self.loginExpiry(of: localEntry.account) > lagging { kept.account = localEntry.account }
+            }
             var account = sameLogin ? localEntry?.account ?? kept.account : kept.account
-            account.isMain = kept.account.isMain
+            account.isMain = key == localMainKey
             merged.append(kept)
             deviceAccounts.append(account)
         }
@@ -58,7 +66,8 @@ struct AccountSyncMerge {
         self.book = book
         entries = merged.map { entry in
             var entry = entry
-            entry.account.isMain = book.account(matching: entry.account.pseudo)?.isMain ?? false
+            let key = AccountKey.make(entry.account.pseudo)
+            entry.account.isMain = copyMain[key] ?? book.account(matching: entry.account.pseudo)?.isMain ?? false
             return entry
         }
         self.removed = removed
@@ -82,6 +91,16 @@ struct AccountSyncMerge {
     /// The cookies that make a login (HFR-PROTOCOL §5, `W03`); HFR re-sends `md_user` and `md_passs` with a new expiry on
     /// every logged-in answer (`R74`), and other cookies (`p`, `md_data`) come and go without a login.
     static let loginCookies = ["md_user", "md_passs", "md_id"]
+
+    /// How far ahead of the copy's a device's login-cookie expiry must be for a same-login merge to share it (#1390). HFR
+    /// renews the expiry to +30 days on every logged-in answer (`W03`, `R74`): the copy then stays valid for 23 days at
+    /// least, for at most one write per account and week instead of one per session check.
+    static let renewalMargin: TimeInterval = 7 * 24 * 3_600
+
+    /// The latest expiry of an account's login cookies; `distantPast` when none has one.
+    static func loginExpiry(of account: Account) -> Date {
+        account.cookies.filter { loginCookies.contains($0.name) }.compactMap(\.expiresDate).max() ?? .distantPast
+    }
 
     /// Whether two copies of an account hold the same login: the same values of the login cookies, dates ignored.
     static func sameLogin(_ first: Account, _ second: Account) -> Bool {

@@ -6,7 +6,9 @@ import Synchronization
 public enum AccountSyncChange: Sendable, Hashable {
     /// An explicit login or re-login: new credentials and a new consent to share the account.
     case login(pseudo: String)
-    /// Cookies, token or avatar refreshed without a login.
+    /// Cookies, token or avatar refreshed without a login. Shared only when the login cookies' values changed, or when the
+    /// copy's expiries lag far behind this device's (#1390); this device's cookies then beat the copy's, so it is reported
+    /// only after the forum confirmed them (a valid session check).
     case refresh(pseudo: String)
     /// The account was removed from this device.
     case removal(pseudo: String)
