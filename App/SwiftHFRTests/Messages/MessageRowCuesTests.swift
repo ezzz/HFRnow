@@ -3,6 +3,7 @@ import HFRModels
 import SwiftUI
 import Testing
 
+@MainActor
 struct MessageRowCuesTests {
     @Test("An unread row is tinted, a read one is not")
     func unreadTint() {

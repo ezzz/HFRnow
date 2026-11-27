@@ -3,6 +3,7 @@ import HFRModels
 import SwiftUI
 import Testing
 
+@MainActor
 struct TopicRowCuesTests {
     private func topic(
         flag: TopicFlag? = nil, flagPath: String? = nil, current: Int? = nil, pages: Int = 1, poll: Bool = false

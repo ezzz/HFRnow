@@ -2,6 +2,7 @@
 import SwiftUI
 import Testing
 
+@MainActor
 struct RowTintTests {
     @Test("Tint strength: 0.10 light, 0.16 dark")
     func strengthByScheme() {

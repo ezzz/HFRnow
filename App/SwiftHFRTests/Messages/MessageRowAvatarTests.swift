@@ -5,6 +5,7 @@ import HFRParsing
 import Testing
 
 /// #714: which pseudo an MP row's avatar is read for, on the rows the parser really produces from the captured lists.
+@MainActor
 struct MessageRowAvatarTests {
     private static let listURL = "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1"
 

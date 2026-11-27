@@ -3,6 +3,7 @@ import SwiftUI
 import Testing
 
 /// #1073 item 4: a selected row is a light accent tint in the classic look too, not the system's solid accent fill.
+@MainActor
 struct ListLookSelectionTests {
     private static let schemes: [ColorScheme] = [.light, .dark]
     private static let contrasts: [ColorSchemeContrast] = [.standard, .increased]
