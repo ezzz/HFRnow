@@ -140,6 +140,12 @@ struct AccountsModelLoginTests {
         let model = makeModel(store: store, checker: ScriptedChecker(["user1": .valid, "user2": .valid]))
         await model.restore()
         let changes = model.currentSessionChanges
+        // Another device's re-login with new credentials: a copy of the login a check confirmed is no change (#1276).
+        let renewed = Account(
+            pseudo: pseudo, displayName: pseudo, cookies: Fake.cookies(user: pseudo, pass: "renewed"), hashCheck: "renewed-hash",
+            isMain: pseudo == "user1"
+        )
+        _ = try store.save(renewed, makeMain: false)
         var report = AccountSyncReport()
         report.replaced = [pseudo]
 
