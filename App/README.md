@@ -34,7 +34,9 @@ xcodebuild -resolvePackageDependencies -project App/SwiftHFR.xcodeproj
 ```
 
 Release to TestFlight (maintainer's Mac): `scripts/release-testflight.sh --version X.Y --build N --dry-run`, then `--upload`
-([LOT-161](../docs/lots/LOT-161-release-pipeline.md); credentials stay outside the repository).
+([LOT-161](../docs/lots/LOT-161-release-pipeline.md); credentials stay outside the repository). The internal beta is the
+configuration `Beta` and scheme `SwiftHFR Beta` (`App/Config/Beta.xcconfig`: bundle id `hfrplus-swift.red.super`, display
+name « SwiftHFR β »), released with `scripts/release-testflight.sh --beta`; Debug and Release keep `hfrplus.red.super`.
 
 Signing is automatic with the team `QMG83DG7YP` and bundle id `hfrplus.red.super`; a device build needs that team's account in Xcode. Never commit certificates, profiles or `xcuserdata/`.
 

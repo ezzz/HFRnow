@@ -44,6 +44,8 @@ struct VideoPlayerSheetTests {
         )
         #expect(request.value(forHTTPHeaderField: "Referer") == "https://app.example/")
         #expect(VideoPlayerSheet.appReferer(bundleIdentifier: "hfrplus.red.super") == "https://hfrplus.red.super/")
+        // The internal beta (LOT-161, App/Config/Beta.xcconfig) identifies itself with its own id.
+        #expect(VideoPlayerSheet.appReferer(bundleIdentifier: "hfrplus-swift.red.super") == "https://hfrplus-swift.red.super/")
         #expect(VideoPlayerSheet.appReferer(bundleIdentifier: "Com.Example.App") == "https://com.example.app/")
         #expect(VideoPlayerSheet.refererHosts == ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com"])
     }
