@@ -66,8 +66,8 @@ that fails if `oracle-map.json` gains a `poll` case the suite does not run. `Top
 ## Pending (not captured, left out)
 
 - **A plain "already voted" page without the multi-pseudo notice** (poll voted from the account itself): searched on the Mac, not found (`MANIFEST.md`). It is probably the R33b markup without the notice; not assumed.
-- **Multi-choice polls**: the hint text between the question and the answers (`extractMaxChoices`, `PollData.swift:185-206`), checkbox inputs and their field names (`reponse<N>`, E11), vote value `"1"` per field. Refused with `invalidValue(field: "poll answer input type")`.
-- **`div.sondageFooter`** (legacy footer, `PollData.swift:164-181`; ObjC takes the last child of the block): no capture has it, so it is not read.
+- **Multi-choice polls**: the hint text between the question and the answers (`extractMaxChoices`, `PollData.swift:185-206`), checkbox inputs and their field names (`reponse<N>`, E11), vote value `"1"` per field. Refused with `invalidValue(field: "poll answer input type")`. **Captured** since (`R111a` form, #111; results as a run observation, HFR-PROTOCOL §6c LOT-026): "Sondage à N choix possibles." between the question and the list, checkboxes `name="reponseK"` `value="1"`; in results the hint closes the total line. Reading them (and their legacy oracle) is left to a follow-up.
+- **`div.sondageFooter`** (legacy footer, `PollData.swift:164-181`; ObjC takes the last child of the block): no capture has it, so it is not read. Not found in 34 poll topics (#113, 2026-11-27).
 - Vote response parsing (N05, `PollData.swift:79-98`): LOT-054.
 
 ## Intentional differences from legacy

@@ -1,0 +1,27 @@
+{
+  "id": "R1146d",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=13&page=9999&subcat=433&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=9999&subcat=433&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/liste_sujet-9999.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 22:43:05 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Cuisine/liste_sujet-9999.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "sub-forum list far past its last page, logged in (#1146)",
+  "file": "R1146d-subforum-list-past-last-page-logged-in.html",
+  "private": false
+}
