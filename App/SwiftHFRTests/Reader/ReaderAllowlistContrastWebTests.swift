@@ -42,34 +42,7 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
     /// contrast, signature contrast, trailer contrast, count bubble contrast, allowlisted quote header contrast, own quote header
     /// contrast, image link contrast] of the first message.
     private func probe(root rootSelector: String) -> String { """
-        const rgba = (c) => {
-            if (c === 'transparent') { return [0, 0, 0, 0]; }
-            const m = c.match(/[\\d.]+/g).map(Number);
-            return c.startsWith('color(') ? [...m.slice(0, 3).map((v) => v * 255), m.length > 3 ? m[3] : 1]
-                                          : [m[0], m[1], m[2], m.length > 3 ? m[3] : 1];
-        };
-        const lum = (c) => {
-            const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
-            return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
-        };
-        const under = (el) => {
-            const layers = [];
-            for (let e = el; e; e = e.parentElement) { layers.push(rgba(getComputedStyle(e).backgroundColor)); }
-            let base = [255, 255, 255];
-            for (const l of layers.reverse()) { base = base.map((v, i) => l[i] * l[3] + v * (1 - l[3])); }
-            return base;
-        };
-        // A continuation's `opacity` fades the whole message (text and surfaces) toward the page white/black: composite both ends.
-        const fade = (el, c) => {
-            let o = 1;
-            for (let e = el; e; e = e.parentElement) { o *= Number(getComputedStyle(e).opacity); }
-            const bg = under(document.body);
-            return c.slice(0, 3).map((v, i) => v * o + bg[i] * (1 - o));
-        };
-        const ratio = (el) => {
-            const a = lum(fade(el, under(el))) + 0.05, b = lum(fade(el, rgba(getComputedStyle(el).color))) + 0.05;
-            return Math.max(a, b) / Math.min(a, b);
-        };
+        \(ContrastProbe.helpers)
         const root = document.querySelector('\(rootSelector)');
         if (!root) { return 'null'; }
         const textProbe = document.createElement('i');
