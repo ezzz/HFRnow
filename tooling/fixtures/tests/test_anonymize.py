@@ -552,6 +552,20 @@ class MPStorageTests(unittest.TestCase):
                 anon(page, private=True)
             self.assertTrue(self.reasons(page))
 
+    def test_storage_subject_thread_without_a_document_is_an_ordinary_private_body(self):
+        # #1203 (R1203b): another member's MP with the storage subject; its first post is plain text, not a document.
+        page = storage_page("secret words of a member")
+        out = anon(page, private=True)
+        self.assertNotIn("secret words", out)
+        self.assertNotIn("other words", out)
+        self.assertEqual(out.count(A.PRIVATE_PLACEHOLDER), 2)
+        self.assertIn(A.MPSTORAGE_SUBJECT, out)
+        self.assertEqual(leaks(out, private=True), [])
+        self.assertIn("private message body not replaced", self.reasons(page))
+        # Braces keep the fail-closed rule: a document the aliaser cannot read is refused, never replaced silently.
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page("secret {words}"), private=True)
+
     def test_bookmark_tombstone_with_a_long_category_is_one_rule_for_both_sides(self):
         # Review round 2, finding 2: a 4+ digit category in a tombstone id is aliased; check must accept the result.
         doc = self.RICH.replace('"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]',

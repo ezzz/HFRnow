@@ -1897,6 +1897,10 @@ class Anonymizer:
             for start, end in _find_para_blocks(text):
                 if start < last:
                     continue
+                if keep_first and "{" not in _strip_tags(text[start:end]):
+                    # Any member can send an MP with the storage subject (#1203, R1203b): a first post holding no JSON
+                    # at all is an ordinary private body, replaced like the others (a JSON-looking one stays fail-closed).
+                    keep_first = False
                 if keep_first:
                     keep_first = False
                     parts += [text[last:start], self._alias_storage_document(text[start:end], "post")]

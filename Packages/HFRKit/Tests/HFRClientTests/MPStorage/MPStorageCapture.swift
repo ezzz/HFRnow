@@ -8,11 +8,13 @@ enum MPStorageCapture {
     static let post = 3_157_083
     static let numreponse = 1_980_164_061
 
-    /// The MP list page `id` (`R13a` without the thread, `R13u1` with it; `R333a` page 1 without it, `R333b` page 2 with it).
+    /// The MP list page `id` (`R13a` without the thread, `R13u1` with it; `R333a` page 1 without it, `R333b` page 2 with it;
+    /// `R1203a` with it, after another member's thread with the storage subject).
     static func list(_ id: String) throws -> Result<HTTPResponse, NetworkError> {
         let files = [
             "R13a": "R13a-mp-list", "R13u1": "R13u1-mp-list-recipient-unread",
-            "R333a": "R333a-mp-list-p1-storage-pushed-to-p2", "R333b": "R333b-mp-list-p2-storage-row-first"
+            "R333a": "R333a-mp-list-p1-storage-pushed-to-p2", "R333b": "R333b-mp-list-p2-storage-row-first",
+            "R1203a": "R1203a-mp-list-foreign-storage-row-unread"
         ]
         guard let file = files[id] else { throw Capture.Missing(name: id) }
         return .success(try Capture.response(file, url: PostingCapture.url(try Capture.meta(id).url)))
@@ -23,27 +25,14 @@ enum MPStorageCapture {
         .success(try Capture.response("R60a-mpstorage-thread-first-post", url: PostingCapture.url(try Capture.meta("R60a").url)))
     }
 
-    /// `R60a` as a member who did not write its first message sees it: the same page without the message's edit links
-    /// (#1200 P1).
-    ///
-    /// A thread with the storage subject that another member started is not captured. What it lacks is: HFR prints no edit
-    /// link on another member's post, to the recipient of an MP (`RU1`, `R44`) or on a public topic (`R63a`, `R63e`), and
-    /// prints both the obfuscated edit span and the "Edition rapide" link on the viewer's own post (`R60a`, `R63a`).
-    static func threadPageOfAnotherMember() throws -> Result<HTTPResponse, NetworkError> {
-        let page = try Capture.page("R60a-mpstorage-thread-first-post")
-        let editSpan = /<span class="md_noclass_cryptlink[0-9A-F]+"><img [^>]*alt="edit" \/><\/span>/
-        let quickEdit = /<a rel="nofollow" href="\/message\.php[^"]*" onclick="edit_in\([^"]*"><img [^>]*alt="Edition rapide" \/><\/a>/
-        let stripped = page.replacing(editSpan, with: "").replacing(quickEdit, with: "")
-        guard
-            page.matches(of: editSpan).count == 1, page.matches(of: quickEdit).count == 1,
-            stripped.matches(of: editSpan).isEmpty, stripped.matches(of: quickEdit).isEmpty
-        else { throw Capture.Missing(name: "R60a edit links") }
-        return .success(
-            HTTPResponse(
-                statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"],
-                url: PostingCapture.url(try Capture.meta("R60a").url), body: Data(stripped.utf8)
-            )
-        )
+    /// The thread with the storage subject that user2 started and sent to the account (#1203).
+    static let foreignPost = 3_209_728
+
+    /// That thread's first page as the account sees it, at the URL the search GETs (`R1203b`): user2's message, no edit link.
+    static func foreignThreadPage() throws -> Result<HTTPResponse, NetworkError> {
+        .success(try Capture.response(
+            "R1203b-mp-thread-foreign-storage-subject-first-page", url: PostingCapture.url(try Capture.meta("R1203b").url)
+        ))
     }
 
     /// The first message's edit form (`R60b`), holding `text` instead of the captured document when given.
