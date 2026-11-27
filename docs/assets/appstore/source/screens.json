@@ -14,7 +14,7 @@
     { "id": "03-composer", "kicker": "Réponse", "caption": "Répondre,|*sans balises.*", "ink": "ink" },
     { "id": "04-messages", "kicker": "Messages privés", "caption": "Vos MP,|*sous le pouce.*", "ink": "paper" },
     { "id": "05-themes", "kicker": "Thèmes", "caption": "Clair, sombre,|*rétro 5250.*", "ink": "orange" },
-    { "id": "06-large-screen", "kicker": "Grand écran", "caption": "Deux colonnes,|*grand écran.*", "ink": "ink" },
+    { "id": "06-large-screen", "kicker": "Grand écran", "caption": "Grand écran,|*deux colonnes.*", "ink": "ink" },
     { "id": "07-offline", "kicker": "Hors ligne", "caption": "Le topic|*dans le tunnel.*", "ink": "paper" }
   ]
 }

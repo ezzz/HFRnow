@@ -27,7 +27,7 @@ The list is `source/screens.json` (`*word*` = accent colour, `|` = line break).
 | 3 | `03-composer` | Réponse | Répondre, / sans balises. |
 | 4 | `04-messages` | Messages privés | Vos MP, / sous le pouce. |
 | 5 | `05-themes` | Thèmes | Clair, sombre, / rétro 5250. |
-| 6 | `06-large-screen` | Grand écran | Deux colonnes, / grand écran. |
+| 6 | `06-large-screen` | Grand écran | Grand écran, / deux colonnes. |
 | 7 | `07-offline` | Hors ligne | Le topic / dans le tunnel. |
 
 ## Sizes
