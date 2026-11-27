@@ -261,16 +261,29 @@ struct ComposerServices: Sendable {
     var gif: GifServices = .live()
     /// Places the legacy reply draft the import left pending for a topic (LOT-158); nil in tests that do not need it.
     var legacyDrafts: LegacyDraftResolver?
+    /// What the smiley picker read, kept across its openings (#1397); each composer takes its own (`withFreshSmileyMemos`).
+    var smileyMemos = SmileyListMemos()
+
+    /// These services with new smiley memos: a composer's picker lists live as long as that composer, not as the account's.
+    func withFreshSmileyMemos() -> ComposerServices {
+        var copy = self
+        copy.smileyMemos = SmileyListMemos()
+        return copy
+    }
 
     /// What the smiley panel opens with: a new search model over the lookups, none without an account.
     /// `formURL` is the composer's own form, whose `#dynamic_smilies` are the forum favourites.
     @MainActor func smileyPanel(formURL: URL? = nil) -> SmileyPanelServices {
-        SmileyPanelServices(
+        var panel = SmileyPanelServices(
             store: smileyFavorites, account: account,
             search: smileyLookups.map { SmileySearchModel(lookups: $0, history: smileySearchHistory) },
             forumFavorites: forumFavoritesLoader(formURL: formURL),
             ownSmileys: ownSmileysLoader()
         )
+        // Written out step by step, like the loaders: the lists are read once per composer, not once per opening (#1397).
+        if let load = panel.forumFavorites { panel.forumFavorites = smileyMemos.forum.memoized(load) }
+        if let load = panel.ownSmileys { panel.ownSmileys = smileyMemos.own.memoized(load) }
+        return panel
     }
 
     /// Reads the forum favourites through the poster; written out step by step, the compiler cannot type a nested closure that

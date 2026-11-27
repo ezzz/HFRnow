@@ -60,7 +60,8 @@ struct LiveMemberAvatarLookup: MemberAvatarLookup {
 /// 256 KiB, 24 h).
 ///
 /// Lookups run one at a time, at least `spacing` apart. A pseudo HFR answered for (avatar stored, unknown member, no avatar) is
-/// not looked up again in the prefetcher's life (one per session, `AppEnvironment`); a failed exchange, or an avatar the store
+/// not looked up again in the prefetcher's life (one per session, `AppEnvironment`); one that names no avatar or no member (a
+/// maintenance page included) not for 24 h, across launches (`Misses`, #1397); a failed exchange, or an avatar the store
 /// did not keep, is retried only after `retryDelay`, so a list opened offline recovers without asking twice in a row. A row that
 /// leaves the screen before its turn gives the turn away untried, so only rows still shown are fetched. A refusal (no login, HFR's
 /// 401/403, #1363) stops every lookup, each would be refused the same way, until the session's login changes (a re-login keeps
@@ -85,8 +86,8 @@ actor MemberAvatarPrefetcher {
             let key = "memberAvatarMisses"
             return Misses(
                 isFresh: { pseudo in
-                    guard let at = (defaults.dictionary(forKey: key) as? [String: Date])?[pseudo] else { return false }
-                    return now().timeIntervalSince(at) < freshness
+                    guard let recordedAt = (defaults.dictionary(forKey: key) as? [String: Date])?[pseudo] else { return false }
+                    return now().timeIntervalSince(recordedAt) < freshness
                 },
                 record: { pseudo in
                     var all = (defaults.dictionary(forKey: key) as? [String: Date]) ?? [:]
