@@ -95,7 +95,8 @@ struct AccountsModelSyncTests {
         let (model, store) = try device([Fake.account("user1", main: true)])
         await model.restore()
         model.setAccountSync(true)
-        // The first write-back stores the jar's form of the cookies (expiries rounded to the second): a real change, shared.
+        // The first write-back stores the jar's form of the cookies (expiries rounded to the second); a date-only change
+        // is not shared since #1390.
         await model.persistSession(of: "user1")
         let writes = item.writeCount
         await model.persistSession(of: "user1")

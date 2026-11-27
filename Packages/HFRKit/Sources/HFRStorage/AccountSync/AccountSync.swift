@@ -101,29 +101,7 @@ public final class AccountSync: Sendable {
             let raw = try? read?.get()
             // Any change of the device-only accounts means this device held some: never a bootstrap source again.
             state.hadLocalAccounts = true
-            switch change {
-            case .login(let pseudo):
-                let key = AccountKey.make(pseudo)
-                let floor = Self.floorStamp(of: key, in: state, copy: raw)
-                state.stamps[key] = AccountStamp(
-                    credentialsAt: Self.later(now, than: floor.credentialsAt), consentAt: Self.later(now, than: floor.consentAt)
-                )
-                // Entered on this device: never dropped by a provisional switch-off (spec D8); the other imported
-                // accounts stay lent until the confirming read.
-                state.imported.remove(key)
-            case .refresh(let pseudo):
-                let key = AccountKey.make(pseudo)
-                // Only new login cookies win the merge; a refresh of the same login keeps the copy's entry (#1390).
-                let floor = Self.floorStamp(of: key, in: state, copy: raw)
-                state.stamps[key] = AccountStamp(
-                    credentialsAt: Self.later(now, than: floor.credentialsAt), consentAt: state.stamps[key]?.consentAt ?? .distantPast
-                )
-            case .removal(let pseudo):
-                let key = AccountKey.make(pseudo)
-                state.stamps[key] = nil
-                state.imported.remove(key)
-                if state.isOn { state.removed[key] = now }
-            }
+            Self.record(change, at: now, in: &state, copy: raw)
             try saveState(state)
             // The push of a local change is not a confirming read: the provisional window lasts until the next launch or
             // foreground (ADR 0013 §6 *Bootstrap*).
@@ -201,29 +179,6 @@ extension AccountSync {
             }
             return try merge(&state, with: (remote, remoteRemoved), over: raw)
         }
-    }
-
-    /// The latest dates this device knows for `key` (its own stamp, the copy's entry and removal markers). A change made
-    /// here is stamped after them even when this device's clock is behind the device that wrote the copy (#1390): a
-    /// re-login or new login cookies on a device whose clock is late must not lose the merge to an older login. An
-    /// unreadable copy adds nothing: the reconcile that follows reports it.
-    private static func floorStamp(of key: String, in state: AccountSyncState, copy raw: Data?) -> AccountStamp {
-        var credentials = [state.stamps[key]?.credentialsAt]
-        var consent = [state.stamps[key]?.consentAt, state.removed[key]]
-        if let raw, case .full(_, let remote, let removed)? = try? AccountSyncEnvelope.decode(raw) {
-            let entry = remote.first { AccountKey.make($0.account.pseudo) == key }
-            credentials.append(entry?.credentialsAt)
-            consent += [entry?.consentAt, removed[key]]
-        }
-        return AccountStamp(
-            credentialsAt: credentials.compactMap { $0 }.max() ?? .distantPast, consentAt: consent.compactMap { $0 }.max() ?? .distantPast
-        )
-    }
-
-    /// `now`, or just after `floor` when `floor` is not earlier.
-    private static func later(_ now: Date, than floor: Date?) -> Date {
-        guard let floor, floor >= now else { return now }
-        return floor.addingTimeInterval(step)
     }
 
     private func rewriteOwnEnvelope(_ state: AccountSyncState, enabledAt: Date, over raw: Data) throws -> AccountSyncReport {
