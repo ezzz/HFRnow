@@ -24,6 +24,11 @@ struct ReaderComposerPresenter: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // The page takes what the bar leaves it, never more: a page with a minimum height (the reader's bottom pull icon
+            // keeps 96 pt under it, #1207) made the page and the bar together taller than the space above the keyboard, and the
+            // stack overflowed both ways, the bar's bottom behind the keyboard (#1285, #1286; measured on the iPhone 18 Pro
+            // simulator, iOS 27.2: the page's minimum was about 135 pt). Whatever overflows is the page's, under the bars.
+            .frame(minHeight: 0, maxHeight: .infinity)
             .transformEnvironment(\.dockedComposer) { value in
                 if let docked = Self.docked(isDocked: isDocked, composerIsOpen: composer != nil, height: dockedHeight) {
                     value = docked
