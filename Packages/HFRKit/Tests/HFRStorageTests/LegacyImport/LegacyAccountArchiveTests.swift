@@ -66,14 +66,48 @@ struct LegacyAccountArchiveTests {
         #expect(!UnexpectedArchivedObject.instantiated.withLock { $0 })
     }
 
-    @Test("a cookie whose archived properties hold a class outside the legacy format is refused")
+    @Test("a cookie whose archived properties hold a class outside the legacy format is refused, never instantiated")
     func forgedCookie() throws {
-        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
-        archiver.setClassName("NSHTTPCookie", for: ForgedCookie.self)
-        let entry = NSDictionary(dictionary: ["PSEUDO": "fakeuser1", "COOKIES": NSArray(array: [ForgedCookie()])])
-        archiver.encode(NSArray(array: [entry]), forKey: NSKeyedArchiveRootObjectKey)
-        archiver.finishEncoding()
-        #expect(throws: LegacyImportError.sourceUnreadable) { try LegacyAccountArchive.decode(archiver.encodedData) }
+        let forged = ForgedCookie(["Name": "md_user", "Value": UnexpectedArchivedObject()])
+        #expect(throws: LegacyImportError.sourceUnreadable) { try LegacyAccountArchive.decode(try archive(forged)) }
+        #expect(!UnexpectedArchivedObject.instantiated.withLock { $0 })
+    }
+
+    @Test("a cookie carrying every property NSHTTPCookie archives is kept")
+    func everyArchivedProperty() throws {
+        let full = try #require(HTTPCookie(properties: [
+            .name: "md_id", .value: "1", .domain: ".hardware.fr", .path: "/", .version: "1", .comment: "c",
+            .commentURL: "https://forum.hardware.fr/", .port: "80,443", .discard: "TRUE", .sameSitePolicy: "lax",
+            .secure: "TRUE", HTTPCookiePropertyKey("HttpOnly"): "TRUE", .expires: Date(timeIntervalSince1970: 1_803_859_200)
+        ]))
+        let entry = NSDictionary(dictionary: ["PSEUDO": "fakeuser1", "COOKIES": NSArray(array: [full])])
+        let data = try NSKeyedArchiver.archivedData(withRootObject: NSArray(array: [entry]), requiringSecureCoding: false)
+        let cookies = try #require(try LegacyAccountArchive.decode(data).first).cookies
+        #expect(cookies.map(\.name) == ["md_id"])
+        #expect(cookies.first?.isSecure == true && cookies.first?.isHTTPOnly == true)
+        #expect(cookies.first?.value == "1" && cookies.first?.domain == ".hardware.fr")
+    }
+
+    /// Each key `NSHTTPCookie` archives, given a dictionary: `HTTPCookie(properties:)` raises an Objective-C exception
+    /// (`Path`, `Comment`, `CommentURL`, `SameSite`) or crashes (`Port`) on some, and reads others by presence alone.
+    @Test("a cookie whose archived property has an unexpected type is skipped, never handed to Foundation", arguments: [
+        "Name", "Value", "Domain", "Path", "Expires", "Created", "Secure", "HttpOnly", "Discard", "Version", "Max-Age",
+        "Comment", "CommentURL", "OriginURL", "SameSite", "Port"
+    ])
+    func mistypedProperty(key: String) throws {
+        var properties = Self.archivedProperties
+        properties[key] = NSDictionary(dictionary: ["k": "v"])
+        let records = try LegacyAccountArchive.decode(try archive(ForgedCookie(properties), ForgedCookie(Self.archivedProperties)))
+        #expect(records.first?.cookies.map(\.name) == ["md_user"])
+        #expect(records.first?.cookies.first?.isSecure == false)
+    }
+
+    @Test("a property key NSHTTPCookie does not archive is dropped, the cookie kept")
+    func unknownProperty() throws {
+        var properties = Self.archivedProperties
+        properties["Partitioned"] = NSDictionary(dictionary: ["k": "v"])
+        let records = try LegacyAccountArchive.decode(try archive(ForgedCookie(properties)))
+        #expect(records.first?.cookies.map(\.name) == ["md_user"])
     }
 
     @Test("bytes that are not a legacy archive are unreadable")
@@ -84,10 +118,32 @@ struct LegacyAccountArchiveTests {
     }
 }
 
-/// A class no legacy archive holds (#1205): its decoder must never run.
+extension LegacyAccountArchiveTests {
+    /// The properties `NSHTTPCookie` archives for a cookie parsed from a response (measured on macOS 27.2).
+    fileprivate static var archivedProperties: [String: Any] {
+        [
+            "Name": "md_user", "Value": "fakeuser1", "Domain": ".hardware.fr", "Path": "/",
+            "Expires": Date(timeIntervalSince1970: 1_803_859_200), "Created": NSNumber(value: 817_457_422.0)
+        ]
+    }
+
+    /// One account whose cookies are `cookies`, each archived under the name `NSHTTPCookie`.
+    fileprivate func archive(_ cookies: ForgedCookie...) throws -> Data {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.setClassName("NSHTTPCookie", for: ForgedCookie.self)
+        let entry = NSDictionary(dictionary: ["PSEUDO": "fakeuser1", "COOKIES": NSArray(array: cookies)])
+        archiver.encode(NSArray(array: [entry]), forKey: NSKeyedArchiveRootObjectKey)
+        archiver.finishEncoding()
+        return archiver.encodedData
+    }
+}
+
+/// A class no legacy archive holds (#1205), though it adopts `NSSecureCoding`: only the class list keeps it out, and its
+/// decoder must never run.
 @objc(HFRTestUnexpectedArchivedObject)
-private final class UnexpectedArchivedObject: NSObject, NSCoding {
+private final class UnexpectedArchivedObject: NSObject, NSSecureCoding {
     static let instantiated = Mutex(false)
+    static var supportsSecureCoding: Bool { true }
 
     override init() {}
 
@@ -99,15 +155,19 @@ private final class UnexpectedArchivedObject: NSObject, NSCoding {
 }
 
 /// Archived under the name `NSHTTPCookie`, the way `NSHTTPCookie` archives itself (its properties as the unkeyed
-/// object `$0`), but with a class outside the legacy format inside those properties.
+/// object `$0`), with properties a test chooses.
 @objc(HFRTestForgedCookie)
 private final class ForgedCookie: NSObject, NSCoding {
-    override init() {}
+    private let properties: NSDictionary
+
+    init(_ properties: [String: Any]) {
+        self.properties = NSDictionary(dictionary: properties)
+    }
 
     init?(coder: NSCoder) { nil }
 
     func encode(with coder: NSCoder) {
-        coder.encode(NSDictionary(dictionary: ["Name": "md_user", "Value": UnexpectedArchivedObject()]))
+        coder.encode(properties)
     }
 }
 #endif

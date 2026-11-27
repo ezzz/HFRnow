@@ -53,13 +53,14 @@ import HFRModels
 /// `NSHTTPCookie` does not adopt `NSSecureCoding` (measured on macOS 27.2: a secure decode refuses it by name), so it is
 /// never instantiated from the archive: its class name is mapped to `LegacyArchivedCookie`, which reads the one object
 /// `NSHTTPCookie` archives (its properties dictionary, as the unkeyed object `$0`) under the same class list, and the
-/// cookie is rebuilt with `HTTPCookie(properties:)`.
+/// cookie is rebuilt with `HTTPCookie(properties:)` from the properties whose value types it expects.
 public enum LegacyAccountArchive {
     /// Every class the legacy archive holds (`MultisManager.m:49-80`): the array of accounts, their dictionaries,
-    /// strings, numbers, the avatar data, and a cookie's properties (strings, numbers, dates, URLs, arrays of ports).
-    /// Anything else fails the decode.
+    /// strings, numbers, the avatar data, and a cookie's properties (strings, numbers, dates, arrays of ports; no URL:
+    /// `NSHTTPCookie` archives `CommentURL` as a string and drops `OriginURL`, measured on macOS 27.2). Anything else
+    /// fails the decode.
     static let allowedClasses: [AnyClass] = [
-        NSArray.self, NSDictionary.self, NSString.self, NSNumber.self, NSData.self, NSDate.self, NSURL.self,
+        NSArray.self, NSDictionary.self, NSString.self, NSNumber.self, NSData.self, NSDate.self,
         LegacyArchivedCookie.self
     ]
 
@@ -119,9 +120,47 @@ final class LegacyArchivedCookie: NSObject, NSSecureCoding {
 
     private let properties: [String: Any]
 
-    /// The cookie of those properties; nil when Foundation cannot build one from them.
+    /// The cookie of those properties; nil when one has a value of a type `HTTPCookie(properties:)` does not take, or
+    /// when Foundation cannot build a cookie from them. A key `NSHTTPCookie` does not archive is dropped.
     var cookie: HTTPCookie? {
-        HTTPCookie(properties: Dictionary(uniqueKeysWithValues: properties.map { (HTTPCookiePropertyKey($0.key), $0.value) }))
+        var checked: [HTTPCookiePropertyKey: Any] = [:]
+        for (key, value) in properties {
+            switch Self.verdict(on: value, forKey: key) {
+            case .keep: checked[HTTPCookiePropertyKey(key)] = value
+            case .drop: continue
+            case .refuse: return nil
+            }
+        }
+        return HTTPCookie(properties: checked)
+    }
+
+    /// What `cookie` does with one archived property.
+    enum PropertyVerdict { case keep, drop, refuse }
+
+    /// `keep` when `value` has a type `HTTPCookie(properties:)` takes for `key`, `refuse` when not, `drop` for a key
+    /// `NSHTTPCookie` does not archive. Foundation does not check them: a dictionary under `Path`, `Comment`,
+    /// `CommentURL` or `SameSite` raises an Objective-C exception, one under `Port` crashes, and the flags are read by
+    /// presence (measured on macOS 27.2, #1205). The types are those `NSHTTPCookie` archives (strings; `Expires` a date,
+    /// `Created` a number, `Port` an array of numbers) and those Apple documents for `HTTPCookie(properties:)`, but a
+    /// `CommentURL` URL, which raises.
+    static func verdict(on value: Any, forKey key: String) -> PropertyVerdict {
+        let expected: Bool
+        switch key {
+        case "Name", "Value", "Domain", "Path", "Comment", "CommentURL", "OriginURL", "SameSite", "Secure", "HttpOnly",
+            "Discard":
+            expected = value is String
+        case "Expires":
+            expected = value is Date || value is String
+        case "Created":
+            expected = value is NSNumber
+        case "Version", "Max-Age":
+            expected = value is String || value is NSNumber
+        case "Port":
+            expected = value is String || (value as? [Any])?.allSatisfy { $0 is NSNumber } == true
+        default:
+            return .drop
+        }
+        return expected ? .keep : .refuse
     }
 
     init?(coder: NSCoder) {
