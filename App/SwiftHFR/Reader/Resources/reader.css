@@ -326,14 +326,20 @@ table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); 
 /* More cases of the same class (#1358). A folded blocked quote on the moderation background (`--modo`) puts `--secondary` at 4.23:1 in
    light (4.30 in dark); the same pull toward the page text gives 5.39 and 5.19. A continuation's 75 % opacity fades text and surface
    together: its date and note are 2.7 to 3.3:1 in light and its folded quote header 3.0 to 3.4 in both modes, whatever the author; the
-   page text is above 6.4 there, as dark's date and note already use it (#1210). Only those three are raised here: the other
-   `--secondary` texts of a continuation (ordinary quote header, signature, trailer) stay under 4.5:1 and are the follow-up's. */
+   page text is above 6.4 there, as dark's date and note already use it (#1210). The other `--secondary` texts of a continuation
+   (ordinary quote header, signature, trailer) are raised by the rule below (#1360). */
 .message.mode { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
 .message.mode table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
 @media not (prefers-color-scheme: dark) {
   .message.continuation .date, .message.continuation .continuation-note, .message.whitelist.continuation .header .date { color: var(--text); }
 }
 .message.continuation table.quote-blocked > * > tr > td > b.s1 { color: var(--text); }
+/* The other `--secondary` texts of a continuation (#1360): the ordinary quote header, the signature and the trailer, whose 75 % fade puts
+   them at 2.8 to 3.4:1 in the worst surface (allowlist or moderation tint, light and dark). 70 % toward the page text gives 5.0 in
+   light and 5.7 in dark there and keeps them softer than the body. A dedicated variable: a custom property cannot refer to itself.
+   The image link, the deleted note and a blocked summary are not covered. */
+.message.continuation { --secondary-faded: color-mix(in srgb, var(--secondary) 30%, var(--text)); }
+.message.continuation b.s1, .message.continuation .signature, .message.continuation .trailer { color: var(--secondary-faded); }
 table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
 table.quote-blocked { background: color-mix(in srgb, var(--text) var(--blocked-tint), transparent); }
 /* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */

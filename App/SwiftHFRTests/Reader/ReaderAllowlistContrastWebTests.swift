@@ -15,22 +15,26 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
         token: Int, style: ThemeStyle, author: String = "ami", isContinuation: Bool = false
     ) -> ReaderDocument {
         let html = """
-            <p>texte</p><table class="citation quote-blocked"><tr class="none"><td><b class="s1">Citation masquée</b><br>\
+            <p>texte</p><table class="citation"><tr class="none"><td><b class="s1">ami a écrit :</b><br><p>cité</p></td></tr></table>\
+            <table class="citation quote-blocked"><tr class="none"><td><b class="s1">Citation masquée</b><br>\
             <p>cité</p></td></tr></table>
             """
         let message = ReaderMessage(
             numreponse: 1, author: author, isDeleted: false, isContinuation: isContinuation, avatarURL: nil,
-            dateText: "27-10-2026 10:01:00", editNote: nil, quotedByCount: nil, content: MessageContent(html: html)
+            dateText: "27-10-2026 10:01:00", editNote: "ami", quotedByCount: nil,
+            content: MessageContent(html: html, signatureHTML: "<i>ma signature</i>")
         )
         let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
-        let options = ReaderRenderOptions(style: style, visibility: VisibilityPolicy(allowlist: ["ami"]))
+        var options = ReaderRenderOptions(style: style, visibility: VisibilityPolicy(allowlist: ["ami"]))
+        options.showsSignatures = true
         return ReaderDocument(
             token: token, html: TopicHTMLBuilder.document(for: page, token: token, options: options),
             anchor: nil, keepsScrollPosition: false
         )
     }
 
-    /// [header date contrast, blocked quote header contrast, 1 when the header date is drawn in the page text colour] of the first message.
+    /// [header date contrast, folded quote header contrast, 1 when the header date is drawn in the page text colour, ordinary quote header
+    /// contrast, signature contrast, trailer contrast] of the first message.
     private func probe(root rootSelector: String) -> String { """
         const rgba = (c) => {
             if (c === 'transparent') { return [0, 0, 0, 0]; }
@@ -68,7 +72,11 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
         const date = root.querySelector('.header .date');
         const dateIsText = getComputedStyle(date).color === getComputedStyle(textProbe).color;
         textProbe.remove();
-        return JSON.stringify([ratio(date), ratio(root.querySelector('table.quote-blocked b.s1')), dateIsText ? 1 : 0]);
+        return JSON.stringify([
+            ratio(date), ratio(root.querySelector('table.quote-blocked b.s1')), dateIsText ? 1 : 0,
+            ratio(root.querySelector('table.citation:not(.quote-blocked) b.s1')), ratio(root.querySelector('.signature')),
+            ratio(root.querySelector('.trailer'))
+        ]);
         """ }
 
     private func read(
@@ -144,4 +152,49 @@ struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
     @Test func plainContinuationInModernDarkHoldsAA() async { await checkPlainContinuation(style: .dark, theme: .modern, token: 14) }
     @Test func plainContinuationInClassicLightHoldsAA() async { await checkPlainContinuation(style: .light, theme: .classic, token: 15) }
     @Test func plainContinuationInClassicDarkHoldsAA() async { await checkPlainContinuation(style: .dark, theme: .classic, token: 16) }
+
+    /// #1360: the other secondary texts of a continuation (75 % opacity): the ordinary quote header, the signature and the trailer, on
+    /// the plain, allowlisted and moderation surfaces, light and dark, both looks.
+    private enum Surface: String {
+        case plain, allowlisted, moderation
+
+        var author: String {
+            switch self {
+            case .plain: "inconnu"
+            case .allowlisted: "ami"
+            case .moderation: VisibilityPolicy.moderationName
+            }
+        }
+
+        var root: String {
+            switch self {
+            case .plain: "article.message.continuation"
+            case .allowlisted: "article.message.whitelist"
+            case .moderation: "article.message.mode"
+            }
+        }
+    }
+
+    private func checkContinuationText(_ surface: Surface, _ style: UIUserInterfaceStyle, _ theme: ThemeStyle, _ token: Int) async {
+        let seen = await read(
+            style: style, theme: theme, token: token, author: surface.author, isContinuation: true, root: surface.root
+        )
+        guard let seen, seen.count == 6 else { Issue.record("the reader did not answer"); return }
+        #expect(seen[3] >= 4.5, "ordinary quote header in a \(surface.rawValue) continuation: \(seen[3])")
+        #expect(seen[4] >= 4.5, "signature in a \(surface.rawValue) continuation: \(seen[4])")
+        #expect(seen[5] >= 4.5, "trailer in a \(surface.rawValue) continuation: \(seen[5])")
+    }
+
+    @Test func plainContinuationTextInModernLight() async { await checkContinuationText(.plain, .light, .modern, 17) }
+    @Test func plainContinuationTextInModernDark() async { await checkContinuationText(.plain, .dark, .modern, 18) }
+    @Test func plainContinuationTextInClassicLight() async { await checkContinuationText(.plain, .light, .classic, 19) }
+    @Test func plainContinuationTextInClassicDark() async { await checkContinuationText(.plain, .dark, .classic, 20) }
+    @Test func allowlistedContinuationTextInModernLight() async { await checkContinuationText(.allowlisted, .light, .modern, 21) }
+    @Test func allowlistedContinuationTextInModernDark() async { await checkContinuationText(.allowlisted, .dark, .modern, 22) }
+    @Test func allowlistedContinuationTextInClassicLight() async { await checkContinuationText(.allowlisted, .light, .classic, 23) }
+    @Test func allowlistedContinuationTextInClassicDark() async { await checkContinuationText(.allowlisted, .dark, .classic, 24) }
+    @Test func moderationContinuationTextInModernLight() async { await checkContinuationText(.moderation, .light, .modern, 25) }
+    @Test func moderationContinuationTextInModernDark() async { await checkContinuationText(.moderation, .dark, .modern, 26) }
+    @Test func moderationContinuationTextInClassicLight() async { await checkContinuationText(.moderation, .light, .classic, 27) }
+    @Test func moderationContinuationTextInClassicDark() async { await checkContinuationText(.moderation, .dark, .classic, 28) }
 }
