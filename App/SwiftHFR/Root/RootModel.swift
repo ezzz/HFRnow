@@ -225,7 +225,7 @@ final class RootModel {
             qualityAlerts: QualityAlertsModel(
                 source: environment.qualityAlertsSource,
                 visibility: environment.visibility, isLoggedIn: environment.isLoggedIn, accountName: environment.accountName,
-                store: store, launchFeed: environment.sharesQualityAlertsFeed ? .shared : QualityAlertsLaunchFeed()
+                store: store, launchFeed: environment.qualityAlertsFeed ?? QualityAlertsLaunchFeed()
             )
         )
     }

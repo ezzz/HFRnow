@@ -16,7 +16,7 @@ public struct RESTBrowsingClient: Sendable {
     /// Where every request goes: a transport that sends and stores no cookie.
     let transport: any HTTPTransport
 
-    /// Creates the client over its own cookie-less transport.
+    /// Creates the client over the shared cookie-less transport (`AnonymousTransport.shared`).
     public init() {
         self.init(transport: AnonymousTransport.shared)
     }

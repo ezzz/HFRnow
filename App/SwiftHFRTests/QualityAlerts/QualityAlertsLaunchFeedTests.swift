@@ -2,6 +2,7 @@ import Foundation
 import HFRClient
 import HFRModels
 import HFRNetwork
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 
@@ -24,6 +25,31 @@ struct QualityAlertsLaunchFeedTests {
         #expect(source.calls == 1)
         #expect(rebuilt.unreadCount == 25)
         #expect(await waited.durations.isEmpty)
+    }
+
+    /// The app's wiring: `make` hands every environment the app's memo, and the roots built from one environment count from one
+    /// read; an environment without a memo (built by hand) gives each root its own.
+    @Test func rootsOfTheAppsEnvironmentShareTheFeedAndHandBuiltOnesDoNot() async throws {
+        let items = try Support.capturedItems()
+        var environment = AppEnvironment.make(session: HFRSession(), accountName: nil)
+        #expect(environment.qualityAlertsFeed === QualityAlertsLaunchFeed.shared)
+
+        let shared = FakeQualityAlertsSource(items: items)
+        environment.qualityAlertsSource = shared
+        // A memo of this test's own stands for `.shared`, which the rest of the test process must not inherit.
+        environment.qualityAlertsFeed = QualityAlertsLaunchFeed()
+        for _ in 0..<2 {
+            await RootModel(environment: environment, store: InMemorySettingsStore()).qualityAlerts.checkAtLaunch(sleep: { _ in })
+        }
+        #expect(shared.calls == 1)
+
+        let separate = FakeQualityAlertsSource(items: items)
+        environment.qualityAlertsSource = separate
+        environment.qualityAlertsFeed = nil
+        for _ in 0..<2 {
+            await RootModel(environment: environment, store: InMemorySettingsStore()).qualityAlerts.checkAtLaunch(sleep: { _ in })
+        }
+        #expect(separate.calls == 2)
     }
 
     /// Two windows built together share the one read in flight; a failed read is not kept, so the next root asks again.

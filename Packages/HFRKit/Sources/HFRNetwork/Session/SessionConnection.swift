@@ -60,7 +60,9 @@ final class SessionConnection: @unchecked Sendable {
 /// The connections the probes of one account session send through, recycled between probes (#1398).
 ///
 /// A probe (`HFRSession.probe(cookies:now:)`) used to open a new `URLSession`, so every session check, MP poll and
-/// gated write's check paid a new TCP + TLS handshake. A probe now takes an idle connection from here (or a new one),
+/// gated write's check paid a new TCP + TLS handshake. Recycling the `URLSession` lets a probe reuse a connection a
+/// previous one left open (intent: the count of `URLSession`s is tested, the handshakes saved are to be measured on a
+/// device, #893). A probe now takes an idle connection from here (or a new one),
 /// with its jar emptied before the probe's seed is installed, and gives it back when the probe is released. Two probes
 /// alive at the same time never share a connection, so never a jar; a connection whose last exchange threw (timeout,
 /// cancellation, transport failure) is not given back, so a late answer can never write into the next probe's jar.

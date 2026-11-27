@@ -14,7 +14,7 @@ public struct FilteredPostsFlow: Sendable {
 
     private let fetcher: PageFetcher
 
-    /// Creates the flow over its own cookie-less transport.
+    /// Creates the flow over the shared cookie-less transport (`AnonymousTransport.shared`).
     public init() {
         self.init(transport: AnonymousTransport.shared)
     }

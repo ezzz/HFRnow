@@ -1,5 +1,5 @@
 import Foundation
-import HFRClient
+import HFRModels
 
 /// The AQ feed the app read last, kept for the life of the process (#1398): legacy reads the feed once at launch for the badge
 /// (`MainWindow.swift:1609` @ 87fe0d1c), while SwiftHFR rebuilds its root on each account switch, login and logout, and builds
@@ -7,12 +7,15 @@ import HFRClient
 /// account, only the hidden-category rule applied to it does, and that rule runs on every count.
 @MainActor
 final class QualityAlertsLaunchFeed {
-    /// The one of the app; a model built without it (tests) gets its own.
-    static let shared = QualityAlertsLaunchFeed()
+    /// The one of the app, carried by the environments `AppEnvironment.make` builds; a root built without it (tests) gets its own.
+    nonisolated static let shared = QualityAlertsLaunchFeed()
 
     /// The last feed read, nil until one was.
     private(set) var items: [AQFeedItem]?
     private var pending: Task<[AQFeedItem]?, Never>?
+
+    /// An empty memo; nonisolated so the nonisolated `AppEnvironment.make` can name `shared`.
+    nonisolated init() {}
 
     /// The kept feed, else the one `fetch` reads (nil when it failed), read once for every caller that asks while it runs. The
     /// read is not cancelled with a caller: another root may be waiting for it.

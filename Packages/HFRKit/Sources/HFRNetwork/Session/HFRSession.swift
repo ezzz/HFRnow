@@ -85,7 +85,8 @@ public actor HFRSession: HTTPTransport {
     /// A fresh session holding `cookies`, with this session's host policy and network settings but its own jar and no
     /// `hash_check`: what a session check sends its request through, so a test session restricted to the loopback host
     /// never yields a probe that may reach the forum (#320). Its `URLSession` is recycled from earlier probes of this
-    /// account once they are released, with an emptied jar, so a check reuses their open connection (#1398).
+    /// account once they are released, with an emptied jar, so that a check can reuse a connection an earlier probe left open
+    /// (#1398; the handshakes saved are to be measured on a device, #893).
     package nonisolated func probe(cookies: [StoredCookie], now: Date) -> HFRSession {
         HFRSession(probeOf: probeConnections, cookies: cookies, now: now)
     }
