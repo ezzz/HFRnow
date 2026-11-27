@@ -4,7 +4,9 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView.usesSidebarRoot) @ 87fe0d1c (`:1380-1388`, the same at 2fe43da3
 // `:1357-1365`), and its tab root on a landscape Pro Max (`compactTabRoot`, #431) @ 87fe0d1c. Differences: none in the
-// condition (GAP-210, GAP-215, LOT-147); the fold handoff is the shared `RootModel` (GAP-217, see `RootModel.rootSwapped`).
+// condition (GAP-210, GAP-215, LOT-147); the fold handoff is the shared `RootModel` (GAP-217, see `RootModel.rootSwapped`); while
+// the window is away (#1404) the root built is kept and the condition is applied on return, where legacy swaps at once
+// (`.onChange(of: usesSidebarRoot)`, `MainWindow.swift:1747-1749` @ 87fe0d1c), also for the app-switcher snapshots.
 /// The root navigation: the legacy bottom tab bar, or the legacy sidebar on a regular-width iPad and on a phone regular in both
 /// dimensions (the iPhone Duo unfolded). A compact-width iPad (Slide Over, Split View), the Duo's cover screen and a
 /// landscape Pro Max get the tab bar, as legacy.

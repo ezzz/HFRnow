@@ -12,49 +12,51 @@ import UIKit
 /// class for its app-switcher snapshots), the swap rebuilt Favoris, whose appearance sent `GET /forum1f.php` in the background;
 /// locked, that request froze and ended `timedOut` 25–56 s later, the error left on the list (device pass of #1388). The real
 /// roots over fakes, with the scene phase the test sets, count what the lists ask for.
+/// The scene phase the hosted views read, so a test can send the window away and back.
+@MainActor
+@Observable
+private final class Phase {
+    var value: ScenePhase = .active
+    /// The hosted content is shown; false shows an empty window, so a test can show it later (or build it again).
+    var showsContent = true
+    /// What `SceneAwayTracking` is told of the app's state (the test host's own is always active).
+    var appIsInBackground = false
+}
+
+private struct PhaseHost<Content: View>: View {
+    let phase: Phase
+    let content: Content
+
+    var body: some View {
+        Group {
+            if phase.showsContent { content } else { Color.clear }
+        }
+        // As `RootNavigationView` does above the root.
+        .tracksSceneAway { phase.appIsInBackground }
+        .environment(\.scenePhase, phase.value)
+    }
+}
+
+/// A request that hangs, as one iOS froze, until released, then fails `timedOut`; only the first call to `pass()` does.
+private final class FrozenOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var released = false
+    private var calls = 0
+
+    func release() { lock.withLock { released = true } }
+
+    func pass() async throws(ListLoadError) {
+        let call = lock.withLock { calls += 1; return calls }
+        guard call == 1 else { return }
+        // Not cancellable on purpose: a request frozen with the app does not notice a cancellation either.
+        while !lock.withLock({ released }) { try? await Task.sleep(for: .milliseconds(10)) }
+        throw .timedOut
+    }
+}
+
 @MainActor
 @Suite(.serialized)
 struct BackgroundListLoadHostedTests {
-    /// The scene phase the hosted views read, so a test can send the window away and back.
-    @MainActor
-    @Observable
-    final class Phase {
-        var value: ScenePhase = .active
-        /// The hosted content is shown; false shows an empty window, so a test can show it later.
-        var showsContent = true
-    }
-
-    private struct PhaseHost<Content: View>: View {
-        let phase: Phase
-        let content: Content
-
-        var body: some View {
-            Group {
-                if phase.showsContent { content } else { Color.clear }
-            }
-            // As `RootNavigationView` does above the root.
-            .tracksSceneAway()
-            .environment(\.scenePhase, phase.value)
-        }
-    }
-
-    /// A favourites request that hangs, as one iOS froze, until released, then fails `timedOut`; later ones answer.
-    final class FrozenFirstRequest: @unchecked Sendable {
-        private let lock = NSLock()
-        private var released = false
-        private var calls = 0
-
-        func release() { lock.withLock { released = true } }
-
-        func answer() async throws(ListLoadError) -> FavoritesPage {
-            let call = lock.withLock { calls += 1; return calls }
-            guard call == 1 else { return FavoritesPage(sections: [favoriteSection(13, [favoriteTopic(1)])]) }
-            // Not cancellable on purpose: a request frozen with the app does not notice a cancellation either.
-            while !lock.withLock({ released }) { try? await Task.sleep(for: .milliseconds(10)) }
-            throw .timedOut
-        }
-    }
-
     private struct HostedRoot {
         let window: UIWindow
         let host: UIViewController
@@ -145,8 +147,11 @@ struct BackgroundListLoadHostedTests {
     @Test(.timeLimit(.minutes(2)))
     func aLoadInFlightWhenTheSceneLeavesIsAskedAgainOnReturn() async throws {
         let data = FakeDataSource()
-        let frozen = FrozenFirstRequest()
-        data.favoritesHandler = { _ async throws(ListLoadError) -> FavoritesPage in try await frozen.answer() }
+        let frozen = FrozenOnce()
+        data.favoritesHandler = { _ async throws(ListLoadError) -> FavoritesPage in
+            try await frozen.pass()
+            return FavoritesPage(sections: [favoriteSection(13, [favoriteTopic(1)])])
+        }
         let model = TopicListModel(source: .favorites, dataSource: data, isLoggedIn: { true })
         let phase = Phase()
         let window = try host(phase: phase, NavigationStack { TopicListView(model: model, selection: .constant(nil)) })
@@ -171,7 +176,7 @@ struct BackgroundListLoadHostedTests {
 // MARK: Hosting
 
 extension BackgroundListLoadHostedTests {
-    private func favoritesRequests(_ data: FakeDataSource) -> Int {
+    func favoritesRequests(_ data: FakeDataSource) -> Int {
         data.requests.filter { $0.hasPrefix("favorites:") }.count
     }
 
@@ -279,5 +284,105 @@ extension BackgroundListLoadHostedTests {
             window.layoutIfNeeded()
             try await Task.sleep(for: .milliseconds(50))
         }
+    }
+}
+
+// MARK: Round 1 of the review of #1414
+
+/// A page of private messages `page` of `last`.
+private func messagesPage(_ threads: [PrivateMessageThread], page: Int, last: Int) -> PrivateMessageListPage {
+    PrivateMessageListPage(
+        threads: threads,
+        navigation: PageNavigation(
+            current: page, last: last, nextPath: page < last ? "/next" : nil, previousPath: page > 1 ? "/prev" : nil
+        )
+    )
+}
+
+extension BackgroundListLoadHostedTests {
+    /// Finding 1: « MP multiples » searching later pages when the window goes away. Stopping only the load let the search's
+    /// loop ask for the same page again, in the background (`[1, 2, 2]`); it stops, and `retry()` resumes it on return.
+    @Test(.timeLimit(.minutes(2)))
+    func aSegmentSearchStoppedByTheLockSendsNothingMoreAndResumesOnReturn() async {
+        let source = FakePrivateMessages()
+        let gate = CheckGate()
+        source.handler = { page in
+            if page == 2 { await gate.wait() }
+            let group = page == 3 ? [messageThread(99, group: true)] : []
+            return messagesPage([messageThread(page)] + group, page: page, last: 4)
+        }
+        let store = InMemorySettingsStore()
+        MPListSegmentStore(settings: store).set(.oneToOne, for: "Alice")
+        let model = MessageListModel(source: source, isLoggedIn: { true }, settings: store, account: "Alice")
+        await model.onAppear()
+        let search = gate.run { await model.select(.group) }
+        guard await gate.entered() else { Issue.record("The search never asked for page 2"); return }
+
+        #expect(model.suspendLoad())
+        await gate.open()
+        await search.value
+        try? await Task.sleep(for: .milliseconds(300))
+        #expect(source.requests == [1, 2], "the search went on in the background")
+        #expect(!model.loader.isLoading)
+        #expect(model.loader.wasSuspended)
+
+        await model.retry()
+        #expect(source.requests == [1, 2, 2, 3])
+        #expect(model.visibleThreads.map(\.id) == [messageThread(99, group: true).id])
+        #expect(!model.loader.wasSuspended)
+    }
+
+    /// Finding 2: a window first built while the app is in the background (no move seen yet) is away from its first body, so
+    /// its list's first `task` sends nothing.
+    @Test(.timeLimit(.minutes(2)))
+    func aListFirstBuiltInTheBackgroundLoadsOnlyOnReturn() async throws {
+        let data = FakeDataSource()
+        data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, [favoriteTopic(1)])]) }
+        let model = TopicListModel(source: .favorites, dataSource: data, isLoggedIn: { true })
+        let phase = Phase()
+        phase.value = .background
+        phase.appIsInBackground = true
+        let window = try host(phase: phase, NavigationStack { TopicListView(model: model, selection: .constant(nil)) })
+        defer { window.isHidden = true }
+        try await pause(window)
+        #expect(data.requests.isEmpty, "the list loaded in the background: \(data.requests)")
+
+        phase.value = .active
+        phase.appIsInBackground = false
+        #expect(await settle(window) { model.loader.value != nil }, "the list did not load on return")
+        #expect(data.requests.count == 1, "\(data.requests)")
+    }
+
+    /// Finding 3: a pager tap stopped by the lock is asked again on return even when the list was built again meanwhile (a fold
+    /// made while away swaps the root on return): the model remembers it, not the view.
+    @Test(.timeLimit(.minutes(2)))
+    func aStoppedPageIsAskedAgainByAListBuiltAgainWhileAway() async throws {
+        let data = FakeDataSource()
+        let frozen = FrozenOnce()
+        data.topicHandler = { _, page async throws(ListLoadError) -> TopicListPage in
+            if page == 2 { try await frozen.pass() }
+            return topicPage(page: page)
+        }
+        let model = TopicListModel(source: .forum(.forum(13), title: "Catégorie 13"), dataSource: data)
+        let phase = Phase()
+        let window = try host(phase: phase, NavigationStack { TopicListView(model: model, selection: .constant(nil)) })
+        defer { window.isHidden = true }
+        #expect(await settle(window) { model.loader.value != nil && !model.loader.isLoading })
+        let next = Task { await model.goToNextPage() }
+        #expect(await settle(window) { data.requests.contains("topics:13:2") && model.loader.isLoading })
+
+        phase.value = .background
+        #expect(await settle(window) { !model.loader.isLoading }, "the page load kept running in the background")
+        phase.showsContent = false
+        try await pause(window)
+        phase.showsContent = true
+        try await pause(window)
+        frozen.release()
+        await next.value
+
+        phase.value = .active
+        #expect(await settle(window) { model.currentPage == 2 }, "the stopped page was not asked again: \(data.requests)")
+        #expect(data.requests.filter { $0 == "topics:13:2" }.count == 2, "\(data.requests)")
+        #expect(model.loader.error == nil)
     }
 }
