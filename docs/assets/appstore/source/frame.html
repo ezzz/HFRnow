@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<!-- App Store screenshot frame (#1381), in the language of the `:o` social preview (#1380): two inks and paper, an Inter
+     headline, a monospace kicker. One page for every screen and every size: the viewport is the output size, and every
+     measure derives from it.
+     Query: shot (image path; absent or missing file: a labelled placeholder), kicker, caption (*word* = accent colour,
+     | = line break), ink (paper | orange | ink), index, total, ratio (width/height of the expected capture, placeholder only).
+     The page sets body[data-ready] when laid out body[data-placeholder] when it drew a placeholder,
+     body[data-wrapped] when a caption line is wider than 94 % of the column, and body[data-fonts-missing]
+     when Inter or JetBrains Mono did not load. -->
+<link rel="stylesheet" href="fonts.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100vw; height: 100vh; overflow: hidden; }
+  body { --u: min(1vw, .5vh); /* one unit: 1 % of the width on a tall phone canvas, capped on squarer ones (iPad, Duo) */
+    font-family: Inter, sans-serif; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; padding: calc(7 * var(--u)) calc(7 * var(--u)); padding-bottom: 0; }
+  body.paper  { --bg: #f3eee4; --fg: #16130f; --accent: #f2691c; --slab: #16130f; }
+  body.orange { --bg: #f2691c; --fg: #16130f; --accent: #f3eee4; --slab: #16130f; }
+  body.ink    { --bg: #16130f; --fg: #f3eee4; --accent: #f2691c; --slab: #2b2621; }
+  .kicker { display: flex; justify-content: space-between; align-items: baseline; font: 600 calc(2.6 * var(--u)) 'JetBrains Mono', monospace;
+    letter-spacing: .06em; text-transform: uppercase; border-bottom: calc(.35 * var(--u)) solid var(--fg); padding-bottom: calc(1.8 * var(--u)); }
+  .kicker b { font-weight: 800; font-size: calc(3.6 * var(--u)); letter-spacing: -.08em; text-transform: none; }
+  h1 { margin-top: calc(5 * var(--u)); font-weight: 900; font-size: calc(12 * var(--u)); line-height: .94; letter-spacing: -.05em; }
+  h1 em { font-style: normal; color: var(--accent); }
+  /* The whole capture, in a plain dark slab with rounded corners (no maker's detail), as large as the space under the caption allows. */
+  .device { margin: calc(6 * var(--u)) 0; flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-start; }
+  .slab { background: var(--slab); border-radius: calc(8.5 * var(--u)); padding: calc(2 * var(--u)); }
+  .slab img, .slab .todo { display: block; width: 100%; height: 100%; border-radius: calc(6.5 * var(--u)); }
+  .todo { display: flex; align-items: flex-start; justify-content: center; padding-top: 30%;
+    font: 600 calc(2.4 * var(--u)) 'JetBrains Mono', monospace; color: #6b635a; text-align: center; line-height: 1.6;
+    background: repeating-linear-gradient(135deg, #e9e3d8 0 calc(3 * var(--u)), #f3eee4 0 calc(6 * var(--u))); }
+</style></head>
+<body>
+<div class="kicker"><span id="kicker"></span><b>:o</b></div>
+<h1 id="caption"></h1>
+<div class="device" id="device"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+document.body.className = ['paper', 'orange', 'ink'].includes(q.get('ink')) ? q.get('ink') : 'paper';
+const index = q.get('index'), total = q.get('total');
+document.getElementById('kicker').textContent = (index ? `${String(index).padStart(2, '0')}${total ? '/' + String(total).padStart(2, '0') : ''} · ` : '') + (q.get('kicker') || '');
+document.getElementById('caption').innerHTML = esc(q.get('caption') || '').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\|/g, '<br>');
+const device = document.getElementById('device');
+const done = () => document.fonts.ready.then(() => {
+  // A fallback font changes every measure: a font file that is not a font (a failed download) must stop the render.
+  // The status of the two declared faces is read, not fonts.check(): a machine with Inter installed would pass that.
+  if ([...document.fonts].some((face) => face.status !== 'loaded')) document.body.dataset.fontsMissing = '1';
+  // A caption line wider than 94 % of the column is too long for this size (it wraps, or is one hinting change away
+  // from wrapping): say so instead of shipping it.
+  const h1 = document.getElementById('caption');
+  const probe = h1.cloneNode(true);
+  probe.removeAttribute('id');
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;margin:0;width:max-content';
+  document.body.appendChild(probe);
+  if (probe.getBoundingClientRect().width > 0.94 * h1.getBoundingClientRect().width) document.body.dataset.wrapped = '1';
+  probe.remove();
+  document.body.dataset.ready = '1';
+});
+// The slab keeps the capture's aspect ratio and fills the box under the caption: limited by its height (a phone capture)
+// or by its width (a tablet or the Duo's inner display).
+const place = (content, ratio) => document.fonts.ready.then(() => {
+  const slab = document.createElement('div');
+  slab.className = 'slab';
+  slab.appendChild(content);
+  device.appendChild(slab);
+  const bezel = 2 * parseFloat(getComputedStyle(slab).paddingLeft);
+  const box = device.getBoundingClientRect();
+  const height = Math.min(box.height - bezel, (box.width - bezel) / ratio);
+  slab.style.width = (height * ratio + bezel) + 'px';
+  slab.style.height = (height + bezel) + 'px';
+  done();
+});
+const placeholder = (why) => {
+  const todo = document.createElement('div');
+  todo.className = 'todo';
+  todo.innerHTML = `capture à venir<br>${esc(why)}`;
+  document.body.dataset.placeholder = '1';
+  place(todo, +q.get('ratio') || innerWidth / innerHeight);
+};
+const shot = q.get('shot');
+if (!shot) placeholder('');
+else {
+  const img = new Image();
+  img.onload = () => place(img, img.naturalWidth / img.naturalHeight);
+  img.onerror = () => placeholder(shot);
+  img.src = shot;
+}
+</script>
+</body></html>
