@@ -133,7 +133,9 @@ import Testing
         for pair in [
             "link/quoteBackground", "link/codeBackground", "link/readerAlternate", "textSecondary/codeBackground",
             "accentText/codeBackground", "accentText/systemCard", "accentText/background", "meta/surface", "counter/surface",
-            "textSecondary/readerAlternate", "errorText/surface", "errorText/selection", "badgeOutline/surface"
+            "textSecondary/readerAlternate", "errorText/surface", "errorText/selection", "badgeOutline/surface",
+            // The dense look (#1107) draws a themed row's text on `background` (#1125).
+            "textPrimary/background", "textSecondary/background", "errorText/background", "badgeOutline/background"
         ] {
             #expect(names.contains(pair), "\(pair)")
         }

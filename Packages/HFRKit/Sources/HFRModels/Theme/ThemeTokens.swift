@@ -165,6 +165,9 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         ("textPrimary", "selection"), ("textSecondary", "selection"), ("accentText", "selection"),
         ("errorText", "surface"), ("errorText", "selection"),
         ("badgeOutline", "surface"),
+        // The dense look (#1107, behind « Lignes denses ») draws a themed row's text with no card, on `background` (#1125).
+        ("textPrimary", "background"), ("textSecondary", "background"), ("errorText", "background"),
+        ("badgeOutline", "background"),
         // The reader: links and accents in quotes, spoilers and code, and every text of an even message.
         ("link", "quoteBackground"), ("link", "spoilerBackground"), ("link", "codeBackground"),
         ("textSecondary", "codeBackground"), ("accentText", "codeBackground"), ("accentText", "quoteBackground"),
