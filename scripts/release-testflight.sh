@@ -3,6 +3,7 @@
 #
 #   scripts/release-testflight.sh --version 5.0 --build 1 --dry-run [--unsigned]   # stops before the upload
 #   scripts/release-testflight.sh --version 5.0 --build 1 --upload                 # operator only: asks for confirmation
+#   scripts/release-testflight.sh --beta --version 5.0 --dry-run                  # internal beta hfrplus-swift.red.super
 #
 # Credentials (App Store Connect API key) and signing choices come from environment variables or from a local file
 # outside the repository (default ~/.config/swifthfr/release.env, see scripts/release.env.example). Nothing secret is
@@ -16,7 +17,15 @@ LEGACY_FLOOR_VERSION="4.0.3"
 MIN_XCODE_MAJOR=27
 SCHEME="SwiftHFR"
 CONFIGURATION="Release"
+EXPECTED_BUNDLE_ID="hfrplus.red.super"
+TAG_PREFIX="swifthfr-"
 INTEGRATION_BRANCH="dev-swift"
+# --beta (LOT-161 step 1, operator decision of 2026-11-27 on #251): the internal-TestFlight variant, its own App ID and
+# App Store Connect record (App/Config/Beta.xcconfig), its own build counter from 1, kept outside the repository.
+BETA_SCHEME="SwiftHFR Beta"
+BETA_CONFIGURATION="Beta"
+BETA_BUNDLE_ID="hfrplus-swift.red.super"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/swifthfr"
 
 # ---------------------------------------------------------------- output helpers
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -63,19 +72,25 @@ run_step() {
 
 usage() {
   cat <<'EOF'
-Usage: scripts/release-testflight.sh --version X.Y[.Z] --build N (--dry-run | --upload) [options]
+Usage: scripts/release-testflight.sh [--beta] --version X.Y[.Z] [--build N] (--dry-run | --upload) [options]
 
 Required:
-  --version X.Y[.Z]   CFBundleShortVersionString (MARKETING_VERSION); must exceed the legacy floor
-  --build N[.N[.N]]   CFBundleVersion (CURRENT_PROJECT_VERSION); no default, chosen by the operator
+  --version X.Y[.Z]   CFBundleShortVersionString (MARKETING_VERSION); must exceed the legacy floor (not with --beta)
+  --build N[.N[.N]]   CFBundleVersion (CURRENT_PROJECT_VERSION); no default, chosen by the operator.
+                      With --beta: an integer, optional; default the beta counter + 1 (see --beta)
   --dry-run           archive, check, export (if signed), write release notes, then stop before the upload
   --upload            same, then upload to App Store Connect after an interactive confirmation (operator only)
 
 Options:
+  --beta              the internal TestFlight beta: scheme "SwiftHFR Beta", configuration Beta, bundle id
+                      hfrplus-swift.red.super, "TestFlight internal testing only", settings file release-beta.env,
+                      tags swifthfr-beta-*; build counter in $CONFIG_DIR/beta-build-number (HFR_BETA_COUNTER),
+                      written only after a successful upload
   --unsigned          archive with CODE_SIGNING_ALLOWED=NO and skip the export (dry run only)
   --since REF         first commit (exclusive) of the release notes' change list (default: last swifthfr-* tag)
   --output DIR        output folder, relative to the current directory (default: <repo>/build/release/<version>-<build>, git-ignored)
-  --config FILE       local settings file (default: ${XDG_CONFIG_HOME:-~/.config}/swifthfr/release.env)
+  --config FILE       local settings file (default: ${XDG_CONFIG_HOME:-~/.config}/swifthfr/release.env,
+                      release-beta.env with --beta; HFR_RELEASE_CONFIG overrides the default)
   -h, --help          this help
 
 Settings (environment variables win over the config file; see scripts/release.env.example):
@@ -87,8 +102,7 @@ EOF
 }
 
 # ---------------------------------------------------------------- arguments
-VERSION=""; BUILD=""; MODE=""; UNSIGNED=0; SINCE=""; OUTPUT=""
-CONFIG="${HFR_RELEASE_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/swifthfr/release.env}"
+VERSION=""; BUILD=""; MODE=""; UNSIGNED=0; SINCE=""; OUTPUT=""; BETA=0; CONFIG=""
 # Value of an option that takes one; fails clearly instead of a silent `shift 2` error under set -e.
 need_value() { [ "$#" -ge 2 ] && [ -n "$2" ] || die "$1 needs a value."; }
 while [ $# -gt 0 ]; do
@@ -98,6 +112,7 @@ while [ $# -gt 0 ]; do
     --dry-run) [ -z "$MODE" ] || [ "$MODE" = dry-run ] || die "--dry-run and --upload are exclusive."; MODE="dry-run"; shift ;;
     --upload) [ -z "$MODE" ] || [ "$MODE" = upload ] || die "--dry-run and --upload are exclusive."; MODE="upload"; shift ;;
     --unsigned) UNSIGNED=1; shift ;;
+    --beta) BETA=1; shift ;;
     --since) need_value "$@"; SINCE="$2"; shift 2 ;;
     --output) need_value "$@"; OUTPUT="$2"; shift 2 ;;
     --config) need_value "$@"; CONFIG="$2"; shift 2 ;;
@@ -107,7 +122,14 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$MODE" ] || { usage >&2; die "Choose --dry-run or --upload."; }
 [ -n "$VERSION" ] || die "--version is required (no default: the operator chooses it on #251)."
-[ -n "$BUILD" ] || die "--build is required (no default: the operator chooses it on #251)."
+[ "$BETA" -eq 1 ] || [ -n "$BUILD" ] || die "--build is required (no default: the operator chooses it on #251)."
+if [ "$BETA" -eq 1 ]; then
+  SCHEME="$BETA_SCHEME"; CONFIGURATION="$BETA_CONFIGURATION"; EXPECTED_BUNDLE_ID="$BETA_BUNDLE_ID"; TAG_PREFIX="swifthfr-beta-"
+fi
+if [ -z "$CONFIG" ]; then
+  if [ "$BETA" -eq 1 ]; then CONFIG="${HFR_RELEASE_CONFIG:-$CONFIG_DIR/release-beta.env}"
+  else CONFIG="${HFR_RELEASE_CONFIG:-$CONFIG_DIR/release.env}"; fi
+fi
 [ "$MODE" = dry-run ] || [ "$UNSIGNED" -eq 0 ] || die "--unsigned is for --dry-run only: an unsigned archive cannot be uploaded."
 # The upload's confirmation needs a terminal: check it before any fetch or build, and keep it open on fd 3 for the
 # prompt and the answer (stdout may be redirected to a log).
@@ -132,10 +154,17 @@ version_gt() {
   [ "$a3" -gt "$b3" ]
 }
 is_version "$VERSION" || die "--version must look like 5 or 5.0 or 5.0.1 (got '$VERSION')."
-is_version "$BUILD" || die "--build must be one to three dot-separated integers (got '$BUILD')."
-version_gt "$VERSION" "$LEGACY_FLOOR_VERSION" \
-  || die "Version $VERSION does not exceed the legacy floor $LEGACY_FLOOR_VERSION (App Store Connect refuses a lower version)."
-ok "Version $VERSION ($BUILD) exceeds the legacy floor $LEGACY_FLOOR_VERSION"
+if [ "$BETA" -eq 1 ]; then
+  # The beta record is a new app: no legacy floor, and one integer counter across versions (spec, beta numbering).
+  [ -z "$BUILD" ] || printf '%s' "$BUILD" | grep -Eq '^[1-9][0-9]*$' \
+    || die "--build must be a positive integer with --beta (got '$BUILD')."
+  ok "Beta $BETA_BUNDLE_ID, version $VERSION (separate App Store Connect record: no legacy floor)"
+else
+  is_version "$BUILD" || die "--build must be one to three dot-separated integers (got '$BUILD')."
+  version_gt "$VERSION" "$LEGACY_FLOOR_VERSION" \
+    || die "Version $VERSION does not exceed the legacy floor $LEGACY_FLOOR_VERSION (App Store Connect refuses a lower version)."
+  ok "Version $VERSION ($BUILD) exceeds the legacy floor $LEGACY_FLOOR_VERSION"
+fi
 
 # ---------------------------------------------------------------- local settings (outside the repo)
 # Reads KEY=VALUE lines for known keys only; the file is never sourced, so it cannot run code.
@@ -150,7 +179,7 @@ load_config() {
     key="${line%%=*}"; val="${line#*=}"
     val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
     case "$key" in
-      HFR_ASC_KEY_ID|HFR_ASC_ISSUER_ID|HFR_ASC_KEY_PATH|HFR_SIGNING_STYLE|HFR_SIGNING_CERTIFICATE|HFR_PROFILE_NAME|HFR_TEAM_ID|HFR_ALLOW_PROVISIONING_UPDATES|HFR_INTERNAL_ONLY)
+      HFR_ASC_KEY_ID|HFR_ASC_ISSUER_ID|HFR_ASC_KEY_PATH|HFR_SIGNING_STYLE|HFR_SIGNING_CERTIFICATE|HFR_PROFILE_NAME|HFR_TEAM_ID|HFR_ALLOW_PROVISIONING_UPDATES|HFR_INTERNAL_ONLY|HFR_BETA_COUNTER)
         if [ -z "${!key:-}" ]; then printf -v "$key" '%s' "$val"; fi ;;
       *) warn "Ignoring unknown key '$key' in $file." ;;
     esac
@@ -161,12 +190,19 @@ load_config "$CONFIG"
 HFR_ASC_KEY_ID="${HFR_ASC_KEY_ID:-}"; HFR_ASC_ISSUER_ID="${HFR_ASC_ISSUER_ID:-}"; HFR_ASC_KEY_PATH="${HFR_ASC_KEY_PATH:-}"
 HFR_SIGNING_STYLE="${HFR_SIGNING_STYLE:-manual}"; HFR_SIGNING_CERTIFICATE="${HFR_SIGNING_CERTIFICATE:-}"; HFR_PROFILE_NAME="${HFR_PROFILE_NAME:-}"; HFR_TEAM_ID="${HFR_TEAM_ID:-}"
 HFR_ALLOW_PROVISIONING_UPDATES="${HFR_ALLOW_PROVISIONING_UPDATES:-0}"; HFR_INTERNAL_ONLY="${HFR_INTERNAL_ONLY:-0}"
+HFR_BETA_COUNTER="${HFR_BETA_COUNTER:-$CONFIG_DIR/beta-build-number}"
+# shellcheck disable=SC2088
+case "$HFR_BETA_COUNTER" in "~/"*) HFR_BETA_COUNTER="$HOME/${HFR_BETA_COUNTER#\~/}" ;; esac
 # A literal "~/" from the config file (the file is not sourced, so the shell did not expand it).
 # shellcheck disable=SC2088
 case "$HFR_ASC_KEY_PATH" in "~/"*) HFR_ASC_KEY_PATH="$HOME/${HFR_ASC_KEY_PATH#\~/}" ;; esac
 case "$HFR_SIGNING_STYLE" in manual|automatic) ;; *) die "HFR_SIGNING_STYLE must be manual or automatic." ;; esac
 case "$HFR_ALLOW_PROVISIONING_UPDATES" in 0|1) ;; *) die "HFR_ALLOW_PROVISIONING_UPDATES must be 0 or 1." ;; esac
 case "$HFR_INTERNAL_ONLY" in 0|1) ;; *) die "HFR_INTERNAL_ONLY must be 0 or 1." ;; esac
+if [ "$BETA" -eq 1 ] && [ "$HFR_INTERNAL_ONLY" != 1 ]; then
+  info "Beta builds are for internal testing only (#251): HFR_INTERNAL_ONLY forced to 1."
+  HFR_INTERNAL_ONLY=1
+fi
 
 # ---------------------------------------------------------------- preflight
 command -v xcodebuild >/dev/null || die "xcodebuild not found: run on the maintainer's Mac with Xcode installed."
@@ -234,7 +270,34 @@ if [ "$HFR_SIGNING_STYLE" = automatic ] && [ "$HFR_ALLOW_PROVISIONING_UPDATES" !
   precondition "HFR_SIGNING_STYLE=automatic needs HFR_ALLOW_PROVISIONING_UPDATES=1 to re-sign for distribution."
 fi
 
-OUTPUT="${OUTPUT:-$REPO_ROOT/build/release/$VERSION-$BUILD}"
+# Beta build number: the last uploaded one is kept in a counter file outside the repository; a dry run never writes it,
+# so it can be repeated without burning a number. App Store Connect stays the authority (a number used there is refused).
+BETA_LAST=0
+if [ "$BETA" -eq 1 ]; then
+  case "$HFR_BETA_COUNTER" in /*) ;; *) die "HFR_BETA_COUNTER must be an absolute path (got '$HFR_BETA_COUNTER')." ;; esac
+  case "$HFR_BETA_COUNTER/" in "$REPO_ROOT/"*) die "The beta counter is inside the repository: keep it outside (HFR_BETA_COUNTER)." ;; esac
+  ! inside_repo "$HFR_BETA_COUNTER" || die "The beta counter is inside the repository: keep it outside (HFR_BETA_COUNTER)."
+  if [ -f "$HFR_BETA_COUNTER" ]; then
+    BETA_LAST="$(tr -d '[:space:]' <"$HFR_BETA_COUNTER")"
+    printf '%s' "$BETA_LAST" | grep -Eq '^[0-9]+$' || die "The beta counter $HFR_BETA_COUNTER must hold one integer."
+    BETA_LAST=$((10#$BETA_LAST))
+    info "Beta counter: last uploaded build $BETA_LAST ($HFR_BETA_COUNTER)"
+  else
+    info "No beta counter at $HFR_BETA_COUNTER: the first beta build is 1."
+  fi
+  if [ -z "$BUILD" ]; then
+    BUILD=$((BETA_LAST + 1))
+    ok "Beta build number $BUILD (counter + 1)"
+  elif [ "$BUILD" -le "$BETA_LAST" ]; then
+    precondition "Beta build $BUILD is not above the last uploaded beta build $BETA_LAST."
+  fi
+fi
+
+if [ "$BETA" -eq 1 ]; then
+  OUTPUT="${OUTPUT:-$REPO_ROOT/build/release/beta-$VERSION-$BUILD}"
+else
+  OUTPUT="${OUTPUT:-$REPO_ROOT/build/release/$VERSION-$BUILD}"
+fi
 mkdir -p "$OUTPUT"
 OUTPUT="$(cd "$OUTPUT" && pwd -P)"
 ARCHIVE="$OUTPUT/SwiftHFR-$VERSION-$BUILD.xcarchive"
@@ -274,7 +337,9 @@ GOT_BUILD="$(plist_get "$APP_PATH/Info.plist" CFBundleVersion)"
 BUNDLE_ID="$(plist_get "$APP_PATH/Info.plist" CFBundleIdentifier)"
 [ "$GOT_VERSION" = "$VERSION" ] && [ "$GOT_BUILD" = "$BUILD" ] \
   || die "Archived app says $GOT_VERSION ($GOT_BUILD), expected $VERSION ($BUILD)."
-ok "Archived Info.plist: $BUNDLE_ID $GOT_VERSION ($GOT_BUILD)"
+[ "$BUNDLE_ID" = "$EXPECTED_BUNDLE_ID" ] \
+  || die "Archived app's bundle id is $BUNDLE_ID, expected $EXPECTED_BUNDLE_ID for scheme \"$SCHEME\" ($CONFIGURATION)."
+ok "Archived Info.plist: $BUNDLE_ID $GOT_VERSION ($GOT_BUILD), \"$(plist_get "$APP_PATH/Info.plist" CFBundleDisplayName)\""
 if [ "$(plist_get "$APP_PATH/Info.plist" ITSAppUsesNonExemptEncryption)" = "false" ]; then
   ok "ITSAppUsesNonExemptEncryption = NO (LOT-160)"
 else
@@ -321,9 +386,10 @@ fi
 
 # ---------------------------------------------------------------- release notes
 if [ -z "$SINCE" ]; then
-  SINCE="$(git describe --tags --abbrev=0 --match 'swifthfr-*' 2>/dev/null || true)"
+  SINCE="$(git describe --tags --abbrev=0 --match "${TAG_PREFIX}[0-9]*" 2>/dev/null || true)"
 fi
 TEMPLATE="$REPO_ROOT/scripts/release-notes.template.md"
+if [ "$BETA" -eq 1 ]; then CHANNEL="β, test interne"; else CHANNEL="TestFlight"; fi
 [ -f "$TEMPLATE" ] || die "Release notes template not found: $TEMPLATE"
 {
   while IFS= read -r line || [ -n "$line" ]; do
@@ -331,10 +397,11 @@ TEMPLATE="$REPO_ROOT/scripts/release-notes.template.md"
       if [ -n "$SINCE" ]; then
         git log --no-merges --format='- %s (%h)' "$SINCE..HEAD"
       else
-        echo "- (first SwiftHFR build: no previous swifthfr-* tag; pass --since <ref> to list changes)"
+        echo "- (first build of this channel: no previous ${TAG_PREFIX}* tag; pass --since <ref> to list changes)"
       fi
       continue
     fi
+    line="${line//\{\{CHANNEL\}\}/$CHANNEL}"
     line="${line//\{\{VERSION\}\}/$VERSION}"
     line="${line//\{\{BUILD\}\}/$BUILD}"
     line="${line//\{\{COMMIT\}\}/$COMMIT}"
@@ -345,7 +412,7 @@ TEMPLATE="$REPO_ROOT/scripts/release-notes.template.md"
 ok "Release notes draft: $NOTES (edit the French sections before pasting them in TestFlight)"
 
 # ---------------------------------------------------------------- upload (operator only)
-TAG="swifthfr-$VERSION-$BUILD"
+TAG="$TAG_PREFIX$VERSION-$BUILD"
 if [ "$MODE" = dry-run ]; then
   if [ "$UNSIGNED" -eq 0 ] && [ "$HFR_ALLOW_PROVISIONING_UPDATES" = 1 ]; then
     ok "Dry run complete: stopped before the upload. Nothing was uploaded (xcodebuild may have contacted Apple for signing)."
@@ -356,7 +423,14 @@ if [ "$MODE" = dry-run ]; then
 fi
 
 [ -n "$IPA" ] || die "No IPA to upload."
-printf '\n%sAbout to upload%s %s %s (%s), commit %s, to App Store Connect.\n' "$C_WARN" "$C_OFF" "$BUNDLE_ID" "$VERSION" "$BUILD" "$COMMIT" >&3
+{
+  printf '\n%sAbout to upload to App Store Connect:%s\n' "$C_WARN" "$C_OFF"
+  printf '  app record  %s (scheme "%s", configuration %s)\n' "$BUNDLE_ID" "$SCHEME" "$CONFIGURATION"
+  printf '  version     %s (%s), commit %s\n' "$VERSION" "$BUILD" "$COMMIT"
+  printf '  package     %s (%s)\n' "$IPA" "$(du -h "$IPA" | awk '{print $1}')"
+  printf '  testers     %s\n' "$( [ "$HFR_INTERNAL_ONLY" = 1 ] && echo "internal testing only" || echo "internal and external groups allowed")"
+  printf '  API key id  %s\n' "$HFR_ASC_KEY_ID"
+} >&3
 printf 'A build number can be uploaded only once. Type "upload %s (%s)" to confirm: ' "$VERSION" "$BUILD" >&3
 read -r answer <&3 || answer=""
 exec 3<&-
@@ -366,5 +440,10 @@ run_step "Upload to App Store Connect" "$OUTPUT/upload.log" \
   xcrun altool --upload-package "$IPA" --api-key "$HFR_ASC_KEY_ID" --api-issuer "$HFR_ASC_ISSUER_ID" \
   --p8-file-path "$HFR_ASC_KEY_PATH" --output-format normal
 grep -iE 'delivery|uuid|success' "$OUTPUT/upload.log" | head -5 || true
+if [ "$BETA" -eq 1 ] && [ "$BUILD" -gt "$BETA_LAST" ]; then
+  mkdir -p "$(dirname "$HFR_BETA_COUNTER")"
+  printf '%s\n' "$BUILD" >"$HFR_BETA_COUNTER"
+  ok "Beta counter set to $BUILD ($HFR_BETA_COUNTER)"
+fi
 ok "Uploaded $VERSION ($BUILD). Next (by hand): record the build on the LOT-161 PR or issue, paste the release notes"
 ok "in TestFlight, and tag the commit: git tag $TAG $COMMIT && git push origin $TAG (operator-confirmed)."

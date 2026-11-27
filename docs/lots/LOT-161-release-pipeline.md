@@ -99,6 +99,93 @@ et stabilité, Recherche/favoris/messages, À tester en priorité), filled by th
 | Upload (`--upload` + typed confirmation) | operator only (AGENTS.md §0) |
 | Tag push, recording the build | operator-confirmed |
 
+## Step 1 — internal TestFlight beta under its own bundle id (`--beta`)
+Operator decision of 2026-11-27 on #251: a minimal internal TestFlight now, before the in-place update of
+`hfrplus.red.super` (which stays the final release: ADR 0011 Q-1, ADR 0013 §5). Testers: ezzz and the operator, App Store
+Connect users in an internal group (internal testing needs no Beta App Review).
+
+### Configuration and scheme
+- Build configuration **`Beta`** (a copy of `Release`, project and both targets) and shared scheme **`SwiftHFR Beta`**
+  (run, profile and archive in `Beta`; test stays `Debug`, like `SwiftHFR`). `SwiftHFR` and its Debug/Release are unchanged.
+- The beta's identity lives in `App/Config/Beta.xcconfig`, which includes `Shared.xcconfig` (so the API keys of
+  `Secrets.xcconfig` reach the beta too): `PRODUCT_BUNDLE_IDENTIFIER = hfrplus-swift.red.super`,
+  `INFOPLIST_KEY_CFBundleDisplayName = SwiftHFR β`, `DEVELOPMENT_TEAM = QMG83DG7YP`, `CODE_SIGN_STYLE = Automatic`. The
+  target's `Beta` configuration does **not** set the bundle id nor the display name: a target setting would win over the
+  xcconfig. `scripts/tests/test_beta_configuration.py` guards this, and that Debug/Release keep `hfrplus.red.super`.
+- Same pattern as legacy's separate `hfrplus-legacy.red.super` (`SuperHFRplus.xcodeproj/project.pbxproj:6345,6410`
+  @ `87fe0d1c`: its own bundle id, display name and build counter, `CURRENT_PROJECT_VERSION = 30`, `MARKETING_VERSION = 3.2`).
+- `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` are build-time overrides passed by the script, as for the store build.
+
+### What reads the bundle id at run time
+All derive from `Bundle.main.bundleIdentifier`, so the beta follows without code: the account keychain service
+(`AccountServices.swift`, `LegacyImportServices.swift`), the YouTube player `Referer` (`VideoPlayerSheet.appReferer`, test
+case added for the beta id). No app group, no notification category or background task identifier is derived from it
+(`com.hfrplus.refresh_mp` is a fixed per-app identifier).
+
+### Capabilities of the beta App ID (ezzz, #1134)
+There is no entitlements file in the repository today: the iCloud key-value wiring (#447) is not merged, the keychain uses
+the default access group (LOT-173: no capability), local notifications need no capability, and background refresh is
+Info.plist only (`UIBackgroundModes` `fetch`, `BGTaskSchedulerPermittedIdentifiers`). So the first beta needs **no
+capability** on the App ID. To enable now anyway, so #447 does not break the next beta: **iCloud, Key-value storage only**
+(no CloudKit container). #447 adds `com.apple.developer.ubiquity-kvstore-identifier` =
+`$(TeamIdentifierPrefix)$(CFBundleIdentifier)` (ADR 0013 line 115), which resolves to the beta id on the beta App ID
+by itself. Not wanted: Push Notifications, Associated Domains (out of scope above), App Groups.
+
+### Beta numbering rule
+- The beta record is a new app: **no legacy floor**; `--version` is required (5.0 while `MARKETING_VERSION` is 5.0).
+- **Its own build counter, from 1**, +1 per upload, never reused, across versions (option A's monotonic rule applied to the
+  beta record; the legacy-counter question of #251 only concerns the final in-place update). Integers only.
+- The last uploaded beta build is kept **outside the repository** in `~/.config/swifthfr/beta-build-number`
+  (`HFR_BETA_COUNTER`, absolute path, refused inside the repository). Without `--build`, the script uses counter + 1
+  (1 when the file is missing); `--build N` at or below the counter is warned in a dry run and refused with `--upload`.
+  The script writes the counter only after a successful upload: a dry run never consumes a number. App Store Connect
+  stays the authority: uploading from a second Mac needs that Mac's counter set by hand (or `--build`).
+- Tags: `swifthfr-beta-<version>-<build>`; the release notes list the changes since the last `swifthfr-beta-*` tag.
+
+### What `--beta` changes in the script
+Scheme `SwiftHFR Beta`, configuration `Beta`; the archived bundle id must be `hfrplus-swift.red.super` (and
+`hfrplus.red.super` without `--beta`: both runs now check it); default settings file `~/.config/swifthfr/release-beta.env`
+(same keys, `HFR_PROFILE_NAME` names the profile of the beta id); `HFR_INTERNAL_ONLY` forced to 1
+(`testFlightInternalTestingOnly`); output `build/release/beta-<version>-<build>/`. The upload prompt lists the app record,
+scheme, version, build, commit, package and size, tester scope and API key id, then asks for the typed confirmation.
+
+### Before the first upload
+**ezzz** (#1134): create the explicit App ID `hfrplus-swift.red.super` on team `QMG83DG7YP` (iCloud KV storage enabled, see
+above); create the App Store Connect app record on it (a unique name, e.g. « SwiftHFR β », primary language French, any
+SKU); add the operator as a user (App Manager can upload with an API key; creating distribution profiles needs Admin,
+#1134); create the internal testing group with ezzz and the operator. Then either he uploads from his Mac or the operator does.
+
+**Operator** (or whoever uploads):
+1. App Store Connect API key (Users and Access → Integrations, role App Manager or higher), saved as
+   `~/.appstoreconnect/private_keys/AuthKey_<id>.p8`, `chmod 600`; never in the repository.
+2. `cp scripts/release.env.example ~/.config/swifthfr/release-beta.env`, `chmod 600`, fill the key id, issuer and path.
+3. Signing: an Apple Distribution certificate in the login keychain and an App Store profile for `hfrplus-swift.red.super`
+   (`HFR_SIGNING_STYLE=manual`, `HFR_PROFILE_NAME`), plus a development profile for the archive's automatic signing (open
+   the project once in Xcode with the team's account and the `SwiftHFR Beta` scheme); or the operator's opt-in
+   `HFR_SIGNING_STYLE=automatic` + `HFR_ALLOW_PROVISIONING_UPDATES=1`. Agents never pass `-allowProvisioningUpdates`.
+4. `App/Config/Secrets.xcconfig` filled on that Mac, or the beta ships with image upload and the GIF picker off.
+
+### Dry-run procedure
+1. Anyone, agents included: `scripts/release-testflight.sh --beta --version 5.0 --dry-run --unsigned` (archive, Info.plist
+   and bundle-id checks, `ExportOptions.plist`, notes; nothing sent to Apple).
+2. Operator: `scripts/release-testflight.sh --beta --version 5.0 --dry-run` on `dev-swift` = `origin/dev-swift`, clean tree
+   (signed archive and export; nothing uploaded, counter untouched).
+3. Operator only, confirmed: `scripts/release-testflight.sh --beta --version 5.0 --upload`, type `upload 5.0 (N)`. Then
+   record the build on #251, add the build to the internal group if it is not automatic, paste the notes in "What to
+   Test", tag `swifthfr-beta-5.0-N` (operator-confirmed push).
+
+### Known limits of the beta id
+- **No legacy data migration test**: the beta has its own container and keychain service, so it never sees the data of
+  `hfrplus.red.super` (legacy HFR+); LOT-067/LOT-158 are tested on the in-place update only. Accounts are logged in again.
+- **Its own iCloud key-value store** (ADR 0013 line 115 derives it from the bundle id): once #447 lands, beta settings do
+  not sync with the store app's.
+- Same app icon as the store build: the home screen tells them apart by the display name « SwiftHFR β »; both can be
+  installed side by side.
+- The counter is per Mac (above).
+
+### Measured (2026-11-27, mac/mac-mbp-w251, Xcode 27.2)
+Pending the build slot; filled before the PR leaves draft.
+
 ## Edge cases
 - A build number already in App Store Connect: altool fails after the upload starts; the script cannot know it locally. Pick a
   higher one (the rule above).
