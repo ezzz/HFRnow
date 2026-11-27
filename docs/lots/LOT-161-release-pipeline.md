@@ -184,7 +184,17 @@ SKU); add the operator as a user (App Manager can upload with an API key; creati
 - The counter is per Mac (above).
 
 ### Measured (2026-11-27, mac/mac-mbp-w251, Xcode 27.2)
-Pending the build slot; filled before the PR leaves draft.
+- `xcodebuild build -scheme "SwiftHFR Beta" -configuration Beta -destination 'generic/platform=iOS Simulator'
+  CODE_SIGNING_ALLOWED=NO`: succeeded; built Info.plist `hfrplus-swift.red.super`, « SwiftHFR β », 5.0 (1), Giphy base URL
+  present (Shared.xcconfig reached through Beta.xcconfig).
+- `--beta --version 5.0 --dry-run --unsigned` (lot branch): archive succeeded, `hfrplus-swift.red.super 5.0 (1), "SwiftHFR β"`,
+  `ITSAppUsesNonExemptEncryption` NO, manifest present, `ExportOptions.plist` with `testFlightInternalTestingOnly` true, notes
+  titled « β, test interne »; build 1 from a missing counter, the counter file **not** written; warned about branch, `HEAD` and
+  the missing API key settings; nothing sent to Apple.
+- Signed archive of `SwiftHFR Beta` without `-allowProvisioningUpdates`: fails at once (exit 65) with "No profiles for
+  'hfrplus-swift.red.super' were found: Xcode couldn't find any iOS App Development provisioning profiles matching
+  'hfrplus-swift.red.super'. Automatic signing is disabled and unable to generate a profile." Expected: the App ID does not
+  exist yet (ezzz, #1134); nothing was sent to Apple. Not run: signed export, upload.
 
 ## Edge cases
 - A build number already in App Store Connect: altool fails after the upload starts; the script cannot know it locally. Pick a
