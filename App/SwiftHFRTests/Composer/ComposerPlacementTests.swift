@@ -111,7 +111,7 @@ struct ComposerPlacementTests: ReaderWebTesting {
 
     /// A docked composer closes through its presenter: `onClose` once, the binding cleared, and the reader it sits in (a pushed
     /// screen of a `NavigationStack`) stays: a `dismiss()` there would pop it.
-    @Test(.enabled(if: { await deviceIsAPhone() }))
+    @Test(.enabled { await deviceIsAPhone() })
     func aDockedComposerClosesOnceAndLeavesTheReaderOnScreen() async throws {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]))
         let state = PresentedComposer(composer)
@@ -133,7 +133,7 @@ struct ComposerPlacementTests: ReaderWebTesting {
 
     /// The docked bar is part of the reader's own screen: the page's safe area ends at the bar's top (the last lines are
     /// reachable), a touch above it goes to the page, one on it does not, and the bar stays when the keyboard goes.
-    @Test(.enabled(if: { await deviceIsAPhone() }))
+    @Test(.enabled { await deviceIsAPhone() })
     func aDockedComposerLeavesThePageAboveItLiveAndStaysWhenTheKeyboardGoes() async throws {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]))
         let state = PresentedComposer(composer)
@@ -306,7 +306,7 @@ private struct WebHost: View {
 extension ComposerPlacementTests {
     /// A composer opened at full height (an accessibility text size opens it full) covers the page from its first pass: the page's
     /// bottom inset never grows to the viewport, whatever order the bar's layout and its height report come in.
-    @Test(.enabled(if: { await deviceIsAPhone() }))
+    @Test(.enabled { await deviceIsAPhone() })
     func aComposerOpenedAtFullHeightNeverHandsThePageTheViewport() async throws {
         let state = PresentedComposer(nil)
         let seen = SeenInsets()
@@ -333,7 +333,7 @@ extension ComposerPlacementTests {
 
     /// A rotation moves the open composer between the bar and a sheet (Pro Max: compact to regular width and back): it stays
     /// open, nothing closes it, and one editor is left in the end.
-    @Test(.enabled(if: { await deviceIsAPhone() }))
+    @Test(.enabled { await deviceIsAPhone() })
     func aWidthChangeMovesTheComposerBetweenTheBarAndASheetWithoutClosingIt() async throws {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]))
         let state = PresentedComposer(composer)
