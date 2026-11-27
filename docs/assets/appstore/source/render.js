@@ -4,6 +4,7 @@
 // - `--allow-placeholders` draws a labelled placeholder for a missing capture and writes the whole run to
 //   ../preview/<size id>/ instead (git-ignored), so a placeholder never sits where a store image is expected.
 // - `--sheet` also writes ../art-direction.jpg, a contact sheet of the first size rendered.
+// A run that fails leaves the previous output as it was.
 // A caption too long for a size, or a font that did not load, stops the run.
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -72,6 +73,9 @@ function frameURL(size, screen, index, total) {
   for (const font of ['inter.woff2', 'jetbrains-mono.woff2']) {
     if (!fs.existsSync(here(font))) throw new Error(`${font} is missing: see README.md for the download line`);
   }
+  // A size id names an output folder that this script empties: only plain names, never a folder that holds sources.
+  const unsafe = sizes.map((s) => s.id).filter((id) => !/^[a-z0-9-]+$/.test(id) || ['source', 'preview', 'captures'].includes(id));
+  if (unsafe.length) throw new Error(`screens.json: size id not allowed: ${unsafe.map((id) => JSON.stringify(id)).join(', ')}`);
   const unknown = wanted.filter((id) => !sizes.some((s) => s.id === id));
   if (unknown.length) throw new Error(`unknown size: ${unknown.join(', ')}`);
   const chosen = sizes.filter((s) => (wanted.length ? wanted.includes(s.id) : s.render));
@@ -80,13 +84,15 @@ function frameURL(size, screen, index, total) {
     throw new Error(`${missing.length} capture(s) missing, nothing written (--allow-placeholders renders previews):\n  ${missing.join('\n  ')}`);
   }
   const outRoot = missing.length ? here('..', 'preview') : here('..');
+  // Everything is rendered into a staging folder and moved into place only once every size passed its checks: a failed
+  // run leaves the previous images untouched.
+  const staging = path.join(outRoot, '.staging');
+  fs.rmSync(staging, { recursive: true, force: true });
   const browser = await chromium.launch();
   const sheet = [];
   for (const size of chosen) {
     const list = screensFor(size);
-    // The folder holds this run only: an image of a screen since removed from the list must not stay behind.
-    fs.rmSync(path.join(outRoot, size.id), { recursive: true, force: true });
-    fs.mkdirSync(path.join(outRoot, size.id), { recursive: true });
+    fs.mkdirSync(path.join(staging, size.id), { recursive: true });
     const page = await browser.newPage({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1 });
     for (const [i, screen] of list.entries()) {
       await page.goto(frameURL(size, screen, i + 1, list.length));
@@ -97,13 +103,20 @@ function frameURL(size, screen, index, total) {
       const png = await page.screenshot({ type: 'png' });
       const rgba = await rgbaOf(page, png);
       if (rgba.length !== size.width * size.height * 4) throw new Error(`${screen.id}: unexpected bitmap size`);
-      const target = path.join(outRoot, size.id, screen.id + '.png');
+      const target = path.join(staging, size.id, screen.id + '.png');
       fs.writeFileSync(target, opaquePNG(rgba, size.width, size.height));
-      if (size === chosen[0]) sheet.push(pathToFileURL(target).href);
-      console.log('wrote', path.relative(here('..'), target), `${size.width}x${size.height}`);
+      if (size === chosen[0]) sheet.push(pathToFileURL(path.join(outRoot, size.id, screen.id + '.png')).href);
+      console.log('rendered', `${size.id}/${screen.id}.png`, `${size.width}x${size.height}`);
     }
     await page.close();
   }
+  // Each folder holds this run only: an image of a screen since removed from the list does not stay behind.
+  for (const size of chosen) {
+    fs.rmSync(path.join(outRoot, size.id), { recursive: true, force: true });
+    fs.renameSync(path.join(staging, size.id), path.join(outRoot, size.id));
+  }
+  fs.rmSync(staging, { recursive: true, force: true });
+  console.log(`wrote ${chosen.map((size) => path.relative(here('..'), path.join(outRoot, size.id)) + '/').join(', ')}`);
   if (wantSheet) {
     // The frames of the first size side by side on the dark ink, 2800 px wide.
     const size = chosen[0], gap = 48, width = sheet.length * size.width + (sheet.length + 1) * gap, scale = 2800 / width;

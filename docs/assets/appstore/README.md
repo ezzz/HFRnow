@@ -24,7 +24,7 @@ The list is `source/screens.json` (`*word*` = accent colour, `|` = line break).
 |---|---|---|---|
 | 1 | `01-categories` | Catégories | Tout HFR, / en natif. |
 | 2 | `02-topic` | Lecture | Des topics / enfin lisibles. |
-| 3 | `03-composer` | Réponse | Gras, citation, / en un tap. (the formatting bar, `App/SwiftHFR/Composer/FormattingToolbar.swift`) |
+| 3 | `03-composer` | Réponse | Gras, citation, / spoiler, lien. (four tags of the formatting bar, `BBCodeTag` in `App/SwiftHFR/Composer/ReplyTextInsertionEngine.swift`; the capture shows the bar open) |
 | 4 | `04-messages` | Messages privés | Vos MP, / sous le pouce. |
 | 5 | `05-themes` | Thèmes | Clair, sombre, / rétro 5250. |
 | 6 | `06-large-screen` | Grand écran | Grand écran, / deux colonnes. Only at `ipad-13` and `duo-inner`: a phone in portrait shows one column |
@@ -64,7 +64,7 @@ node render.js --allow-placeholders  # previews while captures are missing, into
 node render.js iphone-large --allow-placeholders --sheet   # also rewrites ../art-direction.jpg
 ```
 
-Node and Playwright with Chromium. If a capture is missing, nothing is written and the run fails with the list. With `--allow-placeholders` the whole run goes to `../preview/<size id>/` with labelled placeholders, so a placeholder never sits where a store image is expected. Each output folder is emptied before it is written. The run also stops on a caption line too long for a size and on a font that did not load. `frame.html` is the single template (its query parameters are listed at its top). `art-direction.jpg` is the contact sheet of the first size named, written by `--sheet`; today it shows placeholders.
+Node and Playwright with Chromium. If a capture is missing, nothing is written and the run fails with the list. With `--allow-placeholders` the whole run goes to `../preview/<size id>/` with labelled placeholders, so a placeholder never sits where a store image is expected. Images are rendered into a staging folder and replace the previous ones only when the whole run passed, so a failed run changes nothing; each output folder then holds that run only. The run also stops on a caption line too long for a size and on a font that did not load. `frame.html` is the single template (its query parameters are listed at its top). `art-direction.jpg` is the contact sheet of the first size rendered (the first default size when none is named), written by `--sheet`. Today it shows placeholders: when it is rewritten from real captures, update the first paragraph and the image's alt text of this file.
 
 Not checked yet (Mac session): whether simulator captures carry a Display P3 profile. Chromium would convert them to sRGB, and the output PNG carries no colour chunk.
 

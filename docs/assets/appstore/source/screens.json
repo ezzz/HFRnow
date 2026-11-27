@@ -11,7 +11,7 @@
   "screens": [
     { "id": "01-categories", "kicker": "Catégories", "caption": "Tout HFR,|*en natif.*", "ink": "orange" },
     { "id": "02-topic", "kicker": "Lecture", "caption": "Des topics|enfin *lisibles.*", "ink": "paper" },
-    { "id": "03-composer", "kicker": "Réponse", "caption": "Gras, citation,|*en un tap.*", "ink": "ink" },
+    { "id": "03-composer", "kicker": "Réponse", "caption": "Gras, citation,|*spoiler, lien.*", "ink": "ink" },
     { "id": "04-messages", "kicker": "Messages privés", "caption": "Vos MP,|*sous le pouce.*", "ink": "paper" },
     { "id": "05-themes", "kicker": "Thèmes", "caption": "Clair, sombre,|*rétro 5250.*", "ink": "orange" },
     { "id": "06-large-screen", "kicker": "Grand écran", "caption": "Grand écran,|*deux colonnes.*", "ink": "ink", "sizes": ["ipad-13", "duo-inner"] },
