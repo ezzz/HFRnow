@@ -76,7 +76,7 @@ Checked on the captures (`Tests/HFRParsingTests/Topic/`), facts recorded in HFR-
 
 - Logged-out pages carry 3 advertisement blocks (1 on single-page topics): `R20` 43 tables → 40 blocks; logged-in pages carry none (`R21`).
 - Pages 2+ open with the continuation block (`R22a`, `R22b`, `R24`, `R26`, `R27`, `R28`), whose quote link has `ref=0` (checked in the
-  differential test for every block of every oracle: `isContinuation` ⇔ `ref=0`); page 1, single pages and MP threads have none.
+  differential test for every block of every oracle: `isContinuation` ⇔ `ref=0`); page 1 and single pages have none; a private conversation has one from page 2 too (`R1315a`, `R1315b`, HFR-PROTOCOL §6c "#1315").
 - Trailer variants: cited only, edited only, both (`R32a`), none; the `quote_only=1` link is the trailer's only link.
 - Avatar only on the recipient's own post of the MP thread (`RU2`); none on public captures (LOT-003 RC3.2).
 - Pseudos with U+200B in the author cell (`R21` message 0, `RA1`): the oracle's `name` has none; so has `author`.

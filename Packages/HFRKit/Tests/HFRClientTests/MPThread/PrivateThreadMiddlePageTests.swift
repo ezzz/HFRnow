@@ -32,10 +32,14 @@ struct PrivateThreadMiddlePageTests {
         }
     }
 
-    @Test("Each page is the page asked for: current page from the URL, 4 pages in the pager, the conversation's identity")
+    /// The parser takes the current page from the URL, so the body's own page is read from its pager: HFR prints the current
+    /// page in `<b>` after a link to the one before.
+    @Test("Each page is the page asked for: its pager marks it current, 4 pages, the conversation's identity")
     func metadataNamesThePage() throws {
         for capture in Self.pages {
-            let page = try TopicPageMetadataParser.parse(html: Capture.page(capture.file), pageURL: Capture.meta(capture.id).url)
+            let html = try Capture.page(capture.file)
+            #expect(html.contains("class=\"cHeader\">\(capture.page - 1)</a>&nbsp;&nbsp;<b>\(capture.page)</b>&nbsp;"))
+            let page = try TopicPageMetadataParser.parse(html: html, pageURL: Capture.meta(capture.id).url)
             #expect((page.currentPage, page.maxPage) == (capture.page, 4))
             #expect(page.topicID == Self.thread)
             #expect(page.answerFormFields["cat"] == "prive")
@@ -59,14 +63,27 @@ struct PrivateThreadMiddlePageTests {
         #expect(Set(second).intersection(third) == [third[0]])
     }
 
+    /// Each message's answer link numbers it on the page (`ref`); the copy that opens the page is `ref=0`, as on a public
+    /// topic (HFR-PROTOCOL "Obfuscated quote link in practice").
+    @Test("The first block's answer link is ref=0, the page's own messages ref=1…40")
+    func continuationIsRefZero() throws {
+        let link = /numrep=([0-9]+)&amp;ref=([0-9]+)&amp;page=([0-9]+)&amp;/
+        for capture in Self.pages {
+            let html = try Capture.page(capture.file)
+            let blocks = try MessageBlockParser.blocks(in: html).map(\.numreponse)
+            let matches = html.matches(of: link)
+            #expect(matches.map { Int($0.1) } == blocks)
+            #expect(matches.map { Int($0.2) } == Array(0...40))
+            #expect(matches.allSatisfy { Int($0.3) == capture.page })
+        }
+    }
+
     @Test("A page=1 link naming a message of page 3 answers 200 in place, no Location (R1315c, the R388a shape)")
     func messageLinkOnALaterPageIsServedInPlace() throws {
         let meta = try Capture.meta("R1315c")
         let third = try MessageBlockParser.blocks(in: Capture.page(Self.pages[1].file)).map(\.numreponse)
-        let components = try #require(URLComponents(string: meta.url))
-        let query = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") })
-        #expect(query["page"] == "1")
-        #expect(query["numreponse"] == String(third[1]))
+        // The request the reader sends for a message link (`TopicPageSource.messageRequest`) is the captured one.
+        #expect(try HFREndpoint.topicPage(topic: Self.thread, page: 1, numreponse: third[1]).url.absoluteString == meta.url)
         #expect(meta.status == 200)
         #expect(meta.redirects?.isEmpty ?? true)
         #expect(meta.finalURL == meta.url)
