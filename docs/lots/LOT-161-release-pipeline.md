@@ -29,14 +29,14 @@ Steps, in order (each failure stops the script):
 | # | Step | Dry run | `--upload` |
 |---|---|---|---|
 | 1 | Arguments: `--version` and `--build` are required (no default), numeric, version strictly above the legacy floor `4.0.3` | checked | checked |
-| 2 | Local settings: environment variables, then `~/.config/swifthfr/release.env` (or `--config`, `HFR_RELEASE_CONFIG`), parsed for known keys, never sourced; warns when group/other can read it | loaded | loaded |
+| 2 | Local settings: environment variables, then `~/.config/swifthfr/release.env` (or `--config`, `HFR_RELEASE_CONFIG`; with `--beta` `release-beta.env`, `HFR_BETA_RELEASE_CONFIG`), parsed for known keys, never sourced; refused inside the repository; warns when group/other can read it; `HFR_CHANNEL` (`store`/`beta`) set and not this run's mode → refused | loaded | loaded |
 | 3 | Preflight: Xcode ≥ 27; on `dev-swift`; clean tree; `HEAD` = freshly fetched `origin/dev-swift`; API key id, issuer and `.p8` present **and outside the repository**; manual signing names a profile, automatic signing has the provisioning opt-in, `--since` ref exists | warnings (a key file inside the repository, an unknown `--since` ref: hard failures) | hard failures |
 | 4 | `xcodebuild archive` (scheme `SwiftHFR`, Release, `generic/platform=iOS`) with `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` passed as overrides; `--unsigned` adds `CODE_SIGNING_ALLOWED=NO` | yes | yes (signed) |
 | 5 | Archive checks: `CFBundleShortVersionString`/`CFBundleVersion` equal the parameters, `ITSAppUsesNonExemptEncryption` false and `PrivacyInfo.xcprivacy` present (LOT-160), `codesign --verify` when signed | yes | yes |
 | 6 | `ExportOptions.plist`: `method` `app-store-connect`, `destination` `export`, `manageAppVersionAndBuildNumber` NO (the build number is ours), `uploadSymbols` YES, `signingStyle`, optional `teamID`, `testFlightInternalTestingOnly`, and for manual signing `provisioningProfiles` {bundle id → profile name} plus `signingCertificate` when `HFR_SIGNING_CERTIFICATE` is set (unset: Xcode's selector picks a distribution certificate); `plutil -lint` | yes | yes |
 | 7 | `xcodebuild -exportArchive` → `.ipa` | signed only | yes |
 | 8 | Release notes draft from `scripts/release-notes.template.md` (below) | yes | yes |
-| 9 | Confirmation on `/dev/tty` (prompt and answer): the operator types `upload <version> (<build>)`; `/dev/tty` cannot be opened → refused at step 1, before any fetch or build | — | yes |
+| 9 | Confirmation on `/dev/tty` (prompt and answer): the operator types `upload <bundle id> <version> (<build>)` (the app record is in the phrase, so a beta phrase never confirms a store upload); `/dev/tty` cannot be opened → refused at step 1, before any fetch or build | — | yes |
 | 10 | `xcrun altool --upload-package <ipa> --api-key <id> --api-issuer <issuer> --p8-file-path <p8>` | never | after step 9 |
 
 Flags checked against the local Xcode 27.2 (`xcrun altool --help`, altool 27.10.4; `xcodebuild -help`, export option keys), not
@@ -136,7 +136,10 @@ by itself. Not wanted: Push Notifications, Associated Domains (out of scope abov
 - **Its own build counter, from 1**, +1 per upload, never reused, across versions (option A's monotonic rule applied to the
   beta record; the legacy-counter question of #251 only concerns the final in-place update). Integers only.
 - The last uploaded beta build is kept **outside the repository** in `~/.config/swifthfr/beta-build-number`
-  (`HFR_BETA_COUNTER`, absolute path, refused inside the repository). Without `--build`, the script uses counter + 1
+  (`HFR_BETA_COUNTER`, absolute path, refused inside the repository). "Inside" is decided by git, not by comparing
+  strings: the nearest existing folder of the path is asked for its top level (`git -C <dir> rev-parse --show-toplevel`),
+  which catches another letter case, a symlink or a sub-folder still to create; the same check covers the API key file
+  and the settings file. Without `--build`, the script uses counter + 1
   (1 when the file is missing); `--build N` at or below the counter is warned in a dry run and refused with `--upload`.
   The script writes the counter only after a successful upload: a dry run never consumes a number. App Store Connect
   stays the authority: uploading from a second Mac needs that Mac's counter set by hand (or `--build`).
@@ -145,7 +148,8 @@ by itself. Not wanted: Push Notifications, Associated Domains (out of scope abov
 ### What `--beta` changes in the script
 Scheme `SwiftHFR Beta`, configuration `Beta`; the archived bundle id must be `hfrplus-swift.red.super` (and
 `hfrplus.red.super` without `--beta`: both runs now check it); default settings file `~/.config/swifthfr/release-beta.env`
-(same keys, `HFR_PROFILE_NAME` names the profile of the beta id); `HFR_INTERNAL_ONLY` forced to 1
+(same keys, `HFR_PROFILE_NAME` names the profile of the beta id; `HFR_BETA_RELEASE_CONFIG` overrides it, `HFR_RELEASE_CONFIG`
+is the store run's only; a file holding `HFR_CHANNEL=beta` is refused without `--beta` and `HFR_CHANNEL=store` with it); `HFR_INTERNAL_ONLY` forced to 1
 (`testFlightInternalTestingOnly`); output `build/release/beta-<version>-<build>/`. The upload prompt lists the app record,
 scheme, version, build, commit, package and size, tester scope and API key id, then asks for the typed confirmation.
 
@@ -162,7 +166,10 @@ SKU); add the operator as a user (App Manager can upload with an API key; creati
 3. Signing: an Apple Distribution certificate in the login keychain and an App Store profile for `hfrplus-swift.red.super`
    (`HFR_SIGNING_STYLE=manual`, `HFR_PROFILE_NAME`), plus a development profile for the archive's automatic signing (open
    the project once in Xcode with the team's account and the `SwiftHFR Beta` scheme); or the operator's opt-in
-   `HFR_SIGNING_STYLE=automatic` + `HFR_ALLOW_PROVISIONING_UPDATES=1`. Agents never pass `-allowProvisioningUpdates`.
+   `HFR_SIGNING_STYLE=automatic` + `HFR_ALLOW_PROVISIONING_UPDATES=1`. That opt-in lets xcodebuild act on the developer
+   portal with the API key: besides creating profiles, it may **register the App ID `hfrplus-swift.red.super` on the team**
+   (Xcode's automatic signing does so for an unknown bundle id; not verified here), **in a dry run too**. Use it only once
+   ezzz has created the App ID, or with his agreement. Agents never pass `-allowProvisioningUpdates`.
 4. `App/Config/Secrets.xcconfig` filled on that Mac, or the beta ships with image upload and the GIF picker off.
 
 ### Dry-run procedure
@@ -170,7 +177,7 @@ SKU); add the operator as a user (App Manager can upload with an API key; creati
    and bundle-id checks, `ExportOptions.plist`, notes; nothing sent to Apple).
 2. Operator: `scripts/release-testflight.sh --beta --version 5.0 --dry-run` on `dev-swift` = `origin/dev-swift`, clean tree
    (signed archive and export; nothing uploaded, counter untouched).
-3. Operator only, confirmed: `scripts/release-testflight.sh --beta --version 5.0 --upload`, type `upload 5.0 (N)`. Then
+3. Operator only, confirmed: `scripts/release-testflight.sh --beta --version 5.0 --upload`, type `upload hfrplus-swift.red.super 5.0 (N)`. Then
    record the build on #251, add the build to the internal group if it is not automatic, paste the notes in "What to
    Test", tag `swifthfr-beta-5.0-N` (operator-confirmed push).
 

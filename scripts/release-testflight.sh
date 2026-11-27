@@ -90,7 +90,8 @@ Options:
   --since REF         first commit (exclusive) of the release notes' change list (default: last swifthfr-* tag)
   --output DIR        output folder, relative to the current directory (default: <repo>/build/release/<version>-<build>, git-ignored)
   --config FILE       local settings file (default: ${XDG_CONFIG_HOME:-~/.config}/swifthfr/release.env,
-                      release-beta.env with --beta; HFR_RELEASE_CONFIG overrides the default)
+                      release-beta.env with --beta; HFR_RELEASE_CONFIG, HFR_BETA_RELEASE_CONFIG with --beta,
+                      override the default). A file with HFR_CHANNEL=beta|store is refused in the other mode
   -h, --help          this help
 
 Settings (environment variables win over the config file; see scripts/release.env.example):
@@ -126,10 +127,12 @@ done
 if [ "$BETA" -eq 1 ]; then
   SCHEME="$BETA_SCHEME"; CONFIGURATION="$BETA_CONFIGURATION"; EXPECTED_BUNDLE_ID="$BETA_BUNDLE_ID"; TAG_PREFIX="swifthfr-beta-"
 fi
+# Each mode has its own settings file and variable, so beta settings never feed a store upload (or the reverse).
 if [ -z "$CONFIG" ]; then
-  if [ "$BETA" -eq 1 ]; then CONFIG="${HFR_RELEASE_CONFIG:-$CONFIG_DIR/release-beta.env}"
+  if [ "$BETA" -eq 1 ]; then CONFIG="${HFR_BETA_RELEASE_CONFIG:-$CONFIG_DIR/release-beta.env}"
   else CONFIG="${HFR_RELEASE_CONFIG:-$CONFIG_DIR/release.env}"; fi
 fi
+if [ "$BETA" -eq 1 ]; then CHANNEL_WANTED=beta; else CHANNEL_WANTED=store; fi
 [ "$MODE" = dry-run ] || [ "$UNSIGNED" -eq 0 ] || die "--unsigned is for --dry-run only: an unsigned archive cannot be uploaded."
 # The upload's confirmation needs a terminal: check it before any fetch or build, and keep it open on fd 3 for the
 # prompt and the answer (stdout may be redirected to a log).
@@ -139,6 +142,20 @@ fi
 # Relative paths are relative to where the script was called from, for --config and --output alike.
 case "$CONFIG" in /*) ;; *) CONFIG="$PWD/$CONFIG" ;; esac
 case "$OUTPUT" in ""|/*) ;; *) OUTPUT="$PWD/$OUTPUT" ;; esac
+
+REPO_ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null)" \
+  || die "The script must stay inside the SwiftHFR repository (scripts/)."
+REPO_ROOT="$(cd "$REPO_ROOT" && pwd -P)"
+# Succeeds when path $1 (existing or not) lies in this repository: the nearest existing folder is asked for its git top
+# level, so letter case (case-insensitive APFS), symlinks and folders still to create cannot hide the repository.
+inside_repo() {
+  local path="$1" dir top
+  case "$path" in /*) ;; *) path="$PWD/$path" ;; esac
+  dir="$(dirname "$path")"
+  while [ ! -d "$dir" ]; do dir="$(dirname "$dir")"; done
+  top="$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  [ "$(cd "$top" && pwd -P)" = "$REPO_ROOT" ]
+}
 
 # ---------------------------------------------------------------- version rules
 is_version() { printf '%s' "$1" | grep -Eq '^[0-9]+(\.[0-9]+){0,2}$'; }
@@ -179,14 +196,21 @@ load_config() {
     key="${line%%=*}"; val="${line#*=}"
     val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
     case "$key" in
-      HFR_ASC_KEY_ID|HFR_ASC_ISSUER_ID|HFR_ASC_KEY_PATH|HFR_SIGNING_STYLE|HFR_SIGNING_CERTIFICATE|HFR_PROFILE_NAME|HFR_TEAM_ID|HFR_ALLOW_PROVISIONING_UPDATES|HFR_INTERNAL_ONLY|HFR_BETA_COUNTER)
+      HFR_ASC_KEY_ID|HFR_ASC_ISSUER_ID|HFR_ASC_KEY_PATH|HFR_SIGNING_STYLE|HFR_SIGNING_CERTIFICATE|HFR_PROFILE_NAME|HFR_TEAM_ID|HFR_ALLOW_PROVISIONING_UPDATES|HFR_INTERNAL_ONLY|HFR_BETA_COUNTER|HFR_CHANNEL)
         if [ -z "${!key:-}" ]; then printf -v "$key" '%s' "$val"; fi ;;
       *) warn "Ignoring unknown key '$key' in $file." ;;
     esac
   done <"$file"
   ok "Loaded local settings from $file"
 }
+! inside_repo "$CONFIG" || die "The settings file $CONFIG is inside the repository: keep it outside (ADR 0007)."
 load_config "$CONFIG"
+HFR_CHANNEL="${HFR_CHANNEL:-}"
+case "$HFR_CHANNEL" in
+  "" | "$CHANNEL_WANTED") ;;
+  beta | store) die "These settings are for $HFR_CHANNEL builds (HFR_CHANNEL); this run is a $CHANNEL_WANTED build: check --beta and the settings file." ;;
+  *) die "HFR_CHANNEL must be beta or store." ;;
+esac
 HFR_ASC_KEY_ID="${HFR_ASC_KEY_ID:-}"; HFR_ASC_ISSUER_ID="${HFR_ASC_ISSUER_ID:-}"; HFR_ASC_KEY_PATH="${HFR_ASC_KEY_PATH:-}"
 HFR_SIGNING_STYLE="${HFR_SIGNING_STYLE:-manual}"; HFR_SIGNING_CERTIFICATE="${HFR_SIGNING_CERTIFICATE:-}"; HFR_PROFILE_NAME="${HFR_PROFILE_NAME:-}"; HFR_TEAM_ID="${HFR_TEAM_ID:-}"
 HFR_ALLOW_PROVISIONING_UPDATES="${HFR_ALLOW_PROVISIONING_UPDATES:-0}"; HFR_INTERNAL_ONLY="${HFR_INTERNAL_ONLY:-0}"
@@ -206,7 +230,6 @@ fi
 
 # ---------------------------------------------------------------- preflight
 command -v xcodebuild >/dev/null || die "xcodebuild not found: run on the maintainer's Mac with Xcode installed."
-REPO_ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null)" || die "The script must stay inside the SwiftHFR repository (scripts/)."
 cd "$REPO_ROOT"
 [ -d App/SwiftHFR.xcodeproj ] || die "App/SwiftHFR.xcodeproj not found: is this the dev-swift tree?"
 
@@ -247,11 +270,6 @@ if [ -n "$SINCE" ]; then
 fi
 
 # Upload credentials: required for --upload, reported in a dry run.
-inside_repo() {
-  local dir
-  dir="$(cd "$(dirname "$1")" 2>/dev/null && pwd -P)" || return 1
-  case "$dir/" in "$REPO_ROOT/"*) return 0 ;; *) return 1 ;; esac
-}
 CREDS_OK=1
 [ -n "$HFR_ASC_KEY_ID" ] || { CREDS_OK=0; precondition "HFR_ASC_KEY_ID is not set."; }
 [ -n "$HFR_ASC_ISSUER_ID" ] || { CREDS_OK=0; precondition "HFR_ASC_ISSUER_ID is not set."; }
@@ -275,7 +293,6 @@ fi
 BETA_LAST=0
 if [ "$BETA" -eq 1 ]; then
   case "$HFR_BETA_COUNTER" in /*) ;; *) die "HFR_BETA_COUNTER must be an absolute path (got '$HFR_BETA_COUNTER')." ;; esac
-  case "$HFR_BETA_COUNTER/" in "$REPO_ROOT/"*) die "The beta counter is inside the repository: keep it outside (HFR_BETA_COUNTER)." ;; esac
   ! inside_repo "$HFR_BETA_COUNTER" || die "The beta counter is inside the repository: keep it outside (HFR_BETA_COUNTER)."
   if [ -f "$HFR_BETA_COUNTER" ]; then
     BETA_LAST="$(tr -d '[:space:]' <"$HFR_BETA_COUNTER")"
@@ -431,10 +448,12 @@ fi
   printf '  testers     %s\n' "$( [ "$HFR_INTERNAL_ONLY" = 1 ] && echo "internal testing only" || echo "internal and external groups allowed")"
   printf '  API key id  %s\n' "$HFR_ASC_KEY_ID"
 } >&3
-printf 'A build number can be uploaded only once. Type "upload %s (%s)" to confirm: ' "$VERSION" "$BUILD" >&3
+# The phrase names the app record, so a phrase meant for the beta never confirms a store upload (or the reverse).
+PHRASE="upload $BUNDLE_ID $VERSION ($BUILD)"
+printf 'A build number can be uploaded only once. Type "%s" to confirm: ' "$PHRASE" >&3
 read -r answer <&3 || answer=""
 exec 3<&-
-[ "$answer" = "upload $VERSION ($BUILD)" ] || die "Not confirmed: nothing uploaded."
+[ "$answer" = "$PHRASE" ] || die "Not confirmed: nothing uploaded."
 
 run_step "Upload to App Store Connect" "$OUTPUT/upload.log" \
   xcrun altool --upload-package "$IPA" --api-key "$HFR_ASC_KEY_ID" --api-issuer "$HFR_ASC_ISSUER_ID" \
