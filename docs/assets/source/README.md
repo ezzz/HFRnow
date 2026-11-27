@@ -5,7 +5,7 @@ Two images are built here with `node render.js` (Node, Playwright with Chromium)
 | Output | Source | What it shows |
 |---|---|---|
 | `../hero.jpg` (2400×1200, at most 500 KB) | `hero.html` | « The lens »: the forum's home page (`hfr.webp`) as a printed sheet on an orange table, and a phone lying on it that shows the same categories in the app |
-| `../social-preview.png` (1280×640) | `social.html` | « `:o` »: the forum's smiley code as a two-ink typographic poster, with the wordmark. The operator uploads it in the repository's Settings › Social preview |
+| `../social-preview.png` (1280×640) | `social.html` | « `:o` »: the forum's smiley code as a two-ink typographic poster, with the wordmark (`:o` is a forum smiley code: `/icones/redface.gif` with `alt=":o"`, [HFR-PROTOCOL](../../HFR-PROTOCOL.md), « Smileys »; « U+003A U+006F » are its two characters). The operator uploads it in the repository's Settings › Social preview |
 
 ## Regenerate
 
@@ -23,13 +23,13 @@ node render.js      # writes ../hero.jpg and ../social-preview.png
 The screen is an image slot (`hero.html?screen=<file>`); the phone takes the image's aspect ratio.
 
 - **`app-forums.png`** (expected, #1380): a simulator capture of the Catégories list of the current `dev-swift` build, default theme, light, status bar overridden (9:41, full signal and battery), public category names only, no account name or avatar. Once this file is here, `render.js` uses it.
-- **Until then, a stand-in**: `app-screen.html` draws that screen from the app's code (the sources are listed at the top of the file) and `render.js` renders it to `app-forums.standin.png` (not committed). It is not a screenshot: Inter replaces the system font, the tab bar is approximate, the tab glyphs are redrawn, and the three categories whose icon is a third-party logo show the app's fallback folder. **The committed `hero.jpg` says which one it was built with in the PR that last changed it.**
+- **Until then, a stand-in**: `app-screen.html` draws that screen from the app's code (the sources are listed at the top of the file) and `render.js` renders it to `app-forums.standin.png` (not committed). It is not a screenshot: Inter replaces the system font, the tab bar is approximate, the tab glyphs are redrawn, the list stops at the eleventh category, and the two listed categories whose icon is a third-party logo (Apple, Windows) show the app's fallback folder. **The committed `hero.jpg` says which one it was built with in the PR that last changed it.**
 
 ## Assets and licences
 
 | Asset | Origin | Licence |
 |---|---|---|
-| `hfr.webp` | Capture of the forum's public home page (logged out; category names and counters only, no member name) | The page and the HARDWARE.FR banner belong to their owner; shown to say which forum the app is a client of, no endorsement implied |
+| `hfr.webp` | Capture of the forum's public home page, logged out. The « Date du dernier message » and « Modérateur » columns are blanked: only category names, sub-category names and message counters remain | The page and the HARDWARE.FR banner belong to their owner; shown to say which forum the app is a client of, no endorsement implied |
 | Inter (`inter.woff2`), JetBrains Mono (`jetbrains-mono.woff2`) | Google Fonts, downloaded by the lines above, not committed | SIL Open Font License 1.1 |
 | Category icons in the stand-in | Read at render time from `App/SwiftHFR/Assets.xcassets/CategoryIcons/` (nothing copied here) | Legacy HFR+ images, credit icons8: [CREDITS.md](../../../CREDITS.md) |
 | Everything else (layout, phone slab, glyphs, text) | Drawn in the HTML sources | This repository's licence |

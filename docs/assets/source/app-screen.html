@@ -10,7 +10,8 @@
      separator #C6C6C8, accent text #0F8096). Titles and sub-forum counts: the captured home page
      Packages/HFRKit/Tests/HFRParsingTests/Fixtures/LOT-002/R72b.oracle.json (sub-categories minus the parent's own copy).
      Not the app: Inter replaces the system font, the tab glyphs are redrawn (no SF Symbol is copied), the bar is approximate,
-     and the three categories whose legacy icon is a third-party logo (Apple, Windows, Linux) show the app's fallback folder. -->
+     the list stops at the eleventh category, and the two listed categories whose legacy icon is a third-party logo (Apple,
+     Windows) show the app's fallback folder (`folder.fill`, redrawn). -->
 <link rel="stylesheet" href="fonts.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,14 +21,14 @@
   .status .r { display: flex; gap: 6px; align-items: center; padding-bottom: 3px; }
   .card { margin: 0 16px; background: #fff; border-radius: 26px; overflow: hidden; }
   .card.title { margin-top: 8px; padding: 10px 16px; font-size: 34px; font-weight: 700; letter-spacing: -.02em; }
-  .card.rows { margin-top: 20px; }
+  .card.rows { margin-top: 20px; padding-bottom: 40px; }
   .row { display: flex; align-items: center; gap: 12px; padding: 9px 16px; min-height: 60px; position: relative; }
   .row + .row::before { content: ""; position: absolute; top: 0; left: 56px; right: 16px; height: .5px; background: #c6c6c8; }
   .ic { width: 28px; height: 28px; border-radius: 6px; flex: none; object-fit: contain; }
   .row b { display: block; font-size: 17px; font-weight: 400; letter-spacing: -.02em; }
   .row small { display: block; margin-top: 4px; font-size: 13px; color: #6c6c70; }
   .bar { position: absolute; left: 21px; right: 21px; bottom: 21px; height: 62px; border-radius: 31px; display: flex; padding: 4px;
-    background: rgba(255,255,255,.93); box-shadow: 0 8px 28px rgba(0,0,0,.12), inset 0 0 0 .5px rgba(0,0,0,.06); }
+    background: rgba(255,255,255,.8); backdrop-filter: blur(24px); box-shadow: 0 8px 28px rgba(0,0,0,.12), inset 0 0 0 .5px rgba(0,0,0,.06); }
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 600; color: #1c1c1e; border-radius: 27px; }
   .tab.on { color: #0f8096; background: rgba(120,120,128,.14); }
   .tab svg { width: 26px; height: 22px; }
@@ -51,8 +52,7 @@
 const cats = [['Hardware', 15, 'ProcessorFilled-40'], ['Hardware - Périphériques', 8, 'KeyboardFilled-40'], ['Ordinateurs portables', 8, 'LaptopFilled-40'],
   ['Overclocking, Cooling & Modding', 6, 'SupportFilled-40'], ['Electronique, domotique, DIY', 7, 'CircuitFilled-40'],
   ['Technologies Mobiles', 10, 'SmartphoneTabletFilled-40'], ['Apple', 7, null], ['Video & Son', 4, 'VideoCallFilled-40'],
-  ['Photo numérique', 10, 'CameraFilled-40'], ['Jeux Video', 7, 'ControllerFilled-40'], ['Windows & Software', 12, null],
-  ['Réseaux grand public / SoHo', 8, 'Wi-FiLogoFilled-40']];
+  ['Photo numérique', 10, 'CameraFilled-40'], ['Jeux Video', 7, 'ControllerFilled-40'], ['Windows & Software', 12, null]];
 const assets = '../../../App/SwiftHFR/Assets.xcassets/CategoryIcons/';
 const folder = '<svg class="ic" viewBox="0 0 28 28" fill="#6c6c70"><path d="M5 9a2 2 0 0 1 2-2h4.500l2 2.200H21a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/></svg>';
 rows.innerHTML = cats.map(([t, n, a]) => `<div class="row">${a ? `<img class="ic" src="${assets}${a}.imageset/${a}@2x.png">` : folder}

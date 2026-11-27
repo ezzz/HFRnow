@@ -17,6 +17,26 @@ async function open(browser, file, width, height, dpr, query = '') {
   return page;
 }
 
+// A missing image (a moved asset, a wrong path) must fail the build, not ship a hole.
+async function assertImagesLoaded(page, file) {
+  const broken = await page.evaluate(() => {
+    const failed = [...document.images].filter((image) => !image.complete || image.naturalWidth === 0).map((image) => image.src);
+    for (const element of document.querySelectorAll('*')) {
+      const match = /url\("(.+?)"\)/.exec(getComputedStyle(element).backgroundImage);
+      if (match) {
+        failed.push(new Promise((resolve) => {
+          const probe = new Image();
+          probe.onload = () => resolve(null);
+          probe.onerror = () => resolve(match[1]);
+          probe.src = match[1];
+        }));
+      }
+    }
+    return Promise.all(failed).then((list) => list.filter(Boolean));
+  });
+  if (broken.length) throw new Error(`${file}: image not loaded: ${broken.join(', ')}`);
+}
+
 (async () => {
   for (const font of ['inter.woff2', 'jetbrains-mono.woff2']) {
     if (!fs.existsSync(here(font))) throw new Error(`${font} is missing: see README.md for the download line`);
@@ -27,20 +47,22 @@ async function open(browser, file, width, height, dpr, query = '') {
   if (!fs.existsSync(here(screen))) {
     screen = 'app-forums.standin.png';
     const page = await open(browser, 'app-screen.html', 402, 874, 3);
+    await assertImagesLoaded(page, 'app-screen.html');
     await page.screenshot({ path: here(screen) });
     console.log('no app-forums.png: the hero uses the stand-in', screen);
   }
 
   const hero = await open(browser, 'hero.html', 1280, 640, 1.875, '?screen=' + screen);
   await hero.waitForSelector('body[data-ready="1"]');
+  await assertImagesLoaded(hero, 'hero.html');
   for (let quality = 90; ; quality -= 2) {
     const jpeg = await hero.screenshot({ type: 'jpeg', quality });
-    if (jpeg.length <= HERO_MAX_BYTES || quality <= 60) {
+    if (jpeg.length <= HERO_MAX_BYTES) {
       fs.writeFileSync(out('hero.jpg'), jpeg);
       console.log(`wrote hero.jpg (quality ${quality}, ${jpeg.length} bytes, screen: ${screen})`);
-      if (jpeg.length > HERO_MAX_BYTES) throw new Error('hero.jpg is over 500 KB at quality 60');
       break;
     }
+    if (quality <= 60) throw new Error('hero.jpg is over 500 KB at quality 60: nothing written');
   }
 
   const social = await open(browser, 'social.html', 1280, 640, 1);
