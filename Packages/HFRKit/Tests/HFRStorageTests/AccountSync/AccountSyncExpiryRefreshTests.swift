@@ -282,7 +282,7 @@ private let sevenDays: TimeInterval = 7 * 24 * 3_600
         #expect(try deviceA.accounts.mainAccount()?.pseudo == "x")
         deviceA.clock.set(200)
         try deviceA.accounts.save(expiringAccount("w", expires: moment(1_000)), makeMain: true)
-        try deviceA.sync.localChange(.login(pseudo: "w"))
+        _ = try deviceA.sync.localChange(.login(pseudo: "w"))
         guard case .full(_, let shared, _)? = try item.envelope else { Issue.record("no full envelope"); return }
         #expect(shared.filter(\.account.isMain).map(\.account.pseudo) == ["w"])
         let deviceC = try SyncDevice(item: item)
@@ -290,11 +290,43 @@ private let sevenDays: TimeInterval = 7 * 24 * 3_600
         #expect(try deviceC.accounts.mainAccount()?.pseudo == "w")
     }
 
+    // Round 3 finding 1: another device's merge keeps the copy's main flag, so a later bootstrap still gets it.
+    @Test func theCopysMainSurvivesAnotherDevicesMerge() throws {
+        let item = InMemorySecureDataItem()
+        let (deviceA, deviceB) = try sharedPair(item)
+        deviceA.clock.set(200)
+        try deviceA.accounts.save(expiringAccount("w", expires: moment(1_000)), makeMain: true)
+        _ = try deviceA.sync.localChange(.login(pseudo: "w"))
+        #expect(try deviceB.reconcile(at: 210).replaced == ["w"])
+        #expect(try deviceB.accounts.mainAccount()?.pseudo == "x", "the other device lost its own main")
+        guard case .full(_, let shared, _)? = try item.envelope else { Issue.record("no full envelope"); return }
+        #expect(shared.filter(\.account.isMain).map(\.account.pseudo) == ["w"], "another device's merge moved the copy's main")
+        let deviceC = try SyncDevice(item: item)
+        try deviceC.reconcile(at: 220)
+        #expect(try deviceC.accounts.mainAccount()?.pseudo == "w")
+    }
+
+    // Round 3 finding 3: adopting the copy's cookies keeps a token the copy lacks.
+    @Test func adoptingTheCopysCookiesKeepsTheDevicesToken() throws {
+        let item = InMemorySecureDataItem()
+        let (deviceA, deviceB) = try sharedPair(item)
+        try deviceA.accounts.update { book in
+            guard var account = book.account(matching: "x") else { return }
+            account.cookies = expiringAccount("x", expires: moment(1_000 + sevenDays + 1)).cookies
+            account.hashCheck = nil
+            book.replace(account)
+        }
+        deviceA.clock.set(200)
+        #expect(try deviceA.sync.localChange(.refresh(pseudo: "x")).itemWritten)
+        #expect(try deviceB.reconcile(at: 210).replaced == ["x"])
+        #expect(try deviceB.accounts.load().account(matching: "x")?.hashCheck == "fake-hash")
+    }
+
     private func clockAheadLogin(_ device: SyncDevice, cookie: String, expires: Date, at time: TimeInterval) {
         device.clock.set(time)
         #expect(throws: Never.self) {
             try device.accounts.save(expiringAccount("x", cookie: cookie, expires: expires), makeMain: false)
-            try device.sync.localChange(.login(pseudo: "x"))
+            _ = try device.sync.localChange(.login(pseudo: "x"))
         }
     }
 }

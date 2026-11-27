@@ -23,10 +23,8 @@ struct AccountSyncMerge {
         local: AccountBook, stamps localStamps: [String: AccountStamp], localRemoved: [String: Date],
         remote: [SyncedAccount], remoteRemoved: [String: Date]
     ) {
-        var remoteByKey: [String: SyncedAccount] = [:]
-        for entry in remote where remoteByKey[AccountKey.make(entry.account.pseudo)] == nil {
-            remoteByKey[AccountKey.make(entry.account.pseudo)] = entry
-        }
+        // The first entry of each account key.
+        let remoteByKey = Dictionary(remote.map { (AccountKey.make($0.account.pseudo), $0) }) { first, _ in first }
         var order: [String] = []
         for key in local.accounts.map({ AccountKey.make($0.pseudo) }) + remote.map({ AccountKey.make($0.account.pseudo) })
         where !order.contains(key) {
@@ -50,9 +48,11 @@ struct AccountSyncMerge {
             if let removal = removed[key], removal >= kept.consentAt { continue }
             removed[key] = nil
             var account = kept.account
+            // An entry kept from the copy keeps the copy's main flag: devices with different main accounts would rewrite it
+            // at every merge, and a device lacking the copy's main would drop it.
+            let fromCopy = remoteEntry.map { remote in sameLogin || localEntry.map { $0.credentialsAt <= remote.credentialsAt } ?? true }
+            copyMain[key] = fromCopy == true ? remoteEntry?.account.isMain : nil
             if sameLogin, let localEntry, let remoteEntry {
-                // The copy's main flag stays: devices with different main accounts would rewrite it at every merge.
-                copyMain[key] = remoteEntry.account.isMain
                 (kept.account, account) = Self.sameLoginAccounts(local: localEntry.account, copy: remoteEntry.account)
             }
             account.isMain = key == localMainKey
@@ -61,12 +61,13 @@ struct AccountSyncMerge {
         }
         let book = AccountBook(accounts: deviceAccounts)
         self.book = book
-        // When this device's main account is not a same-login entry, its own flag goes into the copy, the copy's ones go.
-        let ownMain = book.main.map { copyMain[AccountKey.make($0.pseudo)] == nil } ?? false
+        // When this device's main account is an entry of its own side (new, or newer than the copy's), its flag goes into the
+        // copy and the copy's ones go.
+        let copyFlags = book.main.map { copyMain[AccountKey.make($0.pseudo)] == nil } ?? false ? [:] : copyMain
         entries = merged.map { entry in
             var entry = entry
-            let key = AccountKey.make(entry.account.pseudo)
-            entry.account.isMain = (ownMain ? nil : copyMain[key]) ?? book.account(matching: entry.account.pseudo)?.isMain ?? false
+            let ownFlag = book.account(matching: entry.account.pseudo)?.isMain ?? false
+            entry.account.isMain = copyFlags[AccountKey.make(entry.account.pseudo)] ?? ownFlag
             return entry
         }
         self.removed = removed
@@ -102,7 +103,13 @@ struct AccountSyncMerge {
     private static func sameLoginAccounts(local: Account, copy: Account) -> (copy: Account, device: Account) {
         let localExpiry = loginExpiry(of: local), copyExpiry = loginExpiry(of: copy)
         if localExpiry > copyExpiry.addingTimeInterval(renewalMargin) { return (local, local) }
-        if copyExpiry > localExpiry.addingTimeInterval(renewalMargin) { return (copy, copy) }
+        if copyExpiry > localExpiry.addingTimeInterval(renewalMargin) {
+            // The copy's cookies, without losing a token or avatar the copy lacks (as `AccountBook.add` keeps them).
+            var adopted = copy
+            adopted.hashCheck = copy.hashCheck ?? local.hashCheck
+            adopted.avatarData = copy.avatarData ?? local.avatarData
+            return (copy, adopted)
+        }
         return (copy, local)
     }
 
