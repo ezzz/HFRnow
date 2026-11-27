@@ -2,7 +2,7 @@
 import Foundation
 import Synchronization
 import HFRModels
-import HFRStorage
+@testable import HFRStorage
 import Testing
 
 /// Replays legacy's writer (`MultisManager.m:49-80`: an `NSKeyedArchiver` of an `NSArray` of `NSMutableDictionary` with
@@ -78,7 +78,8 @@ struct LegacyAccountArchiveTests {
         let full = try #require(HTTPCookie(properties: [
             .name: "md_id", .value: "1", .domain: ".hardware.fr", .path: "/", .version: "1", .comment: "c",
             .commentURL: "https://forum.hardware.fr/", .port: "80,443", .discard: "TRUE", .sameSitePolicy: "lax",
-            .secure: "TRUE", HTTPCookiePropertyKey("HttpOnly"): "TRUE", .expires: Date(timeIntervalSince1970: 1_803_859_200)
+            .secure: "TRUE", HTTPCookiePropertyKey("HttpOnly"): "TRUE", .expires: Date(timeIntervalSince1970: 1_803_859_200),
+            HTTPCookiePropertyKey("StoragePartition"): "partition"
         ]))
         let entry = NSDictionary(dictionary: ["PSEUDO": "fakeuser1", "COOKIES": NSArray(array: [full])])
         let data = try NSKeyedArchiver.archivedData(withRootObject: NSArray(array: [entry]), requiringSecureCoding: false)
@@ -88,22 +89,34 @@ struct LegacyAccountArchiveTests {
         #expect(cookies.first?.value == "1" && cookies.first?.domain == ".hardware.fr")
     }
 
-    /// Each key `NSHTTPCookie` archives, given a dictionary: `HTTPCookie(properties:)` raises an Objective-C exception
-    /// (`Path`, `Comment`, `CommentURL`, `SameSite`) or crashes (`Port`) on some, and reads others by presence alone.
+    /// Each key `NSHTTPCookie` archives, given a dictionary, then a number: `HTTPCookie(properties:)` raises an
+    /// Objective-C exception (`Path`, `Comment`, `CommentURL`, `SameSite`, `StoragePartition`) or crashes (`Port`) on
+    /// some, and reads others by presence alone. `Created`, `Version` and `Max-Age` take a number.
     @Test("a cookie whose archived property has an unexpected type is skipped, never handed to Foundation", arguments: [
         "Name", "Value", "Domain", "Path", "Expires", "Created", "Secure", "HttpOnly", "Discard", "Version", "Max-Age",
-        "Comment", "CommentURL", "OriginURL", "SameSite", "Port"
-    ])
-    func mistypedProperty(key: String) throws {
+        "Comment", "CommentURL", "OriginURL", "SameSite", "Port", "StoragePartition"
+    ], [true, false])
+    func mistypedProperty(key: String, asDictionary: Bool) throws {
+        guard asDictionary || !["Created", "Version", "Max-Age"].contains(key) else { return }
         var properties = Self.archivedProperties
-        properties[key] = NSDictionary(dictionary: ["k": "v"])
+        properties[key] = asDictionary ? NSDictionary(dictionary: ["k": "v"]) : NSNumber(value: 1)
         let records = try LegacyAccountArchive.decode(try archive(ForgedCookie(properties), ForgedCookie(Self.archivedProperties)))
         #expect(records.first?.cookies.map(\.name) == ["md_user"])
         #expect(records.first?.cookies.first?.isSecure == false)
     }
 
-    @Test("a property key NSHTTPCookie does not archive is dropped, the cookie kept")
+    @Test("a cookie whose archived expiry is not a finite date is skipped")
+    func nonFiniteExpiry() throws {
+        var properties = Self.archivedProperties
+        properties["Expires"] = Date(timeIntervalSinceReferenceDate: .nan)
+        let records = try LegacyAccountArchive.decode(try archive(ForgedCookie(properties), ForgedCookie(Self.archivedProperties)))
+        #expect(records.first?.cookies.count == 1)
+        #expect(records.first?.cookies.first?.expiresDate == Date(timeIntervalSince1970: 1_803_859_200))
+    }
+
+    @Test("a property key outside the checked list is dropped, the cookie kept")
     func unknownProperty() throws {
+        #expect(LegacyArchivedCookie.verdict(on: NSDictionary(dictionary: ["k": "v"]), forKey: "Partitioned") == .drop)
         var properties = Self.archivedProperties
         properties["Partitioned"] = NSDictionary(dictionary: ["k": "v"])
         let records = try LegacyAccountArchive.decode(try archive(ForgedCookie(properties)))

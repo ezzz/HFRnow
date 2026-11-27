@@ -121,7 +121,7 @@ final class LegacyArchivedCookie: NSObject, NSSecureCoding {
     private let properties: [String: Any]
 
     /// The cookie of those properties; nil when one has a value of a type `HTTPCookie(properties:)` does not take, or
-    /// when Foundation cannot build a cookie from them. A key `NSHTTPCookie` does not archive is dropped.
+    /// when Foundation cannot build a cookie from them. A key outside `verdict(on:forKey:)`'s list is dropped.
     var cookie: HTTPCookie? {
         var checked: [HTTPCookiePropertyKey: Any] = [:]
         for (key, value) in properties {
@@ -137,20 +137,21 @@ final class LegacyArchivedCookie: NSObject, NSSecureCoding {
     /// What `cookie` does with one archived property.
     enum PropertyVerdict { case keep, drop, refuse }
 
-    /// `keep` when `value` has a type `HTTPCookie(properties:)` takes for `key`, `refuse` when not, `drop` for a key
-    /// `NSHTTPCookie` does not archive. Foundation does not check them: a dictionary under `Path`, `Comment`,
-    /// `CommentURL` or `SameSite` raises an Objective-C exception, one under `Port` crashes, and the flags are read by
-    /// presence (measured on macOS 27.2, #1205). The types are those `NSHTTPCookie` archives (strings; `Expires` a date,
-    /// `Created` a number, `Port` an array of numbers) and those Apple documents for `HTTPCookie(properties:)`, but a
-    /// `CommentURL` URL, which raises.
+    /// `keep` when `value` has a type `HTTPCookie(properties:)` takes for `key`, `refuse` when not, `drop` for any other
+    /// key. Foundation does not check them: a dictionary or a number under `Path`, `Comment`, `CommentURL`, `SameSite`
+    /// or `StoragePartition` raises an Objective-C exception, a dictionary under `Port` crashes, the flags are read by
+    /// presence, and a NaN `Expires` date reaches the cookie (measured on macOS 27.2, #1205). The keys are those
+    /// `NSHTTPCookie` archives and those Apple documents; the types, those it archives (strings; `Expires` a finite date,
+    /// `Created` a number, `Port` an array of numbers) and those Apple documents, but a `CommentURL` URL, which raises.
+    /// Dropping the other keys keeps a key Foundation reads but this list misses from reaching it unchecked.
     static func verdict(on value: Any, forKey key: String) -> PropertyVerdict {
         let expected: Bool
         switch key {
         case "Name", "Value", "Domain", "Path", "Comment", "CommentURL", "OriginURL", "SameSite", "Secure", "HttpOnly",
-            "Discard":
+            "Discard", "StoragePartition":
             expected = value is String
         case "Expires":
-            expected = value is Date || value is String
+            expected = (value as? Date)?.timeIntervalSinceReferenceDate.isFinite == true || value is String
         case "Created":
             expected = value is NSNumber
         case "Version", "Max-Age":
