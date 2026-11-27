@@ -813,5 +813,10 @@
   "id": 1379,
   "section": "T",
   "summary": "Profil d'un membre : la page est de nouveau chargée avec la session du compte courant, comme l'app d'origine depuis sa correction (#1349), car HFR refuse les profils sans cookies depuis le 26/11/2026 ; sans compte connecté aucune requête ne part (« Connexion requise ») et un refus de HFR (401/403) a son propre message. Annule la première partie de la ligne 65 (« chargée sans les cookies du compte »)."
+ },
+ {
+  "id": 1389,
+  "section": "UX",
+  "summary": "Lecteur : les liens et les mots-clés de code d'un message prennent une couleur dérivée de l'accent, assombrie (thème clair) ou éclaircie (thème sombre) jusqu'à 4,5:1 ; avec l'accent par défaut, ils étaient à 1,5:1 sur fond blanc."
  }
 ]
