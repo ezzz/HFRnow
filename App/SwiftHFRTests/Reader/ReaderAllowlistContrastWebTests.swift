@@ -6,7 +6,8 @@ import UIKit
 
 /// Secondary text on the tinted allowlist surfaces keeps WCAG AA (4.5:1) in the real reader (#644): the classic whitelist header's
 /// date (`--love`) and the folded blocked quote header inside a whitelisted author's message (a tint over `--love`), modern and
-/// classic, light and dark. The background under the text is composited from the element's ancestors, as the engine paints it.
+/// classic, light and dark; and (#1358) the folded quote header of a moderation message and the date and folded quote header of a
+/// continuation (75 % opacity). The background under the text is composited from the element's ancestors, as the engine paints it.
 @MainActor
 @Suite(.serialized)
 struct ReaderAllowlistContrastWebTests: ReaderWebTesting {
