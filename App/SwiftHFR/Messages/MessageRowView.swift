@@ -62,13 +62,13 @@ struct MessageRowView: View {
         let info = MessageRowInfoLine.make(thread: thread, flagLabel: flagLabel)
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: density.lineSpacing) {
-                if let leading = info.leading { Text(leading) }
+                if let leading = info.leading { Text(leading).accessibilityLabel(MessageRowInfoLine.spokenLeading(leading)) }
                 if let trailing = info.trailing { Text(trailing) }
             }
             .scaledFont(.caption).foregroundStyle(.secondary)
         } else if info.leading != nil || info.trailing != nil {
             HStack(spacing: 8) {
-                if let leading = info.leading { Text(leading).lineLimit(1) }
+                if let leading = info.leading { Text(leading).lineLimit(1).accessibilityLabel(MessageRowInfoLine.spokenLeading(leading)) }
                 Spacer(minLength: 0)
                 if let trailing = info.trailing { Text(trailing).lineLimit(1).layoutPriority(-1) }
             }

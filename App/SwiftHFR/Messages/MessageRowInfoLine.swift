@@ -25,6 +25,13 @@ struct MessageRowInfoLine: Equatable {
         return MessageRowInfoLine(leading: leading, trailing: trailing(of: thread.summary.lastPost, now: now))
     }
 
+    /// Spoken form of a group's « ⚑ page / pages » (#1161): « Page 2 sur 3 »; any other text is read as it is.
+    static func spokenLeading(_ leading: String) -> String {
+        let parts = leading.dropFirst(2).split(separator: "/").map { $0.trimmingCharacters(in: .whitespaces) }
+        guard leading.hasPrefix("⚑ "), parts.count == 2, Int(parts[0]) != nil, Int(parts[1]) != nil else { return leading }
+        return "Page \(parts[0]) sur \(parts[1])"
+    }
+
     /// « poster - time » (legacy `trailingLabel`, `MPListView.swift:789-792`).
     static func trailing(of post: LastPost?, now: Date) -> String? {
         guard let post else { return nil }
