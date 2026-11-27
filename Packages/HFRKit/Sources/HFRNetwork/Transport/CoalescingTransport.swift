@@ -29,7 +29,8 @@ public final class CoalescingTransport: HTTPTransport, @unchecked Sendable {
         init(request: HTTPRequest) { self.request = request }
     }
 
-    private let base: any HTTPTransport
+    /// The transport the exchanges go through (callers check it is the cookie-less one).
+    public let base: any HTTPTransport
     private let lock = NSLock()
     private var inFlight: [Exchange] = []
 

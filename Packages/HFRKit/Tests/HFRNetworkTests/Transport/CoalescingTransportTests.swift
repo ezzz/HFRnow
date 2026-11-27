@@ -147,13 +147,20 @@ struct CoalescingTransportTests {
     @Test func aCallerCancelledBeforeItJoinsStartsNothing() async {
         let blocking = Blocking()
         let transport = CoalescingTransport(base: blocking)
-        let url = image
-        let task = Task { () throws(NetworkError) -> HTTPResponse in
+        // The request is built outside the closure, and the closure returns the error as a value: a typed-throws closure capturing
+        // a value here crashed the compiler (SIL ownership error, #1405).
+        let request = HTTPRequest.get(image)
+        let task = Task { () async -> NetworkError? in
             while !Task.isCancelled { await Task.yield() }
-            return try await transport.perform(.get(url))
+            do throws(NetworkError) {
+                _ = try await transport.perform(request)
+                return nil
+            } catch {
+                return error
+            }
         }
         task.cancel()
-        await #expect(throws: NetworkError.cancelled) { try await task.value }
+        #expect(await task.value == .cancelled)
         #expect(await blocking.started.isFired == false)
     }
 }
