@@ -323,6 +323,13 @@ table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); 
 .message.whitelist { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
 @media not (prefers-color-scheme: dark) { .style-classic .message.whitelist .header .date { color: var(--secondary-tinted); } }
 .message.whitelist table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
+/* Two more light cases of the same class (#1358). A folded blocked quote on the moderation background (`--modo`) puts `--secondary` at
+   4.23:1; the same pull toward the page text gives 5.39. A continuation's 75 % opacity takes an allowlist header's date to 3.28:1 over the
+   page in the classic look (`--secondary-tinted` on `--love`) and 3.01 in the modern one (`--secondary`); the page text is 6.63 on
+   the classic one, as in dark (#1210). Continuations of other authors are not covered here. */
+.message.mode { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
+.message.mode table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
+@media not (prefers-color-scheme: dark) { .message.whitelist.continuation .header .date { color: var(--text); } }
 table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
 table.quote-blocked { background: color-mix(in srgb, var(--text) var(--blocked-tint), transparent); }
 /* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */
