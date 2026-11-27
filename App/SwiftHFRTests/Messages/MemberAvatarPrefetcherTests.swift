@@ -1,6 +1,7 @@
 import Foundation
 import HFRNetwork
 import HFRParsing
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 
@@ -129,9 +130,10 @@ struct MemberAvatarPrefetcherTests {
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let clock = Clock(Date(timeIntervalSince1970: 1_000_000))
+        let store = UserDefaultsSettingsStore(defaults: defaults)
         func launch(_ lookup: ScriptedLookup) -> MemberAvatarPrefetcher {
             MemberAvatarPrefetcher(
-                lookup: lookup, misses: .persisted(in: defaults, now: { clock.now }), hasAvatar: { _ in false }, offer: { _, _ in }
+                lookup: lookup, misses: .persisted(in: store, now: { clock.now }), hasAvatar: { _ in false }, offer: { _, _ in }
             )
         }
         let first = ScriptedLookup { _ in .none }
@@ -152,8 +154,9 @@ struct MemberAvatarPrefetcherTests {
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let lookup = ScriptedLookup { _ in .failed }
+        let misses = MemberAvatarPrefetcher.Misses.persisted(in: UserDefaultsSettingsStore(defaults: defaults))
         for _ in 0..<2 {
-            await MemberAvatarPrefetcher(lookup: lookup, misses: .persisted(in: defaults), hasAvatar: { _ in false }, offer: { _, _ in })
+            await MemberAvatarPrefetcher(lookup: lookup, misses: misses, hasAvatar: { _ in false }, offer: { _, _ in })
                 .prefetch(pseudo: "user5")
         }
         #expect(lookup.pseudos == ["user5", "user5"])

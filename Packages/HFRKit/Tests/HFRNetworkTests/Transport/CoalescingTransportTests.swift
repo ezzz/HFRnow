@@ -29,8 +29,8 @@ struct CoalescingTransportTests {
         let url = image
         let answers = await withTaskGroup(of: HTTPResponse?.self) { group in
             for _ in 0..<35 { group.addTask { try? await transport.perform(.get(url)) } }
-            // Let every caller join the exchange in flight before the server answers.
-            try? await Task.sleep(for: .milliseconds(200))
+            // Every caller has joined the exchange in flight before the server answers (a condition, not a delay).
+            while transport.waitingCallers < 35 { await Task.yield() }
             await gate.release()
             var all: [HTTPResponse?] = []
             for await answer in group { all.append(answer) }
@@ -47,7 +47,14 @@ struct CoalescingTransportTests {
         let (base, transport) = make(gate: gate)
         await withTaskGroup(of: Void.self) { group in
             for request in requests { group.addTask { _ = try? await transport.perform(request) } }
-            try? await Task.sleep(for: .milliseconds(200))
+            // Every GET has joined (a write is never a waiter); a write is held at the base, so it is waited for there.
+            let gets = requests.filter { $0.method == .get && $0.body == nil }.count
+            let writes = requests.count - gets
+            while true {
+                let reached = await base.requests.count
+                if transport.waitingCallers >= gets, reached >= writes + (gets > 0 ? 1 : 0) { break }
+                await Task.yield()
+            }
             await gate.release()
         }
         return await base.requests.count
@@ -78,43 +85,75 @@ struct CoalescingTransportTests {
         #expect(await requestsReachingBase([post, post]) == 2)
     }
 
-    /// Counts the exchanges started and the ones cancelled; each runs until released or cancelled.
-    private final class Slow: HTTPTransport, @unchecked Sendable {
-        private let lock = NSLock()
-        private var started = 0
-        private var cancelled = 0
-        var counts: (started: Int, cancelled: Int) { lock.withLock { (started, cancelled) } }
+    /// A one-shot signal: `wait()` returns once `fire()` has been called, however the two interleave.
+    private actor Signal {
+        private(set) var isFired = false
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+        func fire() { isFired = true; waiters.forEach { $0.resume() }; waiters = [] }
+        func wait() async { if !isFired { await withCheckedContinuation { waiters.append($0) } } }
+    }
+
+    /// A transport whose exchange stays open until `release` fires or the exchange is cancelled; no clock involved.
+    private final class Blocking: HTTPTransport, Sendable {
+        let started = Signal()
+        let release = Signal()
+        let wasCancelled = Signal()
 
         func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse {
-            lock.withLock { started += 1 }
-            try? await Task.sleep(for: .seconds(2))
-            if Task.isCancelled {
-                lock.withLock { cancelled += 1 }
-                throw .cancelled
+            await started.fire()
+            await withTaskCancellationHandler {
+                await release.wait()
+            } onCancel: {
+                Task { await self.wasCancelled.fire(); await self.release.fire() }
             }
+            if Task.isCancelled { throw .cancelled }
             return HTTPResponse(statusCode: 200, url: request.url)
         }
     }
 
-    /// A cancelled caller stops waiting at once; the exchange is cancelled only when its last waiter has left.
-    @Test func cancellingTheLastWaiterCancelsTheExchangeAndEndsItsWaitAtOnce() async throws {
-        let slow = Slow()
-        let transport = CoalescingTransport(base: slow)
+    /// A cancelled caller ends its wait while the exchange is still open; the exchange goes on for the callers that remain.
+    @Test func aCancelledWaiterLeavesAtOnceAndTheExchangeServesTheOthers() async throws {
+        let blocking = Blocking()
+        let transport = CoalescingTransport(base: blocking)
         let url = image
         let first = Task { try await transport.perform(.get(url)) }
         let second = Task { try await transport.perform(.get(url)) }
-        try await Task.sleep(for: .milliseconds(100))
+        await blocking.started.wait()
+        // Both callers have joined before one leaves (a condition, not a delay).
+        while transport.waitingCallers < 2 { await Task.yield() }
         first.cancel()
+        // Returns while the base is still blocked: had the cancelled caller waited for the download this would never return.
         await #expect(throws: NetworkError.cancelled) { try await first.value }
-        // One waiter is left: the exchange goes on.
-        try await Task.sleep(for: .milliseconds(100))
-        #expect(slow.counts.cancelled == 0)
-        let began = ContinuousClock.now
-        second.cancel()
-        await #expect(throws: NetworkError.cancelled) { try await second.value }
-        // The download takes 2 s: a wait well under that proves the cancelled caller did not wait for it (slack for loaded runners).
-        #expect(ContinuousClock.now - began < .milliseconds(1500), "a cancelled caller waited for the download")
-        try await Task.sleep(for: .milliseconds(2300))
-        #expect(slow.counts == (started: 1, cancelled: 1))
+        #expect(await blocking.release.isFired == false)
+        await blocking.release.fire()
+        #expect(try await second.value.statusCode == 200)
+        #expect(await blocking.wasCancelled.isFired == false)
+    }
+
+    /// The last waiter leaving cancels the exchange, so an abandoned download does not run on.
+    @Test func theLastWaiterLeavingCancelsTheExchange() async throws {
+        let blocking = Blocking()
+        let transport = CoalescingTransport(base: blocking)
+        let url = image
+        let only = Task { try await transport.perform(.get(url)) }
+        await blocking.started.wait()
+        only.cancel()
+        await #expect(throws: NetworkError.cancelled) { try await only.value }
+        // Never returns if the exchange were left running.
+        await blocking.wasCancelled.wait()
+    }
+
+    /// A caller already cancelled when it arrives starts nothing.
+    @Test func aCallerCancelledBeforeItJoinsStartsNothing() async {
+        let blocking = Blocking()
+        let transport = CoalescingTransport(base: blocking)
+        let url = image
+        let task = Task { () throws(NetworkError) -> HTTPResponse in
+            while !Task.isCancelled { await Task.yield() }
+            return try await transport.perform(.get(url))
+        }
+        task.cancel()
+        await #expect(throws: NetworkError.cancelled) { try await task.value }
+        #expect(await blocking.started.isFired == false)
     }
 }

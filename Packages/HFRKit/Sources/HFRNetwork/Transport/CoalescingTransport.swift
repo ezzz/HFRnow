@@ -33,6 +33,13 @@ public final class CoalescingTransport: HTTPTransport, @unchecked Sendable {
     private let lock = NSLock()
     private var inFlight: [Exchange] = []
 
+    /// Callers waiting on an exchange now (tests wait for it to know that everyone joined).
+    var waitingCallers: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return inFlight.reduce(0) { $0 + $1.waiters.count }
+    }
+
     /// Merges the identical GETs sent through `base`.
     public init(base: any HTTPTransport) {
         self.base = base

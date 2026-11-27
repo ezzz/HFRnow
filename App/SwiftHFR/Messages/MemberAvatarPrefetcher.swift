@@ -81,23 +81,31 @@ actor MemberAvatarPrefetcher {
         /// How long a "no avatar" answer holds, like an avatar's freshness (LOT-066).
         static let freshness: TimeInterval = 24 * 60 * 60
 
-        /// Kept in `defaults`, one date per lowercased pseudo, on the device (a pseudo is already in the avatar cache's file names).
-        static func persisted(in defaults: UserDefaults = .standard, now: @escaping @Sendable () -> Date = { Date() }) -> Misses {
-            let key = "memberAvatarMisses"
-            // `UserDefaults` is thread-safe but not declared `Sendable` by every SDK: the annotation states it for the compiler.
-            nonisolated(unsafe) let store = defaults
+        /// The record: lowercased pseudo → seconds since 1970 of the last "no avatar" answer, JSON in one device-only setting.
+        private static let setting = Setting<String>(
+            key: "memberAvatarMisses", defaultValue: "{}",
+            decode: { if case .string(let text) = $0 { text } else { nil } }, encode: { .string($0) }
+        )
+
+        /// Kept on the device through `store`, the settings store (`Sendable`, thread-safe): one date per lowercased pseudo (a pseudo
+        /// is already in the avatar cache's file names). Dates older than a day leave with the next write.
+        static func persisted(
+            in store: any SettingsStore = UserDefaultsSettingsStore(), now: @escaping @Sendable () -> Date = { Date() }
+        ) -> Misses {
+            @Sendable func read() -> [String: Double] {
+                (try? JSONDecoder().decode([String: Double].self, from: Data(store.value(for: setting).utf8))) ?? [:]
+            }
             return Misses(
                 isFresh: { pseudo in
-                    guard let recordedAt = (store.dictionary(forKey: key) as? [String: Date])?[pseudo] else { return false }
-                    return now().timeIntervalSince(recordedAt) < freshness
+                    guard let recordedAt = read()[pseudo] else { return false }
+                    return now().timeIntervalSince1970 - recordedAt < freshness
                 },
                 record: { pseudo in
-                    var all = (store.dictionary(forKey: key) as? [String: Date]) ?? [:]
-                    let current = now()
-                    // Expired entries leave with the next write, so the list stays as long as the correspondents of a day.
-                    all = all.filter { current.timeIntervalSince($0.value) < freshness }
+                    let current = now().timeIntervalSince1970
+                    var all = read().filter { current - $0.value < freshness }
                     all[pseudo] = current
-                    store.set(all, forKey: key)
+                    guard let data = try? JSONEncoder().encode(all), let text = String(data: data, encoding: .utf8) else { return }
+                    store.set(text, for: setting)
                 }
             )
         }
