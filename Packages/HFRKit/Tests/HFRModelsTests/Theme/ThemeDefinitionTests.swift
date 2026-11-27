@@ -75,6 +75,24 @@ import Testing
         }
     }
 
+    /// LOT-192: Swift (Classiques, light and dark) and Rétro 5250 (Rétro, one variant, monospaced) ship in the gallery.
+    @Test func swiftAndRetro5250AreBundledWithTheirFamilyVariantsAndFont() throws {
+        let catalog = ThemeCatalog(files: try Self.bundledFiles())
+        let swift = try #require(catalog.themes.first { $0.id == "swift" })
+        #expect(swift.name == "Swift" && swift.family == "Classiques" && swift.fontDesign == .default)
+        guard case .lightDark? = swift.variants else {
+            Issue.record("Swift has a light and a dark variant")
+            return
+        }
+        let retro = try #require(catalog.themes.first { $0.id == "retro-5250" })
+        #expect(retro.name == "Rétro 5250" && retro.family == "Rétro" && retro.fontDesign == .monospaced)
+        guard case .single? = retro.variants else {
+            Issue.record("Rétro 5250 is a single variant")
+            return
+        }
+        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro"])
+    }
+
     /// The contrast test fails on a broken bundled theme: the same check, given the broken fixture among the bundled files.
     @Test func theBundledCheckFailsWhenABrokenThemeIsAdded() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles() + [("broken-theme.theme.json", Self.fixture("broken-theme"))])

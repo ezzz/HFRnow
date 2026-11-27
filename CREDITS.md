@@ -38,6 +38,10 @@ The construction worker shown while the first-launch import runs (#754, `App/Swi
 
 The Noël images (LOT-166, `App/SwiftHFR/Assets.xcassets/Noel/`): the sleigh with its reindeer, the star, the gifts, the ornament, the snowflake, the snow pile, the packing elf, and Noël abusé's tree and garland. Original procedural renders made for SwiftHFR on 2026-10-28 from the operator's requests and validated by him on 2026-11-10 ([`docs/assets/themes/`](docs/assets/themes/README.md); no downloaded mesh, texture or image), under this repository's licence; the app's copies are those renders trimmed and scaled by `tooling/art/noel-crossings/derive.swift`, no pixel redrawn (the elf, the tree and the garland, made in a session without a Mac, were trimmed and scaled the same way with PIL; a later run of the script rewrites them).
 
+### Themes
+
+Swift and Rétro 5250 (LOT-192, `App/SwiftHFR/Themes/swift/`, `App/SwiftHFR/Themes/retro-5250/`): colour tokens only, drawn from the operator's token draft of 2026-10-28 (`docs/assets/themes/tokens/themes.json`), adjusted where [THEMES.md](docs/THEMES.md) §3's contrast rules required. No code or asset copied from another app; « 5250 » only evokes the green-screen terminals, no trademark or logo is used. Made by Claude Code (Sonnet 5.5) for the operator, under this repository's licence.
+
 ## Contributors
 
 Everyone who contributed to the projects above, and every contributor listed in this repository's history.
