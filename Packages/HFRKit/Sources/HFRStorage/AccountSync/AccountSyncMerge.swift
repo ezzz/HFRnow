@@ -49,25 +49,24 @@ struct AccountSyncMerge {
             kept.consentAt = max(localEntry?.consentAt ?? .distantPast, remoteEntry?.consentAt ?? .distantPast)
             if let removal = removed[key], removal >= kept.consentAt { continue }
             removed[key] = nil
+            var account = kept.account
             if sameLogin, let localEntry, let remoteEntry {
                 // The copy's main flag stays: devices with different main accounts would rewrite it at every merge.
                 copyMain[key] = remoteEntry.account.isMain
-                // A copy whose cookies lag far behind this device's takes them, or a device bootstrapping from it would
-                // import cookies past their expiry; the margin keeps it to one write per account and period, not per check.
-                let lagging = Self.loginExpiry(of: remoteEntry.account).addingTimeInterval(Self.renewalMargin)
-                if Self.loginExpiry(of: localEntry.account) > lagging { kept.account = localEntry.account }
+                (kept.account, account) = Self.sameLoginAccounts(local: localEntry.account, copy: remoteEntry.account)
             }
-            var account = sameLogin ? localEntry?.account ?? kept.account : kept.account
             account.isMain = key == localMainKey
             merged.append(kept)
             deviceAccounts.append(account)
         }
         let book = AccountBook(accounts: deviceAccounts)
         self.book = book
+        // When this device's main account is not a same-login entry, its own flag goes into the copy, the copy's ones go.
+        let ownMain = book.main.map { copyMain[AccountKey.make($0.pseudo)] == nil } ?? false
         entries = merged.map { entry in
             var entry = entry
             let key = AccountKey.make(entry.account.pseudo)
-            entry.account.isMain = copyMain[key] ?? book.account(matching: entry.account.pseudo)?.isMain ?? false
+            entry.account.isMain = (ownMain ? nil : copyMain[key]) ?? book.account(matching: entry.account.pseudo)?.isMain ?? false
             return entry
         }
         self.removed = removed
@@ -97,14 +96,31 @@ struct AccountSyncMerge {
     /// least, for at most one write per account and week instead of one per session check.
     static let renewalMargin: TimeInterval = 7 * 24 * 3_600
 
+    /// The copy's and this device's account for one login held on both sides. Each keeps its own, unless its cookies lag
+    /// more than `renewalMargin` behind the other's: it then takes the other's, or it would keep (or a device bootstrapping
+    /// from the copy would import) cookies past their expiry. One write or adoption per account and period, not per check.
+    private static func sameLoginAccounts(local: Account, copy: Account) -> (copy: Account, device: Account) {
+        let localExpiry = loginExpiry(of: local), copyExpiry = loginExpiry(of: copy)
+        if localExpiry > copyExpiry.addingTimeInterval(renewalMargin) { return (local, local) }
+        if copyExpiry > localExpiry.addingTimeInterval(renewalMargin) { return (copy, copy) }
+        return (copy, local)
+    }
+
     /// The latest expiry of an account's login cookies; `distantPast` when none has one.
     static func loginExpiry(of account: Account) -> Date {
         account.cookies.filter { loginCookies.contains($0.name) }.compactMap(\.expiresDate).max() ?? .distantPast
     }
 
-    /// Whether two copies of an account hold the same login: the same values of the login cookies, dates ignored.
+    /// Whether two copies of an account hold the same login: the same values of the login cookies, dates ignored. `md_id`
+    /// counts only when both hold it: `R74` renews `md_user` and `md_passs`, not `md_id`, which leaves a jar 30 days after
+    /// the login (`W03`).
     static func sameLogin(_ first: Account, _ second: Account) -> Bool {
-        loginIdentity(of: first) == loginIdentity(of: second)
+        var one = loginIdentity(of: first), other = loginIdentity(of: second)
+        if one["md_id"] == nil || other["md_id"] == nil {
+            one["md_id"] = nil
+            other["md_id"] = nil
+        }
+        return one == other
     }
 
     private static func loginIdentity(of account: Account) -> [String: [String]] {

@@ -35,6 +35,9 @@ extension SyncDevice {
     }
 }
 
+/// The renewal margin, written out so a change of `AccountSyncMerge.renewalMargin` fails here.
+private let sevenDays: TimeInterval = 7 * 24 * 3_600
+
 /// #1390 (audit #1388 A1): a refresh that only renewed the cookies' expiry dates is not new credentials.
 @Suite struct AccountSyncExpiryRefreshTests {
     /// Two devices sharing `x`, the second one bootstrapped from the first.
@@ -156,12 +159,14 @@ extension SyncDevice {
     @Test func aCopyFarBehindTakesTheRenewedCookiesOnce() throws {
         let item = InMemorySecureDataItem()
         let (deviceA, deviceB) = try sharedPair(item)
-        let renewed = moment(1_000 + AccountSyncMerge.renewalMargin + 1)
+        let renewed = moment(1_000 + sevenDays + 1)
         let report = try deviceA.renewExpiries("x", expires: renewed, at: 200)
         #expect(report.itemWritten, "the copy kept cookies that lag past the margin")
         #expect(report.replaced.isEmpty)
-        #expect(try deviceB.reconcile(at: 210).replaced.isEmpty, "a renewal was reported as new credentials")
-        #expect(deviceB.expiry(of: "x") == moment(1_000), "the other device's own cookies were replaced")
+        // B's own cookies now lag past the margin too: it takes the copy's, once (round 2 finding 1).
+        #expect(try deviceB.reconcile(at: 210).replaced == ["x"])
+        #expect(deviceB.expiry(of: "x") == renewed)
+        #expect(try deviceB.reconcile(at: 215).replaced.isEmpty, "a renewal was reported twice")
         #expect(try !deviceA.renewExpiries("x", expires: renewed.addingTimeInterval(3_600), at: 220).itemWritten)
         #expect(try !deviceB.renewExpiries("x", expires: renewed.addingTimeInterval(7_200), at: 230).itemWritten)
         let deviceC = try SyncDevice(item: item)
@@ -228,6 +233,61 @@ extension SyncDevice {
         #expect(removal.replaced.isEmpty, "the removed account came back")
         #expect(deviceA.pseudos == [])
         #expect(try deviceB.reconcile(at: 10_010).dropped == ["x"])
+    }
+
+    // Round 2 finding 1: a device whose own cookies lag far behind the copy's takes them, once.
+    @Test func anIdleDeviceTakesTheCopysRenewedCookies() throws {
+        let item = InMemorySecureDataItem()
+        let (deviceA, deviceB) = try sharedPair(item)
+        let renewed = moment(1_000 + sevenDays + 1)
+        try deviceA.renewExpiries("x", expires: renewed, at: 200)
+        try deviceA.renewExpiries("x", expires: renewed.addingTimeInterval(3_600), at: 210)
+        let adopted = try deviceB.reconcile(at: 220)
+        #expect(adopted.replaced == ["x"], "a device kept cookies that lag past the margin")
+        #expect(deviceB.expiry(of: "x") == renewed)
+        #expect(!adopted.itemWritten)
+        #expect(try deviceB.reconcile(at: 230).replaced.isEmpty, "the adoption was reported twice")
+        #expect(try deviceA.reconcile(at: 240).replaced.isEmpty)
+        #expect(deviceA.expiry(of: "x") == renewed.addingTimeInterval(3_600), "the renewing device lost its own expiry")
+    }
+
+    // Round 2 finding 4: a renewal just under the margin is not shared.
+    @Test func aRenewalJustUnderTheMarginWritesNothing() throws {
+        let item = InMemorySecureDataItem()
+        let (deviceA, deviceB) = try sharedPair(item)
+        let justUnder = moment(1_000 + sevenDays - 60)
+        #expect(try !deviceA.renewExpiries("x", expires: justUnder, at: 200).itemWritten)
+        #expect(try deviceB.reconcile(at: 210).replaced.isEmpty)
+        #expect(deviceB.expiry(of: "x") == moment(1_000))
+    }
+
+    // Round 2 finding 3: `md_id` leaves the jar 30 days after the login (`R74` renews only `md_user` and `md_passs`).
+    @Test func aJarWithoutMdIDIsStillTheSameLogin() throws {
+        let item = InMemorySecureDataItem()
+        let (deviceA, deviceB) = try sharedPair(item)
+        try deviceA.accounts.update { book in
+            guard var account = book.account(matching: "x") else { return }
+            account.cookies = expiringAccount("x", expires: moment(5_000)).cookies.filter { $0.name != "md_id" }
+            book.replace(account)
+        }
+        deviceA.clock.set(200)
+        #expect(try !deviceA.sync.localChange(.refresh(pseudo: "x")).itemWritten)
+        #expect(try deviceB.reconcile(at: 210).replaced.isEmpty)
+    }
+
+    // Round 2 finding 2: a new main account on one device carries the only main flag of the copy.
+    @Test func aNewMainAccountLeavesOneMainFlagInTheCopy() throws {
+        let item = InMemorySecureDataItem()
+        let (deviceA, _) = try sharedPair(item)
+        #expect(try deviceA.accounts.mainAccount()?.pseudo == "x")
+        deviceA.clock.set(200)
+        try deviceA.accounts.save(expiringAccount("w", expires: moment(1_000)), makeMain: true)
+        try deviceA.sync.localChange(.login(pseudo: "w"))
+        guard case .full(_, let shared, _)? = try item.envelope else { Issue.record("no full envelope"); return }
+        #expect(shared.filter(\.account.isMain).map(\.account.pseudo) == ["w"])
+        let deviceC = try SyncDevice(item: item)
+        try deviceC.reconcile(at: 210)
+        #expect(try deviceC.accounts.mainAccount()?.pseudo == "w")
     }
 
     private func clockAheadLogin(_ device: SyncDevice, cookie: String, expires: Date, at time: TimeInterval) {
