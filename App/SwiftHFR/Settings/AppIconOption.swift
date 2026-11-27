@@ -6,6 +6,7 @@ enum AppIconPack: String, CaseIterable, Identifiable, Sendable {
     case beta
     case xface
     case season
+    case glass
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum AppIconPack: String, CaseIterable, Identifiable, Sendable {
         case .beta: "Beta"
         case .xface: "X-face"
         case .season: "Saisons"
+        case .glass: "Liquid Glass"
         }
     }
 }
@@ -51,7 +53,7 @@ struct IconWindow: Equatable, Sendable {
 // Port of HFRswift/Swift/AppSettingsView.swift (AppIconOption, lines 33-83) @ 87fe0d1c. Differences: the art is the layered `.icon` of
 // each legacy set (redone or reused by the Mac art PR, same names); `redface3dbig` is new (`Icon-RedFace3DBig`, no legacy value);
 // packs, date windows and the seasonal icons are new (GAP-148, LOT-189); the X-face, Halloween, spring, summer and winter
-// icons, Orange, Classique Blue and Beta rouge are the art of LOT-190 (#731).
+// icons, Orange, Classique Blue and Beta rouge are the art of LOT-190 (#731); the Liquid Glass pack is new (#1409).
 // The `.icon` names live here only: a redrawn icon swaps in under the same name with no code change; adding an icon is a new case
 // here (raw value, title, name, pack, window) plus its `.icon`, its previews and its name in the build settings (ICONS.md §5).
 /// One choice of the icon picker.
@@ -88,6 +90,9 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
     case spring
     case summer
     case winter
+    case glassH = "glass-h"
+    case glassFaceRing = "glass-face-ring"
+    case glassFaceDisc = "glass-face-disc"
 
     var id: String { rawValue }
 
@@ -125,6 +130,9 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
         case .spring: "Printemps"
         case .summer: "Été"
         case .winter: "Hiver"
+        case .glassH: "H plein cadre"
+        case .glassFaceRing: "Face anneau"
+        case .glassFaceDisc: "Face disque"
         }
     }
 
@@ -163,6 +171,9 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
         case .spring: "Icon-SPRING"
         case .summer: "Icon-SUMMER"
         case .winter: "Icon-WINTER"
+        case .glassH: "Icon-GLASS-H"
+        case .glassFaceRing: "Icon-GLASS-FACE-RING"
+        case .glassFaceDisc: "Icon-GLASS-FACE-DISC"
         }
     }
 
@@ -175,6 +186,7 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
              .xfaceGoldOutline, .xface5250, .xfaceNegative, .xfaceNegativeInverted, .xfaceSunset:
             .xface
         case .noelRedface, .noelHfr, .halloweenJack, .halloweenHfr, .spring, .summer, .winter: .season
+        case .glassH, .glassFaceRing, .glassFaceDisc: .glass
         }
     }
 

@@ -105,6 +105,22 @@ struct AppIconPackTests {
         }
     }
 
+    @Test func theLiquidGlassIconsHaveTheirRawValueNameTitlePackAndNoWindow() {
+        let expected: [Expected] = [
+            Expected("glass-h", "Icon-GLASS-H", .glass, false),
+            Expected("glass-face-ring", "Icon-GLASS-FACE-RING", .glass, false),
+            Expected("glass-face-disc", "Icon-GLASS-FACE-DISC", .glass, false)
+        ]
+        #expect(AppIconPack.glass.title == "Liquid Glass")
+        #expect(expected.map { AppIconOption(rawValue: $0.raw)?.title } == ["H plein cadre", "Face anneau", "Face disque"])
+        for row in expected {
+            let option = AppIconOption(rawValue: row.raw)
+            #expect(option?.alternateIconName == row.name, "\(row.raw)")
+            #expect(option?.pack == row.pack, "\(row.raw)")
+            #expect(option?.window == nil, "\(row.raw)")
+        }
+    }
+
     @Test func halloweenIconsAreOfferedOnlyInOctober() {
         #expect(offered(on: IconTestCalendar.date(2026, 9, 30)).isDisjoint(with: [.halloweenJack, .halloweenHfr]))
         #expect(offered(on: IconTestCalendar.date(2026, 10, 1)).isSuperset(of: [.halloweenJack, .halloweenHfr]))
@@ -147,8 +163,8 @@ struct AppIconPackTests {
 
     @Test func sectionsFollowThePackOrderAndOmitEmptyPacks() {
         let packs = model(on: IconTestCalendar.date(2026, 12, 10)).sections.map(\.pack)
-        #expect(packs == [.legacy, .beta, .xface, .season])
-        #expect(model(on: IconTestCalendar.date(2026, 6, 10)).sections.map(\.pack) == [.legacy, .beta, .xface, .season])
+        #expect(packs == [.legacy, .beta, .xface, .season, .glass])
+        #expect(model(on: IconTestCalendar.date(2026, 6, 10)).sections.map(\.pack) == [.legacy, .beta, .xface, .season, .glass])
     }
 
     @Test func everyOptionBelongsToExactlyOneSectionWhenItsWindowIsOpen() {
