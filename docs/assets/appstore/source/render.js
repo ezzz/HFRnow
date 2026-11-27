@@ -1,20 +1,27 @@
 // Frames each capture of screens.json with its French caption, at each App Store size marked "render" (or the sizes named
 // on the command line: `node render.js iphone-large ipad-13`). Output: ../<size id>/<screen id>.png, opaque RGB.
-// A missing capture gives a labelled placeholder and a non-zero exit, unless --allow-placeholders is passed.
-// A caption too long for a size stops the run.
+// - Every capture must exist: otherwise nothing is written and the run fails with the list.
+// - `--allow-placeholders` draws a labelled placeholder for a missing capture and writes the whole run to
+//   ../preview/<size id>/ instead (git-ignored), so a placeholder never sits where a store image is expected.
+// - `--sheet` also writes ../art-direction.jpg, a contact sheet of the first size rendered.
+// A caption too long for a size, or a font that did not load, stops the run.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const { pathToFileURL } = require('url');
 
 const here = (...p) => path.join(__dirname, ...p);
 const args = process.argv.slice(2);
 const allowPlaceholders = args.includes('--allow-placeholders');
+const wantSheet = args.includes('--sheet');
 const wanted = args.filter((a) => !a.startsWith('--'));
 const { sizes, screens } = JSON.parse(fs.readFileSync(here('screens.json'), 'utf8'));
+const screensFor = (size) => screens.filter((screen) => !screen.sizes || screen.sizes.includes(size.id));
+const capture = (size, screen) => `captures/${size.id}/${screen.id}.png`;
 
 // App Store Connect refuses an alpha channel, and Chromium writes RGBA: re-encode the screenshot as 8-bit RGB (PNG colour
-// type 2) with Node alone. Each row is re-filtered with filter 0.
+// type 2) with Node alone. Every row uses filter 0.
 function crcTable() {
   const table = new Uint32Array(256);
   for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[n] = c >>> 0; }
@@ -40,6 +47,27 @@ function opaquePNG(rgba, width, height) {
     chunk('IHDR', header), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
 }
 
+// The pixels of a PNG, read by the page itself: no PNG decoder is needed here to drop the alpha channel.
+async function rgbaOf(page, png) {
+  return Buffer.from(await page.evaluate(async (b64) => {
+    const bitmap = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = canvas.getContext('2d');
+    context.drawImage(bitmap, 0, 0);
+    const data = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    let binary = '';
+    for (let o = 0; o < data.length; o += 0x8000) binary += String.fromCharCode.apply(null, data.subarray(o, o + 0x8000));
+    return btoa(binary);
+  }, png.toString('base64')), 'base64');
+}
+
+function frameURL(size, screen, index, total) {
+  const url = pathToFileURL(here('frame.html'));
+  url.search = new URLSearchParams({ shot: capture(size, screen), kicker: screen.kicker, caption: screen.caption, ink: screen.ink,
+    index, total, ratio: size.width / size.height }).toString();
+  return url.href;
+}
+
 (async () => {
   for (const font of ['inter.woff2', 'jetbrains-mono.woff2']) {
     if (!fs.existsSync(here(font))) throw new Error(`${font} is missing: see README.md for the download line`);
@@ -47,40 +75,49 @@ function opaquePNG(rgba, width, height) {
   const unknown = wanted.filter((id) => !sizes.some((s) => s.id === id));
   if (unknown.length) throw new Error(`unknown size: ${unknown.join(', ')}`);
   const chosen = sizes.filter((s) => (wanted.length ? wanted.includes(s.id) : s.render));
+  const missing = chosen.flatMap((size) => screensFor(size).map((screen) => capture(size, screen))).filter((file) => !fs.existsSync(here(file)));
+  if (missing.length && !allowPlaceholders) {
+    throw new Error(`${missing.length} capture(s) missing, nothing written (--allow-placeholders renders previews):\n  ${missing.join('\n  ')}`);
+  }
+  const outRoot = missing.length ? here('..', 'preview') : here('..');
   const browser = await chromium.launch();
-  const missing = [];
+  const sheet = [];
   for (const size of chosen) {
-    fs.mkdirSync(here('..', size.id), { recursive: true });
+    const list = screensFor(size);
+    // The folder holds this run only: an image of a screen since removed from the list must not stay behind.
+    fs.rmSync(path.join(outRoot, size.id), { recursive: true, force: true });
+    fs.mkdirSync(path.join(outRoot, size.id), { recursive: true });
     const page = await browser.newPage({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1 });
-    for (const [i, screen] of screens.entries()) {
-      const shot = `captures/${size.id}/${screen.id}.png`;
-      const query = new URLSearchParams({ shot, kicker: screen.kicker, caption: screen.caption, ink: screen.ink,
-        index: i + 1, total: screens.length, ratio: size.width / size.height });
-      await page.goto('file://' + here('frame.html') + '?' + query);
+    for (const [i, screen] of list.entries()) {
+      await page.goto(frameURL(size, screen, i + 1, list.length));
       await page.waitForSelector('body[data-ready="1"]');
-      if (await page.evaluate(() => document.body.dataset.placeholder === '1')) missing.push(shot);
-      if (await page.evaluate(() => document.body.dataset.wrapped === '1')) throw new Error(`${size.id}/${screen.id}: the caption wraps, shorten it in screens.json`);
-      // Read the pixels from the page itself: no PNG decoder is needed to drop the alpha channel.
+      const flags = await page.evaluate(() => ({ ...document.body.dataset }));
+      if (flags.fontsMissing) throw new Error('Inter or JetBrains Mono did not load: download the fonts again (README.md)');
+      if (flags.wrapped) throw new Error(`${size.id}/${screen.id}: a caption line is too long, shorten it in screens.json`);
       const png = await page.screenshot({ type: 'png' });
-      const rgba = Buffer.from(await page.evaluate(async (b64) => {
-        const bitmap = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
-        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-        const context = canvas.getContext('2d');
-        context.drawImage(bitmap, 0, 0);
-        const data = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
-        let binary = '';
-        for (let o = 0; o < data.length; o += 0x8000) binary += String.fromCharCode.apply(null, data.subarray(o, o + 0x8000));
-        return btoa(binary);
-      }, png.toString('base64')), 'base64');
+      const rgba = await rgbaOf(page, png);
       if (rgba.length !== size.width * size.height * 4) throw new Error(`${screen.id}: unexpected bitmap size`);
-      const target = here('..', size.id, screen.id + '.png');
+      const target = path.join(outRoot, size.id, screen.id + '.png');
       fs.writeFileSync(target, opaquePNG(rgba, size.width, size.height));
+      if (size === chosen[0]) sheet.push(pathToFileURL(target).href);
       console.log('wrote', path.relative(here('..'), target), `${size.width}x${size.height}`);
     }
     await page.close();
   }
-  await browser.close();
-  if (missing.length && !allowPlaceholders) {
-    throw new Error(`${missing.length} capture(s) missing, placeholders drawn (not for the App Store):\n  ${missing.join('\n  ')}`);
+  if (wantSheet) {
+    // The frames of the first size side by side on the dark ink, 2800 px wide.
+    const size = chosen[0], gap = 48, width = sheet.length * size.width + (sheet.length + 1) * gap, scale = 2800 / width;
+    const page = await browser.newPage({ viewport: { width: 2800, height: Math.round((size.height + 2 * gap) * scale) } });
+    // A file page, not setContent: a blank page may not load file images.
+    const sheetPage = path.join(outRoot, 'sheet.html');
+    fs.writeFileSync(sheetPage, `<!doctype html><body style="margin:0;background:#2b2621;display:flex;gap:${gap * scale}px;padding:${gap * scale}px">${
+      sheet.map((src) => `<img src="${src}" style="width:${size.width * scale}px;height:${size.height * scale}px">`).join('')}</body>`);
+    await page.goto(pathToFileURL(sheetPage).href);
+    fs.rmSync(sheetPage);
+    await page.waitForFunction(() => [...document.images].every((image) => image.complete && image.naturalWidth > 0));
+    fs.writeFileSync(here('..', 'art-direction.jpg'), await page.screenshot({ type: 'jpeg', quality: 82 }));
+    console.log(`wrote art-direction.jpg (${size.id}${missing.length ? ', placeholders' : ''})`);
   }
+  await browser.close();
+  if (missing.length) console.log(`previews only: ${missing.length} capture(s) missing`);
 })().catch((error) => { console.error(error.message); process.exit(1); });

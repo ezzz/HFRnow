@@ -1,8 +1,8 @@
 # App Store visuals (#1381)
 
-The art direction and the composition sources of the App Store screenshots. **State: art direction only.** No capture exists yet, so no final image is here; `art-direction.jpg` shows the seven frames with placeholders.
+The art direction and the composition sources of the App Store screenshots. **State: art direction only.** No capture exists yet, so no final image is here; `art-direction.jpg` shows the phone frames with placeholders.
 
-![The seven frames with placeholders](art-direction.jpg)
+![The phone frames with placeholders](art-direction.jpg)
 
 ## Art direction (proposal, operator to confirm)
 
@@ -11,10 +11,10 @@ The language of the `:o` social preview (#1380), not the README hero's: an App S
 | Element | Rule |
 |---|---|
 | Background | Three flat inks in turn: HFR orange `#F2691C`, paper `#F3EEE4`, ink `#16130F`. No gradient, no texture |
-| Caption | French, two short lines, Inter 900, tight; the second line (or its key words) in the accent colour. At most about 15 characters per line: `render.js` refuses a caption that wraps |
+| Caption | French, two short lines, Inter 900, tight; the second line (or its key words) in the accent colour. At most about 15 characters per line: `render.js` refuses a line wider than 94 % of the column at any rendered size |
 | Kicker | One monospace line above a rule: `01/07 · CATÉGORIES`, and the `:o` signature on the right |
 | Screenshot | The whole capture, never cropped, in a plain dark slab with rounded corners: no maker's detail (no island, button or lens), no device name |
-| Tone | The forum's own voice: short, concrete, no superlative |
+| Tone | The forum's own voice: short, concrete, no superlative. A caption says only what its capture shows and the default build does |
 
 ## Screens and captions (proposal, operator to confirm)
 
@@ -24,10 +24,10 @@ The list is `source/screens.json` (`*word*` = accent colour, `|` = line break).
 |---|---|---|---|
 | 1 | `01-categories` | Catégories | Tout HFR, / en natif. |
 | 2 | `02-topic` | Lecture | Des topics / enfin lisibles. |
-| 3 | `03-composer` | Réponse | Répondre, / sans balises. |
+| 3 | `03-composer` | Réponse | Gras, citation, / en un tap. (the formatting bar, `App/SwiftHFR/Composer/FormattingToolbar.swift`) |
 | 4 | `04-messages` | Messages privés | Vos MP, / sous le pouce. |
 | 5 | `05-themes` | Thèmes | Clair, sombre, / rétro 5250. |
-| 6 | `06-large-screen` | Grand écran | Grand écran, / deux colonnes. |
+| 6 | `06-large-screen` | Grand écran | Grand écran, / deux colonnes. Only at `ipad-13` and `duo-inner`: a phone in portrait shows one column |
 | 7 | `07-offline` | Hors ligne | Le topic / dans le tunnel. |
 
 ## Sizes
@@ -56,14 +56,17 @@ One PNG per screen and per size, at the simulator's native resolution, in `sourc
 
 ```sh
 cd docs/assets/appstore/source
-curl -o inter.woff2 https://fonts.gstatic.com/s/inter/v20/UcCo3FwrK3iLTcviYwY.woff2                                 # Inter, SIL OFL 1.1
-curl -o jetbrains-mono.woff2 https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbV2o-flEEny0FZhsfKu5WU4xD7OwE.woff2   # JetBrains Mono, SIL OFL 1.1
+curl -fo inter.woff2 https://fonts.gstatic.com/s/inter/v20/UcCo3FwrK3iLTcviYwY.woff2                                 # Inter, SIL OFL 1.1
+curl -fo jetbrains-mono.woff2 https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbV2o-flEEny0FZhsfKu5WU4xD7OwE.woff2   # JetBrains Mono, SIL OFL 1.1
 node render.js                       # the default sizes, into ../<size id>/<capture>.png
 node render.js ipad-13 duo-inner     # named sizes
-node render.js --allow-placeholders  # previews while captures are missing (exit 0)
+node render.js --allow-placeholders  # previews while captures are missing, into ../preview/ (git-ignored)
+node render.js iphone-large --allow-placeholders --sheet   # also rewrites ../art-direction.jpg
 ```
 
-Node and Playwright with Chromium. Without `--allow-placeholders`, a missing capture makes the run fail after drawing a labelled placeholder: a placeholder never reaches the store by accident. `frame.html` is the single template (its query parameters are listed at its top). `art-direction.jpg` is a one-off contact sheet of the `iphone-large` placeholders, to be replaced by the real set.
+Node and Playwright with Chromium. If a capture is missing, nothing is written and the run fails with the list. With `--allow-placeholders` the whole run goes to `../preview/<size id>/` with labelled placeholders, so a placeholder never sits where a store image is expected. Each output folder is emptied before it is written. The run also stops on a caption line too long for a size and on a font that did not load. `frame.html` is the single template (its query parameters are listed at its top). `art-direction.jpg` is the contact sheet of the first size named, written by `--sheet`; today it shows placeholders.
+
+Not checked yet (Mac session): whether simulator captures carry a Display P3 profile. Chromium would convert them to sRGB, and the output PNG carries no colour chunk.
 
 Fonts are downloaded, not committed. Everything else in the frames is drawn in `frame.html`, under this repository's licence; no third-party logo or device artwork.
 

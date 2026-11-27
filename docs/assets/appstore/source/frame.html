@@ -6,7 +6,8 @@
      Query: shot (image path; absent or missing file: a labelled placeholder), kicker, caption (*word* = accent colour,
      | = line break), ink (paper | orange | ink), index, total, ratio (width/height of the expected capture, placeholder only).
      The page sets body[data-ready] when laid out body[data-placeholder] when it drew a placeholder,
-     and body[data-wrapped] when the caption needs more lines than it was written with. -->
+     body[data-wrapped] when a caption line is wider than 94 % of the column, and body[data-fonts-missing]
+     when Inter or JetBrains Mono did not load. -->
 <link rel="stylesheet" href="fonts.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,7 +20,7 @@
   .kicker { display: flex; justify-content: space-between; align-items: baseline; font: 600 calc(2.6 * var(--u)) 'JetBrains Mono', monospace;
     letter-spacing: .06em; text-transform: uppercase; border-bottom: calc(.35 * var(--u)) solid var(--fg); padding-bottom: calc(1.8 * var(--u)); }
   .kicker b { font-weight: 800; font-size: calc(3.6 * var(--u)); letter-spacing: -.08em; text-transform: none; }
-  h1 { margin-top: calc(5 * var(--u)); font-weight: 900; font-size: calc(13 * var(--u)); line-height: .94; letter-spacing: -.05em; }
+  h1 { margin-top: calc(5 * var(--u)); font-weight: 900; font-size: calc(12 * var(--u)); line-height: .94; letter-spacing: -.05em; }
   h1 em { font-style: normal; color: var(--accent); }
   /* The whole capture, in a plain dark slab with rounded corners (no maker's detail), as large as the space under the caption allows. */
   .device { margin: calc(6 * var(--u)) 0; flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-start; }
@@ -42,10 +43,18 @@ document.getElementById('kicker').textContent = (index ? `${String(index).padSta
 document.getElementById('caption').innerHTML = esc(q.get('caption') || '').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\|/g, '<br>');
 const device = document.getElementById('device');
 const done = () => document.fonts.ready.then(() => {
-  // A caption that wraps beyond its written lines is too long for this size: say so instead of shipping it.
+  // A fallback font changes every measure: a font file that is not a font (a failed download) must stop the render.
+  // The status of the two declared faces is read, not fonts.check(): a machine with Inter installed would pass that.
+  if ([...document.fonts].some((face) => face.status !== 'loaded')) document.body.dataset.fontsMissing = '1';
+  // A caption line wider than 94 % of the column is too long for this size (it wraps, or is one hinting change away
+  // from wrapping): say so instead of shipping it.
   const h1 = document.getElementById('caption');
-  const lines = Math.round(h1.getBoundingClientRect().height / parseFloat(getComputedStyle(h1).lineHeight));
-  if (lines > (q.get('caption') || '').split('|').length) document.body.dataset.wrapped = '1';
+  const probe = h1.cloneNode(true);
+  probe.removeAttribute('id');
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;margin:0;width:max-content';
+  document.body.appendChild(probe);
+  if (probe.getBoundingClientRect().width > 0.94 * h1.getBoundingClientRect().width) document.body.dataset.wrapped = '1';
+  probe.remove();
   document.body.dataset.ready = '1';
 });
 // The slab keeps the capture's aspect ratio and fills the box under the caption: limited by its height (a phone capture)

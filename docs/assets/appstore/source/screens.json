@@ -1,5 +1,5 @@
 {
-  "comment": "Proposal for the operator (#1381): the screens, their order and their French captions. In a caption, *word* takes the accent colour and | breaks the line. `ink` alternates the three backgrounds. A capture is read from captures/<size id>/<id>.png.",
+  "comment": "Proposal for the operator (#1381): the screens, their order and their French captions. In a caption, *word* takes the accent colour and | breaks the line. `ink` alternates the three backgrounds. A capture is read from captures/<size id>/<id>.png. A screen with `sizes` exists only at those sizes (the two-column screen needs a wide display); the others exist at every size.",
   "specification": "https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications/ (read 2026-11-27)",
   "sizes": [
     { "id": "iphone-large", "width": 1320, "height": 2868, "row": "iPhone with Dynamic Island (large display)", "render": true },
@@ -11,10 +11,10 @@
   "screens": [
     { "id": "01-categories", "kicker": "Catégories", "caption": "Tout HFR,|*en natif.*", "ink": "orange" },
     { "id": "02-topic", "kicker": "Lecture", "caption": "Des topics|enfin *lisibles.*", "ink": "paper" },
-    { "id": "03-composer", "kicker": "Réponse", "caption": "Répondre,|*sans balises.*", "ink": "ink" },
+    { "id": "03-composer", "kicker": "Réponse", "caption": "Gras, citation,|*en un tap.*", "ink": "ink" },
     { "id": "04-messages", "kicker": "Messages privés", "caption": "Vos MP,|*sous le pouce.*", "ink": "paper" },
     { "id": "05-themes", "kicker": "Thèmes", "caption": "Clair, sombre,|*rétro 5250.*", "ink": "orange" },
-    { "id": "06-large-screen", "kicker": "Grand écran", "caption": "Grand écran,|*deux colonnes.*", "ink": "ink" },
+    { "id": "06-large-screen", "kicker": "Grand écran", "caption": "Grand écran,|*deux colonnes.*", "ink": "ink", "sizes": ["ipad-13", "duo-inner"] },
     { "id": "07-offline", "kicker": "Hors ligne", "caption": "Le topic|*dans le tunnel.*", "ink": "paper" }
   ]
 }

@@ -18,6 +18,7 @@ Packages/HFRKit/Package.resolved
 CLAUDE.local.md
 docs/assets/source/inter.woff2
 docs/assets/appstore/source/*.woff2
+docs/assets/appstore/preview/
 docs/architecture/source/package/
 docs/architecture/source/*.tgz
 docs/architecture/source/excalidraw-utils.min.js
