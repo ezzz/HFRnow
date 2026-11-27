@@ -16,7 +16,7 @@ struct MessageTitleToneTests {
 
         static let all = [false, true].flatMap { dark in [false, true].map { Theme(dark: dark, increasedContrast: $0) } }
 
-        var traits: UITraitCollection {
+        @MainActor var traits: UITraitCollection {
             UITraitCollection {
                 $0.userInterfaceStyle = dark ? .dark : .light
                 $0.accessibilityContrast = increasedContrast ? .high : .normal

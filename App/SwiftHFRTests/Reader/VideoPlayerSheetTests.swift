@@ -6,6 +6,7 @@ import UIKit
 import WebKit
 
 /// What the player sheet may load, and what its "open in browser" fallback may hand to the system.
+@MainActor
 struct VideoPlayerSheetTests {
     private func url(_ string: String) -> URL { URL(string: string) ?? URL(fileURLWithPath: "/") }
 
