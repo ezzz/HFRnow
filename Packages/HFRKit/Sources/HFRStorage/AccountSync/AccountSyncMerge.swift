@@ -35,17 +35,26 @@ struct AccountSyncMerge {
         let localMainKey = local.main.map { AccountKey.make($0.pseudo) }
         var removed = localRemoved.merging(remoteRemoved) { max($0, $1) }
         var merged: [SyncedAccount] = []
+        var deviceAccounts: [Account] = []
         for key in order {
             let localEntry = local.accounts.first { AccountKey.make($0.pseudo) == key }
                 .map { SyncedAccount(account: $0, stamp: localStamps[key] ?? .unknown) }
-            guard var kept = Self.newer(localEntry, remoteByKey[key]) else { continue }
-            kept.consentAt = max(localEntry?.consentAt ?? .distantPast, remoteByKey[key]?.consentAt ?? .distantPast)
+            let remoteEntry = remoteByKey[key]
+            // Same login on both sides (#1390): only cookie dates or details can differ, which are not new credentials. The
+            // copy keeps its entry, so a renewed expiry never rewrites the item nor reads as `replaced` on another device,
+            // and this device keeps its own account, with the expiries its jar renewed, whatever the stamps say.
+            let sameLogin = localEntry.map { local in remoteEntry.map { Self.sameLogin(local.account, $0.account) } ?? false } ?? false
+            guard var kept = sameLogin ? remoteEntry : Self.newer(localEntry, remoteEntry) else { continue }
+            kept.consentAt = max(localEntry?.consentAt ?? .distantPast, remoteEntry?.consentAt ?? .distantPast)
             if let removal = removed[key], removal >= kept.consentAt { continue }
             removed[key] = nil
             kept.account.isMain = key == localMainKey
+            var account = sameLogin ? localEntry?.account ?? kept.account : kept.account
+            account.isMain = kept.account.isMain
             merged.append(kept)
+            deviceAccounts.append(account)
         }
-        let book = AccountBook(accounts: merged.map(\.account))
+        let book = AccountBook(accounts: deviceAccounts)
         self.book = book
         entries = merged.map { entry in
             var entry = entry
@@ -68,6 +77,23 @@ struct AccountSyncMerge {
         guard let local else { return remote }
         guard let remote else { return local }
         return local.credentialsAt > remote.credentialsAt ? local : remote
+    }
+
+    /// The cookies that make a login (HFR-PROTOCOL §5, `W03`); HFR re-sends `md_user` and `md_passs` with a new expiry on
+    /// every logged-in answer (`R74`), and other cookies (`p`, `md_data`) come and go without a login.
+    static let loginCookies = ["md_user", "md_passs", "md_id"]
+
+    /// Whether two copies of an account hold the same login: the same values of the login cookies, dates ignored.
+    static func sameLogin(_ first: Account, _ second: Account) -> Bool {
+        loginIdentity(of: first) == loginIdentity(of: second)
+    }
+
+    private static func loginIdentity(of account: Account) -> [String: [String]] {
+        var identity: [String: [String]] = [:]
+        for cookie in account.cookies where loginCookies.contains(cookie.name) {
+            identity[cookie.name, default: []].append(cookie.value)
+        }
+        return identity.mapValues { $0.sorted() }
     }
 
     /// The entries of `book` with this device's dates, for writing its own full envelope.
