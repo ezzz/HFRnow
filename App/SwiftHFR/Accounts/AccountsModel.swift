@@ -60,6 +60,8 @@ final class AccountsModel {
     @ObservationIgnored private var loginSaves: [String: Int] = [:]
     /// Per account: the login (`loginIdentity`) its session held when a check or a login last confirmed it (#1276).
     @ObservationIgnored private var confirmedLogins: [String: Set<String>] = [:]
+    /// The account whose write-back this device is pushing to the sync copy right now (`pushOwnRefresh`), if any.
+    @ObservationIgnored private var pushingRefresh: String?
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
     @ObservationIgnored private var currentSessionID: ObjectIdentifier?
     /// When the last forum check of the sessions (launch or re-check) ended; nil until one has.
@@ -319,6 +321,7 @@ final class AccountsModel {
         }
         sessions[id] = nil
         statuses[id] = nil
+        confirmedLogins[id] = nil
         reloadRows()
         noteSyncChange(.removal(pseudo: removed.pseudo))
     }
@@ -351,7 +354,7 @@ final class AccountsModel {
             }
             // Only a real change is shared (LOT-173): a check that confirms the same cookies must not make this device's
             // copy look newer than a re-login on another device.
-            if let refreshed { noteSyncChange(.refresh(pseudo: refreshed)) }
+            if let refreshed { pushOwnRefresh(refreshed) }
         } catch CredentialStoreError.pseudoMismatch, CredentialStoreError.invalidPseudo {
             // The jar names another pseudo than the account: nothing is written and the store is intact, so this is
             // not a store problem. The screens must not keep using a jar of another identity: the session is rebuilt
@@ -442,9 +445,7 @@ extension AccountsModel {
         for id in replaced {
             guard let account = book.account(matching: id) else { continue }
             if let session = sessions[account.pseudo] {
-                if statuses[account.pseudo] == .valid, confirmedLogins[account.pseudo] == Self.loginIdentity(of: account.cookies) {
-                    continue
-                }
+                if holdsConfirmedLogin(account) { continue }
                 installs.append((session, account))
                 // A write-back of the jar read before the adoption must not overwrite these cookies (as after a re-login).
                 loginSaves[account.pseudo, default: 0] += 1
@@ -457,10 +458,29 @@ extension AccountsModel {
         return (installs, ids)
     }
 
-    /// The cookies that say which login a jar holds, without their dates (#1276): `md_passs` stays the same across logins
-    /// (HFR-PROTOCOL.md §6c, `R72`), so two jars of one login differ only by expiries. Compared in memory, never logged.
+    /// Whether the account's session is `valid` and needs nothing from a sync replacement (#1276): either the replacement
+    /// is this device's own write-back coming back from the push (`pushOwnRefresh`), which then never starts another
+    /// check of the account whatever the copy holds, so the loop is bounded; or it carries the login a check or a login
+    /// confirmed.
+    private func holdsConfirmedLogin(_ account: Account) -> Bool {
+        guard statuses[account.pseudo] == .valid else { return false }
+        return pushingRefresh == account.pseudo || confirmedLogins[account.pseudo] == Self.loginIdentity(of: account.cookies)
+    }
+
+    /// Pushes the write-back of a session a check or a login confirmed to the sync copy (LOT-173). A take-over that this
+    /// push reports for the same account is its own refresh losing the merge to a copy dated ahead (#1276).
+    private func pushOwnRefresh(_ pseudo: String) {
+        pushingRefresh = pseudo
+        noteSyncChange(.refresh(pseudo: pseudo))
+        pushingRefresh = nil
+    }
+
+    /// The cookies that say which login a jar holds, without their dates (#1276): the values of `md_user` and `md_passs`,
+    /// which stays the same across logins (HFR-PROTOCOL.md §6c, `R72`). `md_id` is left out: the login alone sets it, for
+    /// 30 days (`W03`), so a jar drops it while a stored copy may still list it expired; it is implied by `md_user`.
+    /// Compared in memory, never logged.
     static func loginIdentity(of cookies: [StoredCookie]) -> Set<String> {
-        Set(cookies.filter { ["md_user", "md_passs", "md_id"].contains($0.name) }.map { "\($0.name)=\($0.value)" })
+        Set(cookies.filter { ["md_user", "md_passs"].contains($0.name) }.map { "\($0.name)=\($0.value)" })
     }
 
     private func reloadRows() {

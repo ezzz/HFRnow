@@ -32,6 +32,16 @@ struct AccountsModelSyncLoopTests {
         await deviceB.persistSession(of: "user1")
     }
 
+    /// Writes the copy as another device dated an hour ahead would, with `cookies` for user1, under A's `enabledAt`.
+    private func plantCopyDatedAhead(cookies: [StoredCookie]) throws {
+        let current = try AccountSyncEnvelope.decode(try #require(item.data))
+        let enabledAt = try #require(current.enabledAt)
+        let account = Account(pseudo: "user1", displayName: "user1", cookies: cookies, hashCheck: "fake-hash-b", isMain: true)
+        let ahead = Date().addingTimeInterval(3_600)
+        let entry = SyncedAccount(account: account, stamp: AccountStamp(credentialsAt: ahead, consentAt: .distantPast))
+        item.data = try AccountSyncEnvelope.full(enabledAt: enabledAt, accounts: [entry], removed: [:]).encoded()
+    }
+
     /// Awaits the sync checks until no new one starts.
     private func settle(_ model: AccountsModel) async {
         var awaited: Task<Void, Never>?
@@ -52,6 +62,40 @@ struct AccountsModelSyncLoopTests {
         await settle(deviceA)
 
         // At dev-swift: one check per turn until the checker stops answering (`RewritingChecker.limit`).
+        #expect(checker.checks == 1)
+        #expect(deviceA.currentSessionChanges == 0)
+        #expect(deviceA.rows.first?.status == .valid)
+    }
+
+    @Test("#1276 review: a copy listing an md_id the jar dropped (expired) is the same login: not adopted, not checked")
+    func aCopyWithAnExpiredProfileIDIsTheSameLogin() async throws {
+        let checker = RewritingChecker()
+        let deviceA = try device([Fake.account("user1", main: true)], checker: checker)
+        deviceA.setAccountSync(true)
+        await deviceA.restore()
+        await settle(deviceA)
+        // `md_id` is set by the login only (+30 days, W03): the copy still lists it once expired, the jar does not.
+        let expiredID = StoredCookie(name: "md_id", value: "4242", domain: ".hardware.fr", expiresDate: Date().addingTimeInterval(-60))
+        try plantCopyDatedAhead(cookies: Fake.cookies(user: "user1") + [expiredID])
+
+        deviceA.reconcileAccountSync()
+        await settle(deviceA)
+
+        #expect(checker.checks == 1)
+        #expect(deviceA.currentSessionChanges == 0)
+    }
+
+    @Test("#1276 review: this device's own write-back coming back from a copy dated ahead never starts another check")
+    func aReplacementThatNeverMatchesIsCheckedOnce() async throws {
+        // The forum gives a new `md_passs` on every answer here: no replacement ever carries the confirmed login.
+        let checker = RewritingChecker(newPassEachTurn: true)
+        let deviceA = try device([Fake.account("user1", main: true)], checker: checker)
+        deviceA.setAccountSync(true)
+        try await copyDatedAhead()
+
+        await deviceA.restore()
+        await settle(deviceA)
+
         #expect(checker.checks == 1)
         #expect(deviceA.currentSessionChanges == 0)
         #expect(deviceA.rows.first?.status == .valid)
@@ -85,10 +129,16 @@ struct AccountsModelSyncLoopTests {
 }
 
 /// Answers `valid` and sends the jar's login cookies again with a new expiry, as every logged-in HFR answer does
-/// (HFR-PROTOCOL.md §6c, `R74`); past `limit` checks it times out, so a loop ends instead of hanging the test.
+/// (HFR-PROTOCOL.md §6c, `R74`), or with a new `md_passs` each time (`newPassEachTurn`); past `limit` checks it times out,
+/// so a loop ends instead of hanging the test.
 final class RewritingChecker: SessionChecking {
     static let limit = 12
     private let count = Mutex(0)
+    private let newPassEachTurn: Bool
+
+    init(newPassEachTurn: Bool = false) {
+        self.newPassEachTurn = newPassEachTurn
+    }
 
     var checks: Int { count.withLock { $0 } }
 
@@ -99,7 +149,8 @@ final class RewritingChecker: SessionChecking {
         }
         guard turn <= Self.limit else { return .failed(.timedOut) }
         guard let user = await session.userKey() else { return .expired }
-        let pass = await session.cookies().first { $0.name == "md_passs" }?.value ?? "fake-pass"
+        let current = await session.cookies().first { $0.name == "md_passs" }?.value ?? "fake-pass"
+        let pass = newPassEachTurn ? "fake-pass-\(turn)" : current
         let expiry = Date().addingTimeInterval(30 * 86_400 + Double(turn))
         await session.mergeCookies([
             StoredCookie(name: "md_passs", value: pass, domain: ".hardware.fr", expiresDate: expiry),
