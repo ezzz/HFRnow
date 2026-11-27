@@ -46,20 +46,37 @@ public struct KeychainLegacyAccountSource: LegacyAccountSource {
 import Foundation
 import HFRModels
 
-/// Decodes the legacy account archive with `NSKeyedUnarchiver`, the API legacy read it with (`MultisManager.m:43-47`).
+/// Decodes the legacy account archive with `NSKeyedUnarchiver`, the API legacy read it with (`MultisManager.m:43-47`),
+/// but with secure coding and a closed class list (#1205), where legacy's `unarchiveObjectWithData:` instantiated any
+/// class the archive named.
 ///
-/// Insecure decoding, as legacy's `unarchiveObjectWithData:`: whether `NSHTTPCookie` decodes under secure coding is not
-/// documented and is measured on a Mac (LOT-067 spec, M1). The input is only ever this app's own Keychain item.
+/// `NSHTTPCookie` does not adopt `NSSecureCoding` (measured on macOS 27.2: a secure decode refuses it by name), so it is
+/// never instantiated from the archive: its class name is mapped to `LegacyArchivedCookie`, which reads the one object
+/// `NSHTTPCookie` archives (its properties dictionary, as the unkeyed object `$0`) under the same class list, and the
+/// cookie is rebuilt with `HTTPCookie(properties:)` from the properties whose value types it expects.
 public enum LegacyAccountArchive {
-    /// The accounts of an archive; throws `sourceUnreadable` when it is not an array of dictionaries.
+    /// Every class the legacy archive holds (`MultisManager.m:49-80`): the array of accounts, their dictionaries,
+    /// strings, numbers, the avatar data, and a cookie's properties (strings, numbers, dates, arrays of ports; no URL:
+    /// `NSHTTPCookie` archives `CommentURL` as a string and drops `OriginURL`, measured on macOS 27.2). Anything else
+    /// fails the decode.
+    static let allowedClasses: [AnyClass] = [
+        NSArray.self, NSDictionary.self, NSString.self, NSNumber.self, NSData.self, NSDate.self,
+        LegacyArchivedCookie.self
+    ]
+
+    /// The accounts of an archive; throws `sourceUnreadable` when it is not an array of dictionaries or names a class
+    /// outside `allowedClasses`.
     public static func decode(_ data: Data) throws(LegacyImportError) -> [LegacyAccountRecord] {
         let root: Any?
         do {
             let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
-            unarchiver.requiresSecureCoding = false
+            unarchiver.requiresSecureCoding = true
             unarchiver.decodingFailurePolicy = .setErrorAndReturn
-            root = unarchiver.decodeObject(forKey: NSKeyedArchiveRootObjectKey)
+            unarchiver.setClass(LegacyArchivedCookie.self, forClassName: "NSHTTPCookie")
+            root = unarchiver.decodeObject(of: allowedClasses, forKey: NSKeyedArchiveRootObjectKey)
+            let failed = unarchiver.error != nil
             unarchiver.finishDecoding()
+            guard !failed else { throw LegacyImportError.sourceUnreadable }
         } catch {
             throw .sourceUnreadable
         }
@@ -71,7 +88,7 @@ public enum LegacyAccountArchive {
     }
 
     private static func record(from entry: [String: Any]) -> LegacyAccountRecord {
-        let cookies = (entry["COOKIES"] as? [Any] ?? []).compactMap { ($0 as? HTTPCookie).map(storedCookie) }
+        let cookies = (entry["COOKIES"] as? [Any] ?? []).compactMap { ($0 as? LegacyArchivedCookie)?.cookie.map(storedCookie) }
         return LegacyAccountRecord(
             pseudo: entry["PSEUDO"] as? String,
             displayName: entry["PSEUDO_DISPLAY"] as? String,
@@ -92,6 +109,72 @@ public enum LegacyAccountArchive {
             isSecure: cookie.isSecure,
             isHTTPOnly: cookie.isHTTPOnly
         )
+    }
+}
+
+/// Stands in for `NSHTTPCookie` while the legacy archive is decoded (`LegacyAccountArchive`): it keeps the properties
+/// dictionary `NSHTTPCookie` archives as its unkeyed object `$0`, decoded under the unarchiver's class list.
+@objc(HFRLegacyArchivedCookie)
+final class LegacyArchivedCookie: NSObject, NSSecureCoding {
+    static var supportsSecureCoding: Bool { true }
+
+    private let properties: [String: Any]
+
+    /// The cookie of those properties; nil when one has a value of a type `HTTPCookie(properties:)` does not take, or
+    /// when Foundation cannot build a cookie from them. A key outside `verdict(on:forKey:)`'s list is dropped.
+    var cookie: HTTPCookie? {
+        var checked: [HTTPCookiePropertyKey: Any] = [:]
+        for (key, value) in properties {
+            switch Self.verdict(on: value, forKey: key) {
+            case .keep: checked[HTTPCookiePropertyKey(key)] = value
+            case .drop: continue
+            case .refuse: return nil
+            }
+        }
+        return HTTPCookie(properties: checked)
+    }
+
+    /// What `cookie` does with one archived property.
+    enum PropertyVerdict { case keep, drop, refuse }
+
+    /// `keep` when `value` has a type `HTTPCookie(properties:)` takes for `key`, `refuse` when not, `drop` for any other
+    /// key. Foundation does not check them: a dictionary or a number under `Path`, `Comment`, `CommentURL`, `SameSite`
+    /// or `StoragePartition` raises an Objective-C exception, a dictionary under `Port` crashes, the flags are read by
+    /// presence, and a NaN `Expires` date reaches the cookie (measured on macOS 27.2, #1205). The keys are those
+    /// `NSHTTPCookie` archives and those Apple documents, but `OriginURL`: it is never archived, and Foundation reads it
+    /// for the domain of a cookie that has none, where some strings crash it (measured), so it is dropped and such a
+    /// cookie skipped. The types are those it archives (strings; `Expires` a finite date, `Created` a number, `Port` an
+    /// array of numbers) and those Apple documents, but a `CommentURL` URL, which raises. Dropping the other keys keeps
+    /// a key Foundation reads but this list misses from reaching it unchecked.
+    static func verdict(on value: Any, forKey key: String) -> PropertyVerdict {
+        let expected: Bool
+        switch key {
+        case "Name", "Value", "Domain", "Path", "Comment", "CommentURL", "SameSite", "Secure", "HttpOnly",
+            "Discard", "StoragePartition":
+            expected = value is String
+        case "Expires":
+            expected = (value as? Date)?.timeIntervalSinceReferenceDate.isFinite == true || value is String
+        case "Created":
+            expected = value is NSNumber
+        case "Version", "Max-Age":
+            expected = value is String || value is NSNumber
+        case "Port":
+            expected = value is String || (value as? [Any])?.allSatisfy { $0 is NSNumber } == true
+        default:
+            return .drop
+        }
+        return expected ? .keep : .refuse
+    }
+
+    init?(coder: NSCoder) {
+        // The unkeyed read is the only way to reach `$0` (a keyed read hides `$` keys); it keeps the unarchiver's
+        // allowed classes, so a forged dictionary holding another class fails the whole decode.
+        guard let properties = coder.decodeObject() as? [String: Any] else { return nil }
+        self.properties = properties
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(properties as NSDictionary)
     }
 }
 #endif
