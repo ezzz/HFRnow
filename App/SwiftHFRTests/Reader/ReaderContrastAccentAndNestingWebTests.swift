@@ -53,15 +53,24 @@ enum ContrastProbe {
 @MainActor
 @Suite(.serialized)
 struct ReaderContrastAccentAndNestingWebTests: ReaderWebTesting {
-    private func page(token: Int, style: ThemeStyle, messages: [(author: String, html: String)]) -> ReaderDocument {
+    /// How the reader is drawn for one measure: the system appearance, the message look and the theme.
+    struct Setting {
+        var style: UIUserInterfaceStyle
+        var look: ThemeStyle
+        var appearance: ThemeAppearance
+    }
+
+    private func page(
+        token: Int, look: ThemeStyle, messages: [(author: String, html: String)], isContinuation: Bool
+    ) -> ReaderDocument {
         let built = messages.enumerated().map { index, message in
             ReaderMessage(
-                numreponse: index + 1, author: message.author, isDeleted: false, isContinuation: false, avatarURL: nil,
+                numreponse: index + 1, author: message.author, isDeleted: false, isContinuation: isContinuation, avatarURL: nil,
                 dateText: "27-10-2026 10:01:00", editNote: nil, quotedByCount: nil, content: MessageContent(html: message.html)
             )
         }
         let readerPage = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: built)
-        let options = ReaderRenderOptions(style: style, visibility: VisibilityPolicy(ownPseudo: "moi", allowlist: ["ami"]))
+        let options = ReaderRenderOptions(style: look, visibility: VisibilityPolicy(ownPseudo: "moi", allowlist: ["ami"]))
         return ReaderDocument(
             token: token, html: TopicHTMLBuilder.document(for: readerPage, token: token, options: options),
             anchor: nil, keepsScrollPosition: false
@@ -69,13 +78,12 @@ struct ReaderContrastAccentAndNestingWebTests: ReaderWebTesting {
     }
 
     private func measure(
-        _ selectors: [String], messages: [(author: String, html: String)], style: UIUserInterfaceStyle, look: ThemeStyle,
-        appearance: ThemeAppearance, token: Int
+        _ selectors: [String], messages: [(author: String, html: String)], setting: Setting, token: Int, isContinuation: Bool = false
     ) async -> [Double]? {
         let (controller, recorder) = makeController(transport: imageTransport())
-        recorder.window?.overrideUserInterfaceStyle = style
-        controller.theme = appearance
-        controller.show(page(token: token, style: look, messages: messages))
+        recorder.window?.overrideUserInterfaceStyle = setting.style
+        controller.theme = setting.appearance
+        controller.show(page(token: token, look: setting.look, messages: messages, isContinuation: isContinuation))
         let script = ContrastProbe.script(selectors: selectors)
         guard await until({ recorder.ready == [token] }) else { return nil }
         var seen: [Double]?
@@ -101,10 +109,8 @@ struct ReaderContrastAccentAndNestingWebTests: ReaderWebTesting {
         let selectors = ["article.message:not(.me) .header .date", "article.message.me .header .date"]
         let messages = [(author: "inconnu", html: "<p>texte</p>"), (author: "moi", html: "<p>texte</p>")]
         for lightStyle in [LightStyle.blanc, .doux] {
-            let seen = await measure(
-                selectors, messages: messages, style: .light, look: .classic,
-                appearance: Self.appearance(hue: hue, lightStyle: lightStyle), token: Int(hue) + 1
-            )
+            let setting = Setting(style: .light, look: .classic, appearance: Self.appearance(hue: hue, lightStyle: lightStyle))
+            let seen = await measure(selectors, messages: messages, setting: setting, token: Int(hue) + 1)
             guard let seen else { Issue.record("the reader did not answer"); return }
             #expect(seen[0] >= 4.5, "plain header date, hue \(hue), style \(lightStyle): \(seen[0])")
             #expect(seen[1] >= 4.5, "own header date, hue \(hue), style \(lightStyle): \(seen[1])")
@@ -114,7 +120,7 @@ struct ReaderContrastAccentAndNestingWebTests: ReaderWebTesting {
     private static func quote(_ kind: String, probe: String, inner: String = "") -> String {
         """
         <table class="citation \(kind)"><tr class="none"><td><b class="s1" data-probe="\(probe)">x a écrit :</b><br>\
-        <p>cité</p>\(inner)</td></tr></table>
+        <p>cité <span class="image-link" data-probe="\(probe)-img">image.png</span></p>\(inner)</td></tr></table>
         """
     }
 
@@ -135,9 +141,10 @@ struct ReaderContrastAccentAndNestingWebTests: ReaderWebTesting {
         case plain = "inconnu", allowlisted = "ami", moderation = "Modération", own = "moi"
     }
 
-    @Test(arguments: Author.allCases)
-    func nestedQuoteHeadersHoldAA(author: Author) async {
-        let probes = ["bb", "mb", "ab", "bm", "ba", "b3", "bbb"]
+    /// The header and the refused image of every nested quote, on a message and on its continuation (75 % opacity).
+    @Test(arguments: Author.allCases, [false, true])
+    func nestedQuoteHeadersHoldAA(author: Author, isContinuation: Bool) async {
+        let probes = ["bb", "mb", "ab", "bm", "ba", "b3", "bbb"].flatMap { [$0, "\($0)-img"] }
         var token = 1000
         for look in [ThemeStyle.modern, .classic] {
             for style in [UIUserInterfaceStyle.light, .dark] {
@@ -145,11 +152,13 @@ struct ReaderContrastAccentAndNestingWebTests: ReaderWebTesting {
                     token += 1
                     let seen = await measure(
                         probes.map { "[data-probe=\"\($0)\"]" }, messages: [(author: author.rawValue, html: Self.nested)],
-                        style: style, look: look, appearance: Self.appearance(hue: hue), token: token
+                        setting: Setting(style: style, look: look, appearance: Self.appearance(hue: hue)), token: token,
+                        isContinuation: isContinuation
                     )
                     guard let seen else { Issue.record("the reader did not answer"); return }
                     for (probe, ratio) in zip(probes, seen) {
-                        #expect(ratio >= 4.5, "nested header \(probe), \(author), \(look), \(style.rawValue), hue \(hue): \(ratio)")
+                        let label = "nested \(probe), \(author), continuation \(isContinuation), \(look), \(style.rawValue), hue \(hue)"
+                        #expect(ratio >= 4.5, "\(label): \(ratio)")
                     }
                 }
             }

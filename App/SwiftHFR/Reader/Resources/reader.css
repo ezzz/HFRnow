@@ -338,11 +338,15 @@ table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); 
    #1366 found: every header inside a tinted quote table (a quote folded in a folded quote, in a quote of mine, in an allowlisted
    one: 3.9 to 4.5:1 whatever the message), and the classic header's date in light on any message: `--secondary` on 15 % of the
    accent is 4.27:1 at hue 240 and under 4.5 at several hues (4.47 on « Doux »); dark draws it in `--text` (#1210). */
-:is(table.quote-blocked, table.quote-me, table.quote-allowed) b.s1 { color: var(--secondary-tinted); }
+:is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(b.s1, .image-link) { color: var(--secondary-tinted); }
 /* A tinted quote inside a tinted quote (three folded quotes on an allowlisted message: 4.27:1 with the 80 % tint): halfway to the text. */
 :root { --secondary-nested: color-mix(in srgb, var(--secondary) 50%, var(--text)); }
-.message:not(.continuation) :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(table.quote-blocked, table.quote-me, table.quote-allowed) b.s1 {
+.message:not(.continuation) :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(b.s1, .image-link) {
   color: var(--secondary-nested);
+}
+/* The same nested headers and refused images in a continuation, like its folded quote headers: the page text (the 75 % fade left them at 4.27). */
+.message.continuation :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(table.quote-blocked, table.quote-me, table.quote-allowed) :is(b.s1, .image-link) {
+  color: var(--text);
 }
 @media not (prefers-color-scheme: dark) { .style-classic .message:not(.continuation) .header .date { color: var(--secondary-tinted); } }
 .message:not(.continuation):is(.whitelist, .mode, .me) .content :is(b.s1, .image-link) { color: var(--secondary-tinted); }
