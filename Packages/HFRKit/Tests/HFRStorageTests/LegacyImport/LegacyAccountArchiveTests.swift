@@ -94,7 +94,7 @@ struct LegacyAccountArchiveTests {
     /// some, and reads others by presence alone. `Created`, `Version` and `Max-Age` take a number.
     @Test("a cookie whose archived property has an unexpected type is skipped, never handed to Foundation", arguments: [
         "Name", "Value", "Domain", "Path", "Expires", "Created", "Secure", "HttpOnly", "Discard", "Version", "Max-Age",
-        "Comment", "CommentURL", "OriginURL", "SameSite", "Port", "StoragePartition"
+        "Comment", "CommentURL", "SameSite", "Port", "StoragePartition"
     ], [true, false])
     func mistypedProperty(key: String, asDictionary: Bool) throws {
         guard asDictionary || !["Created", "Version", "Max-Age"].contains(key) else { return }
@@ -114,13 +114,25 @@ struct LegacyAccountArchiveTests {
         #expect(records.first?.cookies.first?.expiresDate == Date(timeIntervalSince1970: 1_803_859_200))
     }
 
-    @Test("a property key outside the checked list is dropped, the cookie kept")
-    func unknownProperty() throws {
-        #expect(LegacyArchivedCookie.verdict(on: NSDictionary(dictionary: ["k": "v"]), forKey: "Partitioned") == .drop)
+    @Test("a property key outside the checked list is dropped, the cookie kept", arguments: ["Partitioned", "OriginURL"])
+    func unknownProperty(key: String) throws {
+        #expect(LegacyArchivedCookie.verdict(on: NSDictionary(dictionary: ["k": "v"]), forKey: key) == .drop)
+        #expect(LegacyArchivedCookie.verdict(on: "https://forum.hardware.fr/", forKey: key) == .drop)
         var properties = Self.archivedProperties
-        properties["Partitioned"] = NSDictionary(dictionary: ["k": "v"])
+        properties[key] = NSDictionary(dictionary: ["k": "v"])
         let records = try LegacyAccountArchive.decode(try archive(ForgedCookie(properties)))
         #expect(records.first?.cookies.map(\.name) == ["md_user"])
+    }
+
+    /// `NSHTTPCookie` never archives `OriginURL`; Foundation reads it for the domain of a cookie that has none, and does
+    /// not survive every string there.
+    @Test("a cookie without a domain is skipped, whatever its origin URL")
+    func originWithoutDomain() throws {
+        var properties = Self.archivedProperties
+        properties["Domain"] = nil
+        properties["OriginURL"] = "a b"
+        let records = try LegacyAccountArchive.decode(try archive(ForgedCookie(properties), ForgedCookie(Self.archivedProperties)))
+        #expect(records.first?.cookies.map(\.domain) == [".hardware.fr"])
     }
 
     @Test("bytes that are not a legacy archive are unreadable")

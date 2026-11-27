@@ -141,13 +141,15 @@ final class LegacyArchivedCookie: NSObject, NSSecureCoding {
     /// key. Foundation does not check them: a dictionary or a number under `Path`, `Comment`, `CommentURL`, `SameSite`
     /// or `StoragePartition` raises an Objective-C exception, a dictionary under `Port` crashes, the flags are read by
     /// presence, and a NaN `Expires` date reaches the cookie (measured on macOS 27.2, #1205). The keys are those
-    /// `NSHTTPCookie` archives and those Apple documents; the types, those it archives (strings; `Expires` a finite date,
-    /// `Created` a number, `Port` an array of numbers) and those Apple documents, but a `CommentURL` URL, which raises.
-    /// Dropping the other keys keeps a key Foundation reads but this list misses from reaching it unchecked.
+    /// `NSHTTPCookie` archives and those Apple documents, but `OriginURL`: it is never archived, and Foundation reads it
+    /// for the domain of a cookie that has none, where some strings crash it (measured), so it is dropped and such a
+    /// cookie skipped. The types are those it archives (strings; `Expires` a finite date, `Created` a number, `Port` an
+    /// array of numbers) and those Apple documents, but a `CommentURL` URL, which raises. Dropping the other keys keeps
+    /// a key Foundation reads but this list misses from reaching it unchecked.
     static func verdict(on value: Any, forKey key: String) -> PropertyVerdict {
         let expected: Bool
         switch key {
-        case "Name", "Value", "Domain", "Path", "Comment", "CommentURL", "OriginURL", "SameSite", "Secure", "HttpOnly",
+        case "Name", "Value", "Domain", "Path", "Comment", "CommentURL", "SameSite", "Secure", "HttpOnly",
             "Discard", "StoragePartition":
             expected = value is String
         case "Expires":
