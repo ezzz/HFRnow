@@ -531,8 +531,21 @@ extension HFRSession {
     /// Installs the credentials another device stored for this account (LOT-173) in one actor turn, fenced like a login:
     /// a token read by a request that left before cannot overwrite them (#340).
     func adoptSyncedCredentials(cookies: [StoredCookie], hashCheck: String?) {
-        replaceCookies(with: cookies)
+        replaceCookies(with: cookies + Self.memberIDToKeep(from: self.cookies(), adopting: cookies))
         updateHashCheck(hashCheck)
         advanceLoginGeneration()
+    }
+
+    /// The jar's `md_id` when a copy of the same member holds none live (#1420): only a login sets it (`W1420a`), HFR refuses
+    /// profiles without it (`R1420c`), and a copy may lack it (another device's legacy import, or its login past 30 days).
+    /// Legacy `5c0f10db` merges its account cookies the same way. A copy of another `md_user` takes the jar as it is.
+    static func memberIDToKeep(from jar: [StoredCookie], adopting copy: [StoredCookie], now: Date = .now) -> [StoredCookie] {
+        let isLiveMemberID = { (cookie: StoredCookie) in
+            cookie.name == memberIDCookieName && (cookie.expiresDate.map { $0 > now } ?? true)
+        }
+        guard !copy.contains(where: isLiveMemberID) else { return [] }
+        let user = { (cookies: [StoredCookie]) in cookies.first { $0.name == identityCookieName }?.value }
+        guard let member = user(jar), member != loggedOutMarker, member == user(copy) else { return [] }
+        return jar.filter(isLiveMemberID)
     }
 }

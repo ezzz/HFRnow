@@ -15,6 +15,7 @@ sections and fields, personal smileys and the page's link rows. Legacy parity, n
 |---|---|
 | `HFRswift/Swift/UserProfileView.swift:113-135` (`UserProfileService.fetchProfile`: `URLSession.shared`, so the shared cookies) | `LiveUserProfileSource` (the account's session, difference 1) |
 | `HFRswift/Swift/UserProfileService.swift:23-48`, `UserProfileLoadingError.swift:10-30` @ `bb58131d` (`master`, #1349, 2026-11-26: the main account's cookies set on the request, no request without an account, `loginRequired`, 401/403 `accessDenied`) | `LiveUserProfileSource` login check, `ListLoadError.profileLoginRequired` / `.profileAccessDenied` (#1363) |
+| `UserProfileService.swift:43-47`, `UserProfileLoadingError.swift:16-18, 30-32`, `MultisManager.m:228-262` @ `5c0f10db` (`master`, #1349, 2026-11-27: a 403 without `md_id` is `reloginRequired`, account cookies merged instead of replaced, login sent with `login.php`'s fields) | `LiveUserProfileSource` `md_id` check, `ListLoadError.profileReloginRequired`, `HFRSession.holdsMemberID`, `adoptSyncedCredentials` keeping `md_id` (#1420) |
 | `UserProfileView.swift:464-490` (`UserProfileViewModel`: load, `isLoading`, `errorMessage`) | `UserProfileModel` over `ContentLoader` |
 | `UserProfileView.swift:492-616` (`UserProfileView`: sheet, "Fermer", "Actualiser", loading and error views, `openLink` by the default-browser setting) | `UserProfileView`, `UserProfileModel.action(forLink:defaultBrowser:)` |
 | `UserProfileView.swift:631-736` (`UserProfileHeaderView`, `UserProfileQuickActionsView`: avatar, pseudo, status, figures, MP / WL / BL buttons) | `ProfileHeaderSection`; MP through `UserProfileModel.onPrivateMessage` (hook) |
@@ -67,6 +68,14 @@ Nothing is inferred for these; the screen shows what the parser returns, or "Pag
    not legacy's main one, like every other page of the app.
 2. **Served URL checked.** A page served at another URL than the profile asked for is refused, never parsed as a profile. A 401 or
    403 is its own state (legacy `accessDenied`); another error status keeps the app's « Erreur du forum » (legacy `httpStatus`).
+7. **`md_id` checked before sending** (#1420). HFR refuses a profile without `md_id` (`R1420c`), which only the login sets, for 30 days
+   (`W1420a`, `R1420g`). Legacy `5c0f10db` sends the request and, on a 403 without `md_id`, says `reloginRequired`; SwiftHFR sends
+   nothing when the session lacks it (an account imported from legacy, a login past 30 days) and shows the same state,
+   `profileReloginRequired`; a 403 to a session that lost it meanwhile is that state too, a 403 with `md_id` stays
+   `profileAccessDenied`. The message points to « Se reconnecter » (SwiftHFR re-logs an account in place) where legacy asks to
+   remove and add the account again. The login field set is not changed: SwiftHFR's legacy fields still set `md_id` (`W1420a`, the
+   same three cookies as `login.php`'s fields, `W1420b`). Legacy's cookie merge (`MultisManager` `cookies:mergedWith:`) is already
+   SwiftHFR's (`HFRSession.mergeCookies`, #383); the iCloud copy adoption (LOT-173) now keeps the jar's `md_id` for the same member.
 3. **Images through the reader's fetcher** (cookie-less, image policy, forum hosts only), not `AsyncImage` on any URL.
 4. **No smiley favourite toggle**: the smiley favourites UI is LOT-104's (store LOT-064); the code is selectable instead.
 5. **A grouped list** instead of cards and a grid of figures; same content, Dynamic Type and the app's type scale.
@@ -80,6 +89,11 @@ Nothing is inferred for these; the screen shows what the parser returns, or "Pag
   and equal the parser's output; without a login nothing is sent on either client (`profileLoginRequired`), also through a real
   logged-out `HFRSession`, and a logged-in one sends; 401 and 403 (`R1363a`) are `profileAccessDenied`, 500 stays `server`; a page served at another member's, the home, another host, `http` or another port is `.unreadable`; a topic page
   (`R20`) is `.unreadable`; `offline` maps.
+- `UserProfileMemberIDTests` (#1420): a session without `md_id` is `profileReloginRequired` and sends nothing, then sends once a login
+  sets it; a real `HFRSession` with an imported legacy account's cookies (no `md_id`) or an expired `md_id` reports none; a 403 is
+  `profileAccessDenied` with `md_id` and `profileReloginRequired` when the session lost it during the request; the avatar lookup
+  sends nothing without `md_id`. `SyncedCredentialsMemberIDTests`: adopting a synced copy without a live `md_id` keeps the jar's for
+  the same member, a copy's own `md_id` wins, another member's copy takes none. Engine: `HFRSessionMemberIDTests` (loopback only).
 - `UserProfileModelTests`: one load on repeated appearances, title; a failed load then "Réessayer"; a failed reload keeps the profile; every finished load bumps `loadGeneration`;
   the MP button exists only with a hook and after load, and hands the pseudo; links open in a browser, `javascript:` does nothing.
 - `TopicReaderModelTests.aProfileLinkOpensTheProfileSheet`: `https` and `http` profile links give `.profile(memberID:)` with either

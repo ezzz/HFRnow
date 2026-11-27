@@ -10,8 +10,8 @@ enum MemberAvatarLookupResult: Sendable, Equatable {
     case none
     /// The exchange failed (offline, timeout, a server error, an unreadable page): worth asking again later.
     case failed
-    /// Profiles are refused to this session: no login, or HFR's 401/403 (#1363). Asking again cannot help until a login is
-    /// installed in the session (a re-login keeps the same session object, #1195) or the account changes.
+    /// Profiles are refused to this session: no login, no `md_id` (#1420), or HFR's 401/403 (#1363). Asking again cannot help
+    /// until a login is installed in the session (a re-login keeps the same session object, #1195) or the account changes.
     case refused
 }
 
@@ -34,8 +34,8 @@ struct LiveMemberAvatarLookup: MemberAvatarLookup {
     func loginState() async -> ProfileLoginState { await profiles.loginState() }
 
     func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult {
-        // The profile would be refused: the id lookup would leave for nothing.
-        guard await profiles.isLoggedIn() else { return .refused }
+        // The profile would be refused (no login, or no `md_id`, #1420): the id lookup would leave for nothing.
+        guard await profiles.refusal() == nil else { return .refused }
         let memberID: Int?
         do throws(NetworkError) {
             memberID = try await fetcher.memberID(pseudo: pseudo, as: .anonymous)
@@ -48,7 +48,8 @@ struct LiveMemberAvatarLookup: MemberAvatarLookup {
             let profile = try await profiles.profile(memberID: memberID)
             return profile.avatarURL.map(MemberAvatarLookupResult.avatar) ?? .none
         } catch {
-            return error == .profileAccessDenied || error == .profileLoginRequired ? .refused : .failed
+            let refusals: [ListLoadError] = [.profileAccessDenied, .profileLoginRequired, .profileReloginRequired]
+            return refusals.contains(error) ? .refused : .failed
         }
     }
 }

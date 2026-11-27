@@ -583,6 +583,11 @@ identical. The test image is left on the host.
 | R716e | `R716e-profile-empty-id-404.html` | `R716d`'s target `/hfr/profil-.htm`: the web server's `404 Not Found` page (`text/html; charset=iso-8859-1`, 213 bytes), not a forum page | — | #714 |
 | R1363a | `R1363a-profile-anon-403.html` | #1363 (2026-11-27): user1's public profile `/hfr/profil-<id>.htm`, logged out: **403**, the web server's default page (`text/html; charset=iso-8859-1`), not a forum page; `R56a`/`R56b` (2026-10-26) predate the change | R56 | #1363, 116 |
 | R1363b | `R1363b-profile-own-user1.html` | The same URL logged in (user1 viewing its own profile), 2026-11-27: `200`, no redirect, no cookie set; `h6` "(En ligne dans la catégorie … du forum …)", avatar, 6 personal smileys `[:code]`…`[:code:5]`, a "Couleurs personnalisées" row (`/setperso.php?config=hfr.inc&util=<pseudo>`, a value cell with `colspan=2`), two transaction rows, "Ajouter <pseudo> à votre liste de contacts" (on one's own profile too) and the session's grey-skin style sheets | R56 | #1363, 027, 116 |
+| W1420a | `W1420a-login-legacy-fields-user2.html` | #1420 (2026-11-27): login POST with SwiftHFR's (legacy's) fields `pseudo, password, action, login` (user2): the success page of `W03`, cookies `md_user`, `md_passs`, `md_id` (each `expires` +30 days, `domain=.hardware.fr`) | W03 | #1420, 043 |
+| W1420b | `W1420b-login-form1-fields-user2.html` | The same login with the fields of `login.php`'s `form1` (the set of legacy `5c0f10db`: `hash_check` empty, `pseudo`, `password`, `cat`, `page`, `config`, `p`, `sondage`, `owntopic`, `post`, `referer`, `Valider`), form read logged out: the same success page and the same three cookies | W03 | #1420, 043 |
+| R1420a | `R1420a-profile-own-full-jar.html` | user2's own profile `/hfr/profil-<id>.htm` with `W1420a`'s jar (`md_user`, `md_passs`, `md_id`): `200`, no redirect, no cookie set | R56 | #1420, 116 |
+| R1420c | `R1420c-profile-own-no-md-id-403.html` | The same URL with the same jar minus `md_id`: **403**, the web server's page of `R1363a` | R56 | #1420, 116 |
+| R1420e | `R1420e-profile-other-md-id-only.html` | user1's profile with a jar holding `md_id` only (no `md_user`, no `md_passs`): `200`, the profile page | R56 | #1420, 116 |
 
 ## Not captured
 

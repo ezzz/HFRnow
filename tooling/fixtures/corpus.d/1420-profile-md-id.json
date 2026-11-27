@@ -1,0 +1,7 @@
+{"captures": [
+  {"raw": "W1420a", "id": "W1420a", "slug": "login-legacy-fields-user2", "ext": "html", "private": false},
+  {"raw": "W1420b", "id": "W1420b", "slug": "login-form1-fields-user2", "ext": "html", "private": false},
+  {"raw": "R1420a", "id": "R1420a", "slug": "profile-own-full-jar", "ext": "html", "private": false},
+  {"raw": "R1420c", "id": "R1420c", "slug": "profile-own-no-md-id-403", "ext": "html", "private": false},
+  {"raw": "R1420e", "id": "R1420e", "slug": "profile-other-md-id-only", "ext": "html", "private": false}
+]}

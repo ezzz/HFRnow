@@ -1,0 +1,16 @@
+{
+  "id": "R1420c",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/hfr/profil-{id}.htm",
+  "url": "https://forum.hardware.fr/hfr/profil-900002.htm",
+  "final_url": "https://forum.hardware.fr/hfr/profil-900002.htm",
+  "status": 403,
+  "content_type": "text/html; charset=iso-8859-1",
+  "date": "Fri, 27 Nov 2026 22:40:25 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "own profile, jar without md_id (md_user, md_passs only)",
+  "file": "R1420c-profile-own-no-md-id-403.html",
+  "private": false
+}

@@ -128,8 +128,9 @@ struct UserProfileSourceTests {
         let environment = AppEnvironment.make(session: session, accountName: name)
         let source = try #require(environment.reader.profiles as? LiveUserProfileSource)
         let prefetcher = try #require(environment.memberAvatars)
-        #expect(await source.loginState() == ProfileLoginState(isLoggedIn: true, generation: 0))
-        #expect(await prefetcher.currentLoginState() == ProfileLoginState(isLoggedIn: true, generation: 0))
+        // `Fake.cookies` hold `md_user` and `md_passs` only: no `md_id` (#1420).
+        #expect(await source.loginState() == ProfileLoginState(isLoggedIn: true, hasMemberID: false, generation: 0))
+        #expect(await prefetcher.currentLoginState() == ProfileLoginState(isLoggedIn: true, hasMemberID: false, generation: 0))
         await session.advanceLoginGeneration()
         #expect(await source.loginState().generation == 1)
         #expect(await prefetcher.currentLoginState().generation == 1)
@@ -140,16 +141,24 @@ struct UserProfileSourceTests {
 actor RecordingProfileSession: ProfileSession {
     let transport = MockTransport(replies: [])
     private var loggedIn: Bool
+    private var hasMemberID: Bool
     private var generation = 0
 
-    init(loggedIn: Bool) { self.loggedIn = loggedIn }
+    init(loggedIn: Bool, hasMemberID: Bool = true) {
+        self.loggedIn = loggedIn
+        self.hasMemberID = hasMemberID
+    }
 
+    /// A login as HFR's: it sets `md_id` (`W1420a`).
     func logIn() {
         loggedIn = true
+        hasMemberID = true
         generation += 1
     }
 
-    func profileLoginState() -> ProfileLoginState { ProfileLoginState(isLoggedIn: loggedIn, generation: generation) }
+    func profileLoginState() -> ProfileLoginState {
+        ProfileLoginState(isLoggedIn: loggedIn, hasMemberID: hasMemberID, generation: generation)
+    }
 
     func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse { try await transport.perform(request) }
 }
