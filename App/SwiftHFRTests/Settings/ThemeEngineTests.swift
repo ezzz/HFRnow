@@ -99,6 +99,20 @@ struct ThemeEngineTests {
         #expect(css.contains("font-family: var(--app-theme-font);"))
     }
 
+    /// LOT-192: the app bundle carries Swift and Rétro 5250; Rétro 5250 draws monospaced and shows in the dark appearance
+    /// (a black single variant), Swift follows the picker.
+    @Test func swiftAndRetro5250AreInTheBundledGallery() throws {
+        let catalog = ThemeCatalog.bundled
+        let retro = try #require(catalog.themes.first { $0.id == "retro-5250" })
+        _ = try #require(catalog.themes.first { $0.id == "swift" })
+        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro"])
+        let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
+        model.mode = .light
+        model.select(retro)
+        #expect(model.appearance.forcedColorScheme == .dark && model.preferredColorScheme == .dark)
+        #expect(retro.fontDesign == .monospaced)
+    }
+
     @Test func aSingleVariantThemeImposesItsAppearance() throws {
         let catalog = try ThemeFixtures.singleVariantCatalog()
         let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
