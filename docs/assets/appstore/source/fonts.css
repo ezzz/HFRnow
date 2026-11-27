@@ -1,0 +1,4 @@
+/* Inter (variable: optical size 14–32, weight 100–900) and JetBrains Mono (variable: weight 100–800), both SIL OFL 1.1.
+   Downloaded by the recipe in README.md, not committed. */
+@font-face { font-family: Inter; src: url(inter.woff2) format('woff2'); font-weight: 100 900; }
+@font-face { font-family: 'JetBrains Mono'; src: url(jetbrains-mono.woff2) format('woff2'); font-weight: 100 800; }

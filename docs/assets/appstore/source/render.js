@@ -1,0 +1,86 @@
+// Frames each capture of screens.json with its French caption, at each App Store size marked "render" (or the sizes named
+// on the command line: `node render.js iphone-large ipad-13`). Output: ../<size id>/<screen id>.png, opaque RGB.
+// A missing capture gives a labelled placeholder and a non-zero exit, unless --allow-placeholders is passed.
+// A caption too long for a size stops the run.
+const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
+
+const here = (...p) => path.join(__dirname, ...p);
+const args = process.argv.slice(2);
+const allowPlaceholders = args.includes('--allow-placeholders');
+const wanted = args.filter((a) => !a.startsWith('--'));
+const { sizes, screens } = JSON.parse(fs.readFileSync(here('screens.json'), 'utf8'));
+
+// App Store Connect refuses an alpha channel, and Chromium writes RGBA: re-encode the screenshot as 8-bit RGB (PNG colour
+// type 2) with Node alone. Each row is re-filtered with filter 0.
+function crcTable() {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[n] = c >>> 0; }
+  return table;
+}
+const CRC = crcTable();
+function chunk(type, data) {
+  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+  let c = 0xffffffff;
+  for (const byte of body) c = CRC[(c ^ byte) & 0xff] ^ (c >>> 8);
+  const out = Buffer.alloc(body.length + 8);
+  out.writeUInt32BE(data.length, 0); body.copy(out, 4); out.writeUInt32BE((c ^ 0xffffffff) >>> 0, body.length + 4);
+  return out;
+}
+function opaquePNG(rgba, width, height) {
+  const row = width * 3 + 1, raw = Buffer.alloc(row * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) rgba.copy(raw, y * row + 1 + x * 3, (y * width + x) * 4, (y * width + x) * 4 + 3);
+  }
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 2;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+}
+
+(async () => {
+  for (const font of ['inter.woff2', 'jetbrains-mono.woff2']) {
+    if (!fs.existsSync(here(font))) throw new Error(`${font} is missing: see README.md for the download line`);
+  }
+  const unknown = wanted.filter((id) => !sizes.some((s) => s.id === id));
+  if (unknown.length) throw new Error(`unknown size: ${unknown.join(', ')}`);
+  const chosen = sizes.filter((s) => (wanted.length ? wanted.includes(s.id) : s.render));
+  const browser = await chromium.launch();
+  const missing = [];
+  for (const size of chosen) {
+    fs.mkdirSync(here('..', size.id), { recursive: true });
+    const page = await browser.newPage({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1 });
+    for (const [i, screen] of screens.entries()) {
+      const shot = `captures/${size.id}/${screen.id}.png`;
+      const query = new URLSearchParams({ shot, kicker: screen.kicker, caption: screen.caption, ink: screen.ink,
+        index: i + 1, total: screens.length, ratio: size.width / size.height });
+      await page.goto('file://' + here('frame.html') + '?' + query);
+      await page.waitForSelector('body[data-ready="1"]');
+      if (await page.evaluate(() => document.body.dataset.placeholder === '1')) missing.push(shot);
+      if (await page.evaluate(() => document.body.dataset.wrapped === '1')) throw new Error(`${size.id}/${screen.id}: the caption wraps, shorten it in screens.json`);
+      // Read the pixels from the page itself: no PNG decoder is needed to drop the alpha channel.
+      const png = await page.screenshot({ type: 'png' });
+      const rgba = Buffer.from(await page.evaluate(async (b64) => {
+        const bitmap = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const context = canvas.getContext('2d');
+        context.drawImage(bitmap, 0, 0);
+        const data = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+        let binary = '';
+        for (let o = 0; o < data.length; o += 0x8000) binary += String.fromCharCode.apply(null, data.subarray(o, o + 0x8000));
+        return btoa(binary);
+      }, png.toString('base64')), 'base64');
+      if (rgba.length !== size.width * size.height * 4) throw new Error(`${screen.id}: unexpected bitmap size`);
+      const target = here('..', size.id, screen.id + '.png');
+      fs.writeFileSync(target, opaquePNG(rgba, size.width, size.height));
+      console.log('wrote', path.relative(here('..'), target), `${size.width}x${size.height}`);
+    }
+    await page.close();
+  }
+  await browser.close();
+  if (missing.length && !allowPlaceholders) {
+    throw new Error(`${missing.length} capture(s) missing, placeholders drawn (not for the App Store):\n  ${missing.join('\n  ')}`);
+  }
+})().catch((error) => { console.error(error.message); process.exit(1); });
