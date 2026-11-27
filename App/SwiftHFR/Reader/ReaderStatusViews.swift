@@ -8,8 +8,11 @@ struct ReaderStateOverlay: View {
     let refresh: @MainActor () async -> Void
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A base that always exists and fills the space with no minimum: over a shown page `content` builds no view, and the
+        // icons need something to hang on. It takes no touch, so the page under it keeps them.
+        Color.clear
+            .allowsHitTesting(false)
+            .overlay { content }
             // The pulls past the page's top and end (#1207): the end's above the floating bar, never in the way of a touch.
             // Overlays, so they never size the page: stacked beside it, the end's 96 pt gave the reader a minimum height of
             // about 135 pt, which pushed the docked composer behind the keyboard and the page under the bars (#1285, #1286).
