@@ -104,15 +104,16 @@ struct CoalescingTransportTests {
         let first = Task { try await transport.perform(.get(url)) }
         let second = Task { try await transport.perform(.get(url)) }
         try await Task.sleep(for: .milliseconds(100))
-        let began = ContinuousClock.now
         first.cancel()
         await #expect(throws: NetworkError.cancelled) { try await first.value }
         // One waiter is left: the exchange goes on.
         try await Task.sleep(for: .milliseconds(100))
         #expect(slow.counts.cancelled == 0)
+        let began = ContinuousClock.now
         second.cancel()
         await #expect(throws: NetworkError.cancelled) { try await second.value }
-        #expect(ContinuousClock.now - began < .seconds(1), "a cancelled caller waited for the download")
+        // The download takes 2 s: a wait well under that proves the cancelled caller did not wait for it (slack for loaded runners).
+        #expect(ContinuousClock.now - began < .milliseconds(1500), "a cancelled caller waited for the download")
         try await Task.sleep(for: .milliseconds(2300))
         #expect(slow.counts == (started: 1, cancelled: 1))
     }

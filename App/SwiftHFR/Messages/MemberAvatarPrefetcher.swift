@@ -84,18 +84,20 @@ actor MemberAvatarPrefetcher {
         /// Kept in `defaults`, one date per lowercased pseudo, on the device (a pseudo is already in the avatar cache's file names).
         static func persisted(in defaults: UserDefaults = .standard, now: @escaping @Sendable () -> Date = { Date() }) -> Misses {
             let key = "memberAvatarMisses"
+            // `UserDefaults` is thread-safe but not declared `Sendable` by every SDK: the annotation states it for the compiler.
+            nonisolated(unsafe) let store = defaults
             return Misses(
                 isFresh: { pseudo in
-                    guard let recordedAt = (defaults.dictionary(forKey: key) as? [String: Date])?[pseudo] else { return false }
+                    guard let recordedAt = (store.dictionary(forKey: key) as? [String: Date])?[pseudo] else { return false }
                     return now().timeIntervalSince(recordedAt) < freshness
                 },
                 record: { pseudo in
-                    var all = (defaults.dictionary(forKey: key) as? [String: Date]) ?? [:]
+                    var all = (store.dictionary(forKey: key) as? [String: Date]) ?? [:]
                     let current = now()
                     // Expired entries leave with the next write, so the list stays as long as the correspondents of a day.
                     all = all.filter { current.timeIntervalSince($0.value) < freshness }
                     all[pseudo] = current
-                    defaults.set(all, forKey: key)
+                    store.set(all, forKey: key)
                 }
             )
         }
