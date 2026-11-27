@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.jpg" alt="The HFR forum pulled into an iPhone running a native SwiftUI forum app" width="100%">
+  <img src="docs/assets/hero.jpg" alt="SwiftHFR: a phone lying on a printed page of the HFR forum shows the same categories as a native iOS list. Same forum, now native on iOS." width="100%">
 </p>
 
 <h1 align="center">SwiftHFR</h1>

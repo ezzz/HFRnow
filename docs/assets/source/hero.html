@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- README hero, "the lens" (#1380): the forum's home page (hfr.webp) is a printed sheet; the phone lies on it and shows the
+     same categories in the app. The phone screen is an image slot: ?screen=<file> (the simulator capture app-forums.png, or
+     the stand-in rendered from app-screen.html); the phone takes the image's aspect ratio. Designed at 1280×640. -->
+<link rel="stylesheet" href="fonts.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body { font-family: Inter, sans-serif; background: #f2691c; position: relative; }
+  .stage { position: absolute; inset: 0; perspective: 2600px; perspective-origin: 62% 40%; }
+  .plane { position: absolute; left: 395px; top: -150px; width: 1500px; height: 841px; transform-style: preserve-3d;
+    transform: rotateX(54deg) rotateZ(-27deg); transform-origin: 40% 50%; }
+  .page { position: absolute; inset: 0; background: #fff url(hfr.webp) 0 0 / 100% auto no-repeat; box-shadow: -30px 40px 70px rgba(70,20,0,.45); }
+  .shadow, .phone { position: absolute; left: 420px; top: 70px; width: 330px; border-radius: 56px; }
+  .shadow { background: rgba(20,8,0,.55); filter: blur(22px); transform: translate3d(-26px, 30px, 1px); }
+  /* A plain dark slab with rounded corners: no maker's detail (no island, buttons or lens). */
+  .phone { padding: 10px; background: linear-gradient(145deg, #3a3c41, #111214 40%, #26282c); transform: translateZ(26px); }
+  .phone img { display: block; width: 310px; border-radius: 46px; }
+  .title { position: absolute; left: 56px; top: 54px; color: #fff; }
+  .title h1 { font-size: 76px; font-weight: 900; letter-spacing: -.045em; line-height: .95; }
+  .title h1 span { color: #0b1b3d; }
+  .title p { margin-top: 16px; font-size: 21px; font-weight: 600; line-height: 1.3; color: #0b1b3d; }
+  .foot { position: absolute; left: 56px; bottom: 44px; font: 600 13px 'JetBrains Mono', monospace; color: #0b1b3d; letter-spacing: .02em; }
+</style></head>
+<body>
+<div class="stage"><div class="plane">
+  <div class="page"></div>
+  <div class="shadow" id="shadow"></div>
+  <div class="phone"><img id="screen" alt=""></div>
+</div></div>
+<div class="title"><h1>Swift<span>HFR</span></h1><p>Same forum.<br>Now native on iOS.</p></div>
+<div class="foot">Swift 6.2 · SwiftUI · iOS 27</div>
+<script>
+const img = document.getElementById('screen');
+img.onload = async () => {
+  document.getElementById('shadow').style.height = (310 * img.naturalHeight / img.naturalWidth + 20) + 'px';
+  await document.fonts.ready;
+  document.body.dataset.ready = '1';
+};
+img.src = new URLSearchParams(location.search).get('screen') || 'app-forums.png';
+</script>
+</body></html>
