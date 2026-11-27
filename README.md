@@ -82,15 +82,15 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 ## Where we are
 
 > [!NOTE]
-> **No public build yet.** All 40 lots of M1 (MVP: log in, browse, read, reply) are merged. The one step left before the first TestFlight build is the build itself: LOT-161, [#251](https://github.com/ezzz/HFRnow/issues/251), see the [M1 board](https://github.com/ezzz/HFRnow/issues/166).
+> **No public build yet.** M1 (MVP), M2 (read & reply) and M3 (engine) are complete; M4 (legacy parity, App Store) is at 81 %. The app is tested on the maintainers' devices from Xcode builds; the first TestFlight build waits for the release pipeline, LOT-161 ([#251](https://github.com/ezzz/HFRnow/issues/251)).
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
 | 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
-| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — see M3 below |
-| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — see M1, M2 and M4 below |
+| 3 · Engine | Models, parsing, network, storage, flows | **done** — M3 complete |
+| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — M1 and M2 done, M4 below |
 | 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned — part of M5 below |
 
 Details and exit criteria: [roadmap](docs/ROADMAP.md).
@@ -101,15 +101,15 @@ Details and exit criteria: [roadmap](docs/ROADMAP.md).
   <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version, then M5 UX evolutions after the M4 parity; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
 </p>
 
-Figures from the live boards, snapshot 2026-11-11 ([#324](https://github.com/ezzz/HFRnow/issues/324) body, [#166](https://github.com/ezzz/HFRnow/issues/166) for M1):
+Figures from the live boards, snapshot 2026-11-27 ([#324](https://github.com/ezzz/HFRnow/issues/324) body, [#166](https://github.com/ezzz/HFRnow/issues/166) for M1):
 
 | Milestone | Live board | Lots done | Progress |
 |---|---|---|---|
 | 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 40 of 40 | 100 % |
 | 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 28 of 28 | 100 % |
-| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 39 of 43 | 91 % |
-| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 15 of 38 | 39 % |
-| 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 25 | 0 % |
+| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 43 of 43 | 100 % |
+| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 30 of 37 | 81 % |
+| 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 1 of 26 | 4 % |
 
 The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done. The M1 and M2 lot counts are complete, but both milestones also have exit checks (TestFlight builds, hand checks) that are not lots.
 
