@@ -224,6 +224,43 @@ struct QualityAlertsModelTests {
         #expect(cancelled.unreadCount == 0)
     }
 
+    /// #1398: a root rebuilt in the same process (an account switch, a login, a logout, another window) counts from the feed the
+    /// first root read, at once: one request per launch, as legacy (`MainWindow.swift:1609` @ 87fe0d1c).
+    @Test func aRebuiltRootCountsFromTheFeedAlreadyReadWithoutAskingAgain() async throws {
+        let source = FakeQualityAlertsSource(items: try Support.capturedItems())
+        let launchFeed = QualityAlertsLaunchFeed()
+        let first = Support.model(source: source, launchFeed: launchFeed)
+        await first.checkAtLaunch(sleep: { _ in })
+        let waited = Waited()
+        let rebuilt = Support.model(source: source, launchFeed: launchFeed)
+        await rebuilt.checkAtLaunch(after: .seconds(3), sleep: { await waited.record($0) })
+        #expect(source.calls == 1)
+        #expect(rebuilt.unreadCount == 25)
+        #expect(await waited.durations.isEmpty)
+    }
+
+    /// Two windows built together share the one read in flight; a failed read is not kept, so the next root asks again.
+    @Test func rootsBuiltTogetherShareOneReadAndAFailedReadIsNotKept() async throws {
+        let items = try Support.capturedItems()
+        let release = AQGate()
+        let source = FakeQualityAlertsSource { index async throws(AQError) in
+            if index == 0 { throw .network(.offline) }
+            await release.wait()
+            return items
+        }
+        let launchFeed = QualityAlertsLaunchFeed()
+        await Support.model(source: source, launchFeed: launchFeed).checkAtLaunch(sleep: { _ in })
+        #expect(source.calls == 1)
+        let first = Support.model(source: source, launchFeed: launchFeed)
+        let second = Support.model(source: source, launchFeed: launchFeed)
+        async let checkFirst: Void = first.checkAtLaunch(sleep: { _ in })
+        async let checkSecond: Void = second.checkAtLaunch(sleep: { _ in })
+        await release.open()
+        _ = await (checkFirst, checkSecond)
+        #expect(source.calls == 2)
+        #expect(first.unreadCount == 25 && second.unreadCount == 25)
+    }
+
     @Test func aNewerLoadWinsOverAnOlderOneStillRunning() async throws {
         let items = try Support.capturedItems()
         let entered = AQGate()

@@ -18,11 +18,18 @@ public actor HFRSession: HTTPTransport {
     /// Value of `md_user` with which the server says the session is logged out (`MultisManager.m:55`).
     public static let loggedOutMarker = "deleted"
 
-    private let urlSession: URLSession
-    private let cookieStorage: HTTPCookieStorage
-    private let transport: URLSessionTransport
+    private let connection: SessionConnection
+    private var urlSession: URLSession { connection.urlSession }
+    private var cookieStorage: HTTPCookieStorage { connection.cookieStorage }
+    private var transport: URLSessionTransport { connection.transport }
     /// Where requests may go: the forum in production, one host in tests.
     let hosts: SessionHostPolicy
+    /// The connections this session's probes send through (#1398); a probe shares its source's pool.
+    package nonisolated let probeConnections: ProbeConnectionPool
+    /// Whether `connection` came from `probeConnections` and goes back there when this session is released.
+    private let isProbe: Bool
+    /// Set once an exchange threw: its task may still answer, so the connection is never given to another probe.
+    private var exchangeFailed = false
 
     /// The anti-CSRF token every POST needs (HFR-PROTOCOL §5); nil until known.
     public private(set) var hashCheck: String?
@@ -42,36 +49,32 @@ public actor HFRSession: HTTPTransport {
         cookies: [StoredCookie], hashCheck: String?, now: Date,
         configuration base: URLSessionConfiguration, hosts: SessionHostPolicy
     ) {
-        // `URLSession.configuration` is one stored object on Linux (a copy per read on Darwin): write a copy, so the
-        // configuration a caller passes, another session's included (`probe`), is never changed.
-        guard let configuration = base.copy() as? URLSessionConfiguration else {
-            preconditionFailure("URLSessionConfiguration.copy() returned another type")
-        }
-        // A fresh ephemeral configuration gets its own in-memory jar on every platform (never `.shared`), and it is the
-        // only public way to obtain one: corelibs has no public `HTTPCookieStorage` initializer.
-        guard let storage = URLSessionConfiguration.ephemeral.httpCookieStorage else {
-            preconditionFailure("URLSessionConfiguration.ephemeral provides no cookie storage")
-        }
-        storage.cookieAcceptPolicy = HTTPCookie.AcceptPolicy.always
-        configuration.httpCookieStorage = storage
-        configuration.httpCookieAcceptPolicy = .always
-        configuration.httpShouldSetCookies = true
-        // Pages and credentials of one account must not be reused for another: no shared cache or credential store.
-        configuration.urlCache = nil
-        configuration.urlCredentialStorage = nil
-        let urlSession = URLSession(
-            configuration: configuration, delegate: HostPolicyRedirectDelegate(policy: hosts), delegateQueue: nil
-        )
-        self.urlSession = urlSession
+        connection = SessionConnection(configuration: base, hosts: hosts)
+        probeConnections = ProbeConnectionPool(configuration: base, hosts: hosts)
+        isProbe = false
         self.hosts = hosts
-        self.cookieStorage = storage
-        self.transport = URLSessionTransport(session: urlSession)
         self.hashCheck = Self.normalizedHashCheck(hashCheck)
-        Self.install(cookies, in: storage, now: now)
+        Self.install(cookies, in: connection.cookieStorage, now: now)
+    }
+
+    /// A probe of `pool`: a connection taken from it (jar emptied), seeded with `cookies`, no `hash_check`.
+    private init(probeOf pool: ProbeConnectionPool, cookies: [StoredCookie], now: Date) {
+        connection = pool.checkOut()
+        probeConnections = pool
+        isProbe = true
+        hosts = pool.hosts
+        hashCheck = nil
+        Self.install(cookies, in: connection.cookieStorage, now: now)
     }
 
     deinit {
-        urlSession.finishTasksAndInvalidate()
+        // Nothing can send through this session any more: a probe's connection serves the next probe, unless an
+        // exchange threw (its task may still be running).
+        if isProbe {
+            probeConnections.checkIn(connection, reusable: !exchangeFailed)
+        } else {
+            connection.invalidate()
+        }
     }
 
     /// Whether this session's configuration still names its own jar (tests: a probe must not change it, #320).
@@ -81,9 +84,10 @@ public actor HFRSession: HTTPTransport {
 
     /// A fresh session holding `cookies`, with this session's host policy and network settings but its own jar and no
     /// `hash_check`: what a session check sends its request through, so a test session restricted to the loopback host
-    /// never yields a probe that may reach the forum (#320).
+    /// never yields a probe that may reach the forum (#320). Its `URLSession` is recycled from earlier probes of this
+    /// account once they are released, with an emptied jar, so a check reuses their open connection (#1398).
     package nonisolated func probe(cookies: [StoredCookie], now: Date) -> HFRSession {
-        HFRSession(cookies: cookies, hashCheck: nil, now: now, configuration: urlSession.configuration, hosts: hosts)
+        HFRSession(probeOf: probeConnections, cookies: cookies, now: now)
     }
 
     // MARK: - Transport
@@ -97,7 +101,12 @@ public actor HFRSession: HTTPTransport {
         guard hosts.allows(request.url) else {
             throw .invalidRequest(reason: "An account session only contacts hardware.fr")
         }
-        return try await transport.perform(request)
+        do {
+            return try await transport.perform(request)
+        } catch {
+            exchangeFailed = true
+            throw error
+        }
     }
 
     // MARK: - hash_check

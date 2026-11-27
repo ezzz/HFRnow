@@ -18,7 +18,7 @@ public struct RESTBrowsingClient: Sendable {
 
     /// Creates the client over its own cookie-less transport.
     public init() {
-        self.init(transport: AnonymousTransport())
+        self.init(transport: AnonymousTransport.shared)
     }
 
     /// A client over `transport` (tests: a scripted one).

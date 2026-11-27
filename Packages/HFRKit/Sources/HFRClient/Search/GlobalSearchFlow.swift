@@ -23,7 +23,7 @@ public struct GlobalSearchFlow: Sendable {
 
     /// Creates the flow over its own cookie-less transport.
     public init() {
-        self.init(transport: AnonymousTransport())
+        self.init(transport: AnonymousTransport.shared)
     }
 
     /// A flow over `transport` (tests: a scripted one).

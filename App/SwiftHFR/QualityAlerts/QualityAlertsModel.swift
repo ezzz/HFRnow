@@ -97,6 +97,8 @@ final class QualityAlertsModel {
     @ObservationIgnored private let accountName: @Sendable () async -> String?
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let now: @Sendable () -> Date
+    /// The feed already read in this process: a rebuilt root counts from it (#1398).
+    @ObservationIgnored private let launchFeed: QualityAlertsLaunchFeed
     /// Taken by every request that may change `unreadCount`; only the newest one applies.
     @ObservationIgnored private var countTicket = 0
     @ObservationIgnored private var loadTicket = 0
@@ -105,7 +107,8 @@ final class QualityAlertsModel {
     init(
         source: (any QualityAlertsSource)?, visibility: ForumVisibility = ForumVisibility(),
         isLoggedIn: @escaping @Sendable () async -> Bool, accountName: @escaping @Sendable () async -> String?,
-        store: any SettingsStore, now: @escaping @Sendable () -> Date = { Date() }
+        store: any SettingsStore, now: @escaping @Sendable () -> Date = { Date() },
+        launchFeed: QualityAlertsLaunchFeed = QualityAlertsLaunchFeed()
     ) {
         self.source = source
         self.visibility = visibility
@@ -113,18 +116,30 @@ final class QualityAlertsModel {
         self.accountName = accountName
         self.store = store
         self.now = now
+        self.launchFeed = launchFeed
     }
 
     /// The last time the list was shown.
     var lastCheck: Date { store.value(for: SettingKey.aqLastCheck) ?? Self.neverChecked }
 
     /// The count at launch: waits `delay` (legacy 3 s after the main window, `MainWindow.swift:1178-1192` @ 2440d79), then fetches
-    /// the feed, logged out too, and sets the badge. A cancellation during the wait fetches nothing.
+    /// the feed, logged out too, and sets the badge. A cancellation during the wait fetches nothing. Legacy reads the feed once per
+    /// launch (`MainWindow.swift:1609` @ 87fe0d1c): a root built after a feed was read in this process (an account switch, a
+    /// login, a logout, another window) counts from that feed at once, with no wait and no request (#1398).
     func checkAtLaunch(
         after delay: Duration = .seconds(3), sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async {
-        do { try await sleep(delay) } catch { return }
-        await refreshCount()
+        guard let source else { return }
+        if launchFeed.items == nil {
+            do { try await sleep(delay) } catch { return }
+        }
+        countTicket += 1
+        let ticket = countTicket
+        let lastCheck = self.lastCheck
+        guard let items = await launchFeed.feed(fetch: { try? await source.feed() }) else { return }
+        let visible = await visibleItems(items)
+        guard ticket == countTicket else { return }
+        unreadCount = AQClient.newCount(in: visible, since: lastCheck)
     }
 
     /// Fetches the feed and sets the badge, without touching the list or the last check. A failed answer says nothing and keeps the
@@ -135,6 +150,7 @@ final class QualityAlertsModel {
         let ticket = countTicket
         let lastCheck = self.lastCheck
         guard let items = try? await source.feed() else { return }
+        launchFeed.keep(items)
         let visible = await visibleItems(items)
         guard ticket == countTicket else { return }
         unreadCount = AQClient.newCount(in: visible, since: lastCheck)
@@ -159,6 +175,7 @@ final class QualityAlertsModel {
             let items = try await retryingUnrequestedCancellation(cancelledAs: .network(.cancelled)) {
                 () async throws(AQError) -> [AQFeedItem] in try await source.feed()
             }
+            launchFeed.keep(items)
             let visible = await visibleItems(items)
             guard ticket == loadTicket else { return }
             rows = visible.map { Row(item: $0, isNew: AQClient.isNew($0, since: lastCheck), target: Self.target(of: $0)) }

@@ -21,7 +21,7 @@ public struct AQClient: Sendable {
     let transport: any HTTPTransport
 
     /// Creates a client; the transport is an injection point for tests.
-    public init(configuration: AQConfiguration, transport: any HTTPTransport = AnonymousTransport()) {
+    public init(configuration: AQConfiguration, transport: any HTTPTransport = AnonymousTransport.shared) {
         self.configuration = configuration
         self.transport = transport
     }

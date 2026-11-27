@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import HFRModels
 import Testing
 @testable import HFRNetwork
@@ -30,5 +33,98 @@ struct HFRSessionProbeTests {
         let probe = source.probe(cookies: [Self.cookie], now: Self.now)
         #expect(await source.configurationHoldsItsOwnJar())
         #expect(await probe.configurationHoldsItsOwnJar())
+    }
+}
+
+/// Probes recycle their connection (#1398): a check, a poll or a gated write's check no longer opens a new `URLSession`
+/// each time, and a recycled connection carries nothing of the probe that used it before. Loopback only.
+struct HFRSessionProbeConnectionTests {
+    private static func proxyless() -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.connectionProxyDictionary = [:]
+        return configuration
+    }
+
+    private static func makeSource() -> HFRSession {
+        HFRSession(cookies: [], hashCheck: nil, now: Date(), configuration: proxyless(), hosts: .exactHost("127.0.0.1"))
+    }
+
+    private static func localCookie(_ name: String, _ value: String) -> StoredCookie {
+        StoredCookie(name: name, value: value, domain: "127.0.0.1", path: "/")
+    }
+
+    /// `/set/<v>` answers `Set-Cookie: sid=<v>`; `/slow` never answers; anything else an empty page.
+    private static func makeServer() throws -> LoopbackServer {
+        try LoopbackServer { request in
+            if request.path == "/slow" { return ServerReply(hangs: true) }
+            guard request.path.hasPrefix("/set/") else { return ServerReply() }
+            return ServerReply(headers: ["Set-Cookie": "sid=\(request.path.dropFirst("/set/".count)); Path=/"])
+        }
+    }
+
+    @Test func probesUsedOneAfterTheOtherShareOneConnection() async throws {
+        let server = try Self.makeServer()
+        defer { server.stop() }
+        let source = Self.makeSource()
+        for index in 0..<3 {
+            let probe = source.probe(cookies: [], now: Date())
+            _ = try await probe.send(.get(server.baseURL.appending(path: "check/\(index)")))
+        }
+        #expect(source.probeConnections.connectionsCreated == 1)
+        #expect(source.probeConnections.idleCount == 1)
+    }
+
+    @Test func aRecycledConnectionStartsWithOnlyTheNewSeed() async throws {
+        let server = try Self.makeServer()
+        defer { server.stop() }
+        let source = Self.makeSource()
+        do {
+            let first = source.probe(cookies: [Self.localCookie("seed", "one")], now: Date())
+            _ = try await first.send(.get(server.baseURL.appending(path: "set/first")))
+        }
+        let second = source.probe(cookies: [Self.localCookie("seed", "two")], now: Date())
+        #expect(await second.hashCheck == nil)
+        #expect(await second.cookies().map { "\($0.name)=\($0.value)" } == ["seed=two"])
+        _ = try await second.send(.get(server.baseURL.appending(path: "echo")))
+        let header = try #require(server.requests.last { $0.path == "/echo" }?.headers["cookie"])
+        #expect(header == "seed=two")
+        #expect(source.probeConnections.connectionsCreated == 1)
+    }
+
+    @Test func probesAliveTogetherNeverShareAConnection() async throws {
+        let server = try Self.makeServer()
+        defer { server.stop() }
+        let source = Self.makeSource()
+        let first = source.probe(cookies: [], now: Date())
+        let second = source.probe(cookies: [], now: Date())
+        async let setFirst = first.send(.get(server.baseURL.appending(path: "set/one")))
+        async let setSecond = second.send(.get(server.baseURL.appending(path: "set/two")))
+        _ = try await (setFirst, setSecond)
+        #expect(await first.cookies().map(\.value) == ["one"])
+        #expect(await second.cookies().map(\.value) == ["two"])
+        #expect(source.probeConnections.connectionsCreated == 2)
+    }
+
+    @Test func aConnectionWhoseExchangeThrewIsNotRecycled() async throws {
+        let server = try Self.makeServer()
+        defer { server.stop() }
+        let source = Self.makeSource()
+        do {
+            let probe = source.probe(cookies: [], now: Date())
+            var request = HTTPRequest.get(server.baseURL.appending(path: "slow"))
+            request.timeout = 0.2
+            await #expect(throws: NetworkError.self) { try await probe.send(request) }
+        }
+        #expect(source.probeConnections.idleCount == 0)
+        _ = source.probe(cookies: [], now: Date())
+        #expect(source.probeConnections.connectionsCreated == 2)
+    }
+
+    @Test func theSourceSessionOpensNoProbeConnectionByItself() async throws {
+        let server = try Self.makeServer()
+        defer { server.stop() }
+        let source = Self.makeSource()
+        _ = try await source.send(.get(server.baseURL.appending(path: "page")))
+        #expect(source.probeConnections.connectionsCreated == 0)
     }
 }

@@ -10,14 +10,34 @@ public final class URLSessionTransport: HTTPTransport {
     /// ignored by swift-corelibs-foundation, so `RedirectPolicy.doNotFollow` needs a session-level one.
     private let noFollowSession: URLSession
 
-    /// Uses `session`; LOT-042 passes one per account with its own cookie storage. The default is ephemeral and cookie-less.
-    public init(session: URLSession = URLSessionTransport.makeDefaultSession()) {
+    /// Whether `session` was handed over to this transport, which then invalidates it when released (#1398).
+    let ownsSession: Bool
+
+    /// Uses an ephemeral, cookie-less session of its own, invalidated with the transport.
+    public convenience init() {
+        self.init(ownedSession: URLSessionTransport.makeDefaultSession())
+    }
+
+    /// Uses `session`, which stays the caller's to invalidate; LOT-042 passes one per account with its own cookie storage.
+    public convenience init(session: URLSession) {
+        self.init(session: session, owned: false)
+    }
+
+    /// Uses `session` and invalidates it when the transport is released: for a session nobody else holds.
+    convenience init(ownedSession session: URLSession) {
+        self.init(session: session, owned: true)
+    }
+
+    private init(session: URLSession, owned: Bool) {
         self.session = session
+        ownsSession = owned
         self.noFollowSession = URLSession(configuration: session.configuration, delegate: NoRedirectDelegate(), delegateQueue: nil)
     }
 
     deinit {
         noFollowSession.finishTasksAndInvalidate()
+        // A session the transport created itself had no other owner: left valid, it and its delegate were never freed.
+        if ownsSession { session.finishTasksAndInvalidate() }
     }
 
     /// An ephemeral session with no cookie handling.
