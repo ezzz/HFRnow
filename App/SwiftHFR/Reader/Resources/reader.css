@@ -330,6 +330,13 @@ table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); 
    (ordinary quote header, signature, trailer) are raised by the rule below (#1360). */
 .message.mode { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
 .message.mode table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
+/* The rest of the class (#1362). Every `--secondary` text drawn inside the content of an allowlisted, a moderation or an own message
+   (any quote header, an image link) is pulled toward the page text the same way, not only the folded quote's. Measured in the reader
+   before: the ordinary, allowlisted and own quote headers and an image link on the classic allowlist's `--love` 4.41 to 4.45:1 in
+   light; the own quote header on `--modo` 4.43 in dark; the folded quote header of an own message 4.49 in dark. The tint only moves
+   toward the page text, so it never lowers a ratio. A continuation keeps its own rules below (`:not`). */
+.message.me { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
+.message:not(.continuation):is(.whitelist, .mode, .me) .content :is(b.s1, .image-link) { color: var(--secondary-tinted); }
 @media not (prefers-color-scheme: dark) {
   .message.continuation .date, .message.continuation .continuation-note, .message.whitelist.continuation .header .date { color: var(--text); }
 }
