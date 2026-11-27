@@ -17,6 +17,8 @@ Packages/HFRKit/Package.resolved
 .env.*
 CLAUDE.local.md
 docs/assets/source/inter.woff2
+docs/assets/source/jetbrains-mono.woff2
+docs/assets/source/app-forums.standin.png
 docs/assets/appstore/source/*.woff2
 docs/assets/appstore/preview/
 docs/assets/appstore/.staging/
