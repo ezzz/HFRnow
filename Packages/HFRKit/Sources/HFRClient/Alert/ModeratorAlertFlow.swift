@@ -89,7 +89,8 @@ public struct ModeratorAlertFlow: Sendable {
         guard seed.identity != nil else { throw .notLoggedIn }
         let response: HTTPResponse
         do {
-            response = try await session.send(.get(link))
+            // Legacy's SwiftUI reader prepared the alert with a plain `URLRequest` (`ReplyService.swift:1463-1470` @ 87fe0d1c).
+            response = try await session.send(.get(link, timeout: PostingFlow.formTimeout))
         } catch {
             throw .network(error)
         }
