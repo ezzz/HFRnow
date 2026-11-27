@@ -16,10 +16,13 @@ extension ReplyComposerModel {
         return refused
     }
 
+    /// The drafts file could not be read and was set aside, never deleted (#1182).
+    static let draftsSetAsideNotice = "Des brouillons illisibles ont été mis de côté : ils ne sont plus proposés."
+
     static func draftWarning(for error: any Error) -> String {
         if case .loadFailed = error as? DraftError {
-            return "Les brouillons sont illisibles pour le moment : ce texte ne sera pas sauvegardé si vous fermez."
+            return "Les brouillons sont illisibles pour le moment : ce texte ne sera pas sauvegardé si tu fermes."
         }
-        return "Le brouillon n’a pas pu être enregistré. Le texte reste affiché ; copiez-le si vous fermez."
+        return "Le brouillon n’a pas pu être enregistré. Le texte reste affiché ; copie-le si tu fermes."
     }
 }

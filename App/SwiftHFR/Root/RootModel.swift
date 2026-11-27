@@ -35,9 +35,10 @@ final class RootModel {
     /// The app icon badge reads 0, not "leave it", until a page gives this root's count (LOT-156): true for a root built
     /// logged out or after the account changed, where the icon still shows another account's count.
     let clearsIconBadgeBeforeCount: Bool
-    /// Bookmarks and Alertes Qualitay on the regular-width iPad: the reader of the topic a row opened, shown in the detail column
-    /// beside the list, one per entry so each keeps its own (legacy `bookmarksTopicTarget`, `qualityAlertsTopicTarget`,
-    /// `selectTopic(_:for:)`, `MainWindow.swift:2195-2213` @ 87fe0d1c, #685).
+    /// Bookmarks and Alertes Qualitay: the reader of the topic a row opened, shown in the detail column beside the list in the split
+    /// root, pushed over the list on the Plus tab of the tab bar (`PlusStackReader`), one per entry so each keeps its own (legacy
+    /// `bookmarksTopicTarget`, `qualityAlertsTopicTarget`, `selectTopic(_:for:)`, `MainWindow.swift:2195-2213` @ 87fe0d1c, #685).
+    /// One reader for both roots, so a fold or an unfold keeps it as the tabs' topics (legacy `handleRootSwap`, `:2157-2172`).
     private(set) var detailReaders: [PlusEntry: TopicReaderModel] = [:]
     /// The bookmark open in the Bookmarks detail column (LOT-132): kept here, as the reader is, so the list finds it again.
     let bookmarkSelection = BookmarkSelection()
@@ -110,6 +111,7 @@ final class RootModel {
     private(set) var minimizesTabBarOnScroll: Bool
 
     @ObservationIgnored private let store: any SettingsStore
+    @ObservationIgnored private let haptics: HapticFeedback
 
     /// Creates the root state. `initial` is what the user was on before a rebuild (a new session generation); only the first
     /// creation (nil) reads the start tab from the start-screen setting (`HFRswiftStartupScreen`), as legacy keeps the tab
@@ -120,8 +122,9 @@ final class RootModel {
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
         mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount(),
         blocklistSync: BlocklistSyncModel? = nil, clearsIconBadgeBeforeCount: Bool = false,
-        qualityAlerts: QualityAlertsModel? = nil
+        qualityAlerts: QualityAlertsModel? = nil, haptics: HapticFeedback = .live
     ) {
+        self.haptics = haptics
         self.clearsIconBadgeBeforeCount = clearsIconBadgeBeforeCount
         self.mpStorage = mpStorage
         self.blocklistSync = blocklistSync
@@ -146,11 +149,9 @@ final class RootModel {
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
-    /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites. The environment-built
-    /// Favoris tab opens on the list its favourites mode names instead (`TopicSource(mode:)`, LOT-124); this is the fallback of
-    /// a model built without options.
+    /// The source Catégories opens on: none (the user picks a forum). The Favoris tab opens on the list its favourites mode names
+    /// (`TopicSource(mode:)`, LOT-124), as `init(environment:)` builds it.
     static let categoriesStartupSource: TopicSource? = nil
-    static let favoritesStartupSource: TopicSource? = .flagged
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
@@ -159,12 +160,18 @@ final class RootModel {
     ) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage,
+            renderOptions: environment.reader.settings.renderOptions, settings: store,
+            account: environment.currentAccountName, mpStorage: mpStorage,
             privateMessageCount: count,
             // What the list shows is not notified by the next background check (LOT-140).
             ledgerSeen: environment.currentAccountName.map { account in
                 { @Sendable (summary: NotificationSummary) async in
                     await MPNotificationLedger.recordSeen(summary, account: account)
+                }
+            },
+            ledgerThread: environment.currentAccountName.map { account in
+                { @Sendable (topic: Int, unread: UnreadThreadMark?) async in
+                    await MPNotificationLedger.recordThread(topic, unread: unread, account: account)
                 }
             }
         )
@@ -259,18 +266,22 @@ final class RootModel {
     /// The badge of the Plus tab: what its entries announce.
     var plusBadge: Int { badge(for: .qualityAlerts) }
 
-    /// Regular-width iPad: shows `reader` in the detail column of `entry`, a topic-list Plus entry, in place of what it showed (a
-    /// new stack: what a link had pushed there goes). Another entry is ignored: it has no detail column for a topic.
+    /// Shows `reader` as the reader of `entry`, a topic-list Plus entry, in place of what it showed (a new stack: what a link had
+    /// pushed there goes). Another entry is ignored: it has no detail column for a topic.
     func openInDetail(_ reader: TopicReaderModel, for entry: PlusEntry) {
         guard entry.usesTopicList else { return }
         detailReaders[entry]?.closeLinkedReaders()
         detailReaders[entry] = reader
     }
 
-    /// Empties `entry`'s detail column: legacy's placeholder shows again (a deleted bookmark, `MainWindow.swift:2266-2271`).
+    /// Empties `entry`'s detail column (legacy's placeholder shows again: a deleted bookmark, `MainWindow.swift:2266-2271`) and pops
+    /// its reader off the Plus stack; back on that stack calls it too, so an unfold shows no topic the cover screen closed. The
+    /// bookmark selection goes with the reader: legacy's one target drives the row's highlight and the detail (`bookmarksTopicTarget`,
+    /// `:1978`, cleared by `clearAllTopicTargets`, `:2186-2193`), so no row stays selected beside the placeholder (#1277 round 1).
     func closeDetail(for entry: PlusEntry) {
         detailReaders[entry]?.closeLinkedReaders()
         detailReaders[entry] = nil
+        if entry == .bookmarks { bookmarkSelection.id = nil }
     }
 
     /// What the split root's detail column shows for the sidebar destination: one id per topic or conversation, nil when it
@@ -307,6 +318,15 @@ final class RootModel {
         selectedDestination = .tab(.categories)
     }
 
+    /// The current session changed in place (a re-login, synced credentials, an expiry found by a check): the root is kept, so
+    /// the home page is read again, then the lists of both tabs, which take whether the account is signed in from it (#1195).
+    /// An expiry the home page already shows sends nothing.
+    func currentSessionChanged(expired: Bool) async {
+        guard await forums.sessionDidChange(expired: expired) else { return }
+        await categories.sessionDidChange()
+        await favorites.sessionDidChange()
+    }
+
     /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The app icon badge
     /// follows `appIconBadge` (LOT-140).
     func reloadSettings() {
@@ -319,6 +339,41 @@ final class RootModel {
         }
         if badge != privateMessageBadgeEnabled { privateMessageBadgeEnabled = badge }
         if minimize != minimizesTabBarOnScroll { minimizesTabBarOnScroll = minimize }
+    }
+
+    /// The tab the user tapped again reloads its list with a light haptic (UXD-04, GAP-007, #426). Legacy posts `.rootTabReselected`
+    /// from the tab bar (`MainWindow.swift:2444-2494` @ 87fe0d1c) and each list listens: Catégories' forum list (`:229-238`, haptic
+    /// and load) and its topic list (`:893-900`), Favoris' list (`Favorites.swift:785-794`), Messages' (`MPListView.swift:658-667`).
+    /// Plus and Recherche have nothing to reload; the reader is not reloaded (GAP-008, UXD-02). Differences: one haptic, at the start
+    /// (legacy plays one at the start and one at the end of a refresh, `Common.swift:108-114`; the pull to refresh plays one, #1207).
+    func reselect(_ tab: RootTab) async {
+        switch tab {
+        case .categories:
+            haptics.impact(.light)
+            async let forumList: Void = categories.forums.reload()
+            async let topicList: Void = categories.reloadSelectedTopicList()
+            _ = await (forumList, topicList)
+        case .favorites:
+            haptics.impact(.light)
+            await favorites.reloadSelectedTopicList()
+        case .messages:
+            haptics.impact(.light)
+            await messages.refresh()
+        case .more, .search:
+            break
+        }
+    }
+
+    /// A tap on a row of the split root's sidebar: the destination already selected is a re-selection, another row is selected (Plus
+    /// is shown as Réglages, which is not the selected `.tab(.more)`). Returns the reload the re-selection started, nil otherwise.
+    @discardableResult
+    func selectFromSidebar(_ destination: SidebarDestination) -> Task<Void, Never>? {
+        guard destination == selectedDestination else {
+            selectedDestination = destination
+            return nil
+        }
+        guard case .tab(let tab) = destination else { return nil }
+        return Task { await reselect(tab) }
     }
 
     /// Sources the Favoris tab can show: the favourites and, where legacy shows them with the favourites, the flags.

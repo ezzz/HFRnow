@@ -10,94 +10,6 @@ import UIKit
 @MainActor
 @Suite(.serialized)
 struct SidebarDetailHostedTests: ReaderWebTesting {
-    private struct Hosted {
-        let window: UIWindow
-        let root: RootModel
-        let pages: FakeTopicPages
-        let environment: AppEnvironment
-    }
-
-    /// Page `target.page` of the topic `target` names, titled "Sujet <topic> p<page>" so a stack shows which reader it holds.
-    nonisolated private static func page(for target: ReaderTarget) -> ReaderPage {
-        guard case .topic(let topic) = target.source else { return readerPage(page: target.page) }
-        var page = readerPage(page: target.page, title: "Sujet \(topic.topic) p\(target.page)")
-        page.topicID = topic
-        return page
-    }
-
-    private func host(initial: SidebarDestination = .tab(.favorites)) throws -> Hosted {
-        let data = FakeDataSource()
-        data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
-        let pages = FakeTopicPages { target in Self.page(for: target) }
-        let forums = ForumListModel(dataSource: data)
-        let root = RootModel(
-            forums: forums,
-            categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
-            favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
-                                       startupSource: RootModel.favoritesStartupSource),
-            messages: MessageListModel(source: FakePrivateMessages()),
-            store: InMemorySettingsStore(), initial: initial
-        )
-        let services = ReaderServices(
-            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
-            settings: ReaderSettings(
-                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
-            ),
-            profiles: FakeUserProfiles([])
-        )
-        let environment = AppEnvironment(
-            session: HFRSession(), dataSource: data, visibility: ForumVisibility(), currentAccountName: nil, topicPages: pages,
-            reader: services, privateMessages: FakePrivateMessages(), composer: nil, filteredPosts: .unavailable,
-            favoriteStores: FavoritesStores(
-                layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()),
-                superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()), account: nil
-            ),
-            flagActions: nil, memberAvatars: nil,
-            pseudoListsSnapshot: PseudoListsSnapshot(store: PseudoListStore(persistence: InMemoryPseudoListPersistence()), account: nil),
-            blocklistChanges: nil, privateMessageCount: nil
-        )
-        let view = RootSidebarView(model: root, environment: environment)
-            .environment(makeModel(store: InMemoryCredentialStore()))
-        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
-        let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 1366, height: 1024)
-        // CI tests on an iPhone simulator, whose window stays compact whatever its frame: the split needs the regular width an
-        // iPad window has (as `TabSplitWidthTests`).
-        let host = UIHostingController(rootView: view)
-        host.traitOverrides.horizontalSizeClass = .regular
-        window.rootViewController = host
-        window.isHidden = false
-        window.layoutIfNeeded()
-        return Hosted(window: window, root: root, pages: pages, environment: environment)
-    }
-
-    /// The title stacks of the navigation controllers on screen, outermost first: a pushed reader is a second title.
-    private func stacks(in window: UIWindow) -> [[String]] {
-        var result: [[String]] = []
-        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
-        while !queue.isEmpty {
-            let controller = queue.removeFirst()
-            if let navigation = controller as? UINavigationController, navigation.viewIfLoaded?.window != nil {
-                result.append(navigation.viewControllers.map { $0.navigationItem.title ?? "" })
-            }
-            queue.append(contentsOf: controller.children)
-            if let presented = controller.presentedViewController { queue.append(presented) }
-        }
-        return result
-    }
-
-    /// The stack whose top shows `title`, nil when no stack on screen shows it on top.
-    private func stack(topped title: String, in window: UIWindow) -> [String]? {
-        stacks(in: window).first { $0.last == title }
-    }
-
-    private func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
-        await until({
-            window.layoutIfNeeded()
-            return condition()
-        }, timeout: .seconds(30))
-    }
-
     /// #512 (legacy on iPad, video of 2026-11-07): after a link pushed a reader in the detail column and an edit was sent from it,
     /// tapping other Favoris rows left the pushed reader on screen while the rows turned read. On SwiftHFR the reader column's
     /// stack takes its identity from the selection, so the newly selected topic replaces the whole stack, pushed reader included.
@@ -171,16 +83,26 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         #expect(stack(topped: "Sujet 1 p4", in: window) == nil)
     }
 
-    /// The split views on screen and their styles.
-    private func splitStyles(in window: UIWindow) -> [UISplitViewController.Style] {
-        var styles: [UISplitViewController.Style] = []
-        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
-        while !queue.isEmpty {
-            let controller = queue.removeFirst()
-            if let split = controller as? UISplitViewController, split.viewIfLoaded?.window != nil { styles.append(split.style) }
-            queue.append(contentsOf: controller.children)
-        }
-        return styles
+    /// #1311, #1089: the same for a Messages row menu: « Dernière page » of the conversation on screen while a link's reader is
+    /// pushed over it leaves only the new reader.
+    @Test func anMPRowMenuPageOfTheConversationOnScreenDropsThePushedReader() async throws {
+        let hosted = try host(initial: .tab(.messages))
+        defer { hosted.window.isHidden = true }
+        let (window, messages) = (hosted.window, hosted.root.messages)
+        let id = TopicID(category: .privateMessages, topic: 4242)
+        // Logged in: a logged-out list's load closes the open conversation (#1124).
+        let thread = messageThread(4242)
+        messages.selected = thread
+        let first = try #require(messages.reader(for: thread))
+        #expect(await settle(window) { first.page != nil && stack(topped: "Sujet 4242 p1", in: window) != nil })
+        first.follow(ReaderTarget(source: .topic(id), page: 4))
+        let linked = try #require(first.linkedReader)
+        #expect(await settle(window) { linked.page != nil && stack(topped: "Sujet 4242 p4", in: window)?.count == 2 })
+
+        messages.open(thread, at: TopicOpening(target: ReaderTarget(source: .topic(id), page: 2)))
+        let shown = await settle(window) { stack(topped: "Sujet 4242 p2", in: window) == ["Sujet 4242 p2"] }
+        #expect(shown, "\(stacks(in: window))")
+        #expect(stack(topped: "Sujet 4242 p4", in: window) == nil)
     }
 
     /// #685: Bookmarks and Alertes Qualitay list their topics in the content column and open them in the detail column, as
@@ -247,15 +169,159 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         #expect(!plainSeen.leafSawAnAction)
     }
 
-    /// The sidebar builds the Bookmarks / AQ content column with `PlusListColumn`, and the tab bar never sets the action.
-    @Test func onlyTheSidebarGivesTheListsTheAction() throws {
+    /// The sidebar builds the Bookmarks / AQ content column with `PlusListColumn`; the Plus tab of the tab bar gives the lists the
+    /// stack action through `PlusStackReader` only (LOT-147), never the tab root itself.
+    @Test func onlyTheSidebarAndThePlusStackGiveTheListsTheAction() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "SwiftHFR/Root")
         let sidebar = try String(contentsOf: root.appending(path: "RootSidebarView.swift"), encoding: .utf8)
         let tabs = try String(contentsOf: root.appending(path: "RootTabsView.swift"), encoding: .utf8)
+        let plus = try String(contentsOf: root.appending(path: "PlusView.swift"), encoding: .utf8)
         #expect(sidebar.contains("PlusListColumn(entry: entry, opener: Self.detailOpener("))
         #expect(!tabs.contains("openTopicInDetail"))
+        #expect(plus.contains("besideTheList: false"))
+    }
+
+    /// LOT-147: on a plain stack (the Plus tab of the tab bar), `PlusStackReader` gives the list it wraps the action, marked as not
+    /// beside the list, and pushes the entry's reader over it; beside a detail column it leaves the column's action alone.
+    @Test func thePlusStackGivesTheListTheActionAndPushesTheReader() async throws {
+        let hosted = try host(initial: .plus(.qualityAlerts))
+        defer { hosted.window.isHidden = true }
+        let seen = OpenerProbe.Seen()
+        let plain = try hostAlone(ThemedNavigationStack {
+            StackProbe(seen: seen)
+                .modifier(PlusStackReader(entry: .qualityAlerts, model: hosted.root, environment: hosted.environment))
+        })
+        defer { plain.isHidden = true }
+        #expect(await settle(plain) { seen.leafAppeared })
+        #expect(seen.leafSawAnAction)
+        #expect(!seen.actionIsBesideTheList)
+        let reader = try #require(hosted.root.detailReaders[.qualityAlerts])
+        let pushed = await settle(plain) { reader.page != nil && stack(topped: "Sujet 9 p1", in: plain)?.count == 2 }
+        #expect(pushed, "\(stacks(in: plain))")
+
+        let columnSeen = OpenerProbe.Seen()
+        let column = try hostAlone(PlusListColumn(
+            entry: .qualityAlerts,
+            opener: RootSidebarView.detailOpener(model: hosted.root, environment: hosted.environment, entry: .qualityAlerts)
+        ) {
+            StackProbe(seen: columnSeen)
+                .modifier(PlusStackReader(entry: .qualityAlerts, model: hosted.root, environment: hosted.environment))
+        })
+        #expect(await settle(column) { columnSeen.leafAppeared })
+        #expect(columnSeen.leafSawAnAction && columnSeen.actionIsBesideTheList)
+        defer { column.isHidden = true }
+        #expect(await settle(column) { hosted.root.detailReaders[.qualityAlerts] !== reader })
+        // The reader's title exists once its page is loaded: only then can a stack show it (#1277 review, round 1, detail 3).
+        let replacement = try #require(hosted.root.detailReaders[.qualityAlerts])
+        #expect(await settle(column) { replacement.page != nil })
+        #expect(stack(topped: "Sujet 9 p1", in: column) == nil, "the column's list pushed the reader: \(stacks(in: column))")
+    }
+
+}
+
+// MARK: - Helpers
+
+extension SidebarDetailHostedTests {
+    private struct Hosted {
+        let window: UIWindow
+        let root: RootModel
+        let pages: FakeTopicPages
+        let environment: AppEnvironment
+    }
+
+    /// Page `target.page` of the topic `target` names, titled "Sujet <topic> p<page>" so a stack shows which reader it holds.
+    nonisolated private static func page(for target: ReaderTarget) -> ReaderPage {
+        guard case .topic(let topic) = target.source else { return readerPage(page: target.page) }
+        var page = readerPage(page: target.page, title: "Sujet \(topic.topic) p\(target.page)")
+        page.topicID = topic
+        return page
+    }
+
+    private func host(initial: SidebarDestination = .tab(.favorites)) throws -> Hosted {
+        let data = FakeDataSource()
+        data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
+        let pages = FakeTopicPages { target in Self.page(for: target) }
+        let forums = ForumListModel(dataSource: data)
+        let root = RootModel(
+            forums: forums,
+            categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
+            favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
+                                       startupSource: TopicSource(mode: .flagsAndFavorites)),
+            messages: MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, topicPages: pages),
+            store: InMemorySettingsStore(), initial: initial
+        )
+        let services = ReaderServices(
+            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
+            settings: ReaderSettings(
+                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
+            ),
+            profiles: FakeUserProfiles([])
+        )
+        let environment = AppEnvironment(
+            session: HFRSession(), dataSource: data, visibility: ForumVisibility(), currentAccountName: nil, topicPages: pages,
+            reader: services, privateMessages: FakePrivateMessages(), composer: nil, filteredPosts: .unavailable,
+            favoriteStores: FavoritesStores(
+                layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()),
+                superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()), account: nil
+            ),
+            flagActions: nil, memberAvatars: nil,
+            pseudoListsSnapshot: PseudoListsSnapshot(store: PseudoListStore(persistence: InMemoryPseudoListPersistence()), account: nil),
+            blocklistChanges: nil, privateMessageCount: nil
+        )
+        let view = RootSidebarView(model: root, environment: environment)
+            .environment(makeModel(store: InMemoryCredentialStore()))
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1366, height: 1024)
+        // CI tests on an iPhone simulator, whose window stays compact whatever its frame: the split needs the regular width an
+        // iPad window has (as `TabSplitWidthTests`).
+        let host = UIHostingController(rootView: view)
+        host.traitOverrides.horizontalSizeClass = .regular
+        window.rootViewController = host
+        window.isHidden = false
+        window.layoutIfNeeded()
+        return Hosted(window: window, root: root, pages: pages, environment: environment)
+    }
+
+    /// The title stacks of the navigation controllers on screen, outermost first: a pushed reader is a second title.
+    private func stacks(in window: UIWindow) -> [[String]] {
+        var result: [[String]] = []
+        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
+        while !queue.isEmpty {
+            let controller = queue.removeFirst()
+            if let navigation = controller as? UINavigationController, navigation.viewIfLoaded?.window != nil {
+                result.append(navigation.viewControllers.map { $0.navigationItem.title ?? "" })
+            }
+            queue.append(contentsOf: controller.children)
+            if let presented = controller.presentedViewController { queue.append(presented) }
+        }
+        return result
+    }
+
+    /// The stack whose top shows `title`, nil when no stack on screen shows it on top.
+    private func stack(topped title: String, in window: UIWindow) -> [String]? {
+        stacks(in: window).first { $0.last == title }
+    }
+
+    private func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
+        await until({
+            window.layoutIfNeeded()
+            return condition()
+        }, timeout: .seconds(30))
+    }
+
+    /// The split views on screen and their styles.
+    private func splitStyles(in window: UIWindow) -> [UISplitViewController.Style] {
+        var styles: [UISplitViewController.Style] = []
+        var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
+        while !queue.isEmpty {
+            let controller = queue.removeFirst()
+            if let split = controller as? UISplitViewController, split.viewIfLoaded?.window != nil { styles.append(split.style) }
+            queue.append(contentsOf: controller.children)
+        }
+        return styles
     }
 
     private func hostAlone(_ view: some View) throws -> UIWindow {
@@ -268,6 +334,23 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
     }
 }
 
+/// A list stand-in at the root of its stack (what `PlusStackReader` wraps): records the action it sees there, then opens a topic
+/// through it.
+private struct StackProbe: View {
+    let seen: OpenerProbe.Seen
+    @Environment(\.openTopicInDetail) private var openTopicInDetail
+
+    var body: some View {
+        Text("Liste")
+            .onAppear {
+                seen.leafSawAnAction = openTopicInDetail != nil
+                seen.actionIsBesideTheList = openTopicInDetail?.besideTheList == true
+                seen.leafAppeared = true
+                openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
+            }
+    }
+}
+
 /// A list stand-in: its root pushes a leaf at once, and the leaf records whether it can open a topic in the detail column, then
 /// opens one through it.
 private struct OpenerProbe: View {
@@ -275,6 +358,8 @@ private struct OpenerProbe: View {
     final class Seen {
         var leafAppeared = false
         var leafSawAnAction = false
+        /// `besideTheList` of the action the leaf saw; false without one (`leafSawAnAction` tells the two apart).
+        var actionIsBesideTheList = false
     }
 
     let seen: Seen
@@ -294,6 +379,7 @@ private struct OpenerProbe: View {
             Text("Écran poussé")
                 .onAppear {
                     seen.leafSawAnAction = openTopicInDetail != nil
+                    seen.actionIsBesideTheList = openTopicInDetail?.besideTheList == true
                     seen.leafAppeared = true
                     openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
                 }

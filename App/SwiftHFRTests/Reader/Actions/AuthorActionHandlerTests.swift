@@ -127,7 +127,7 @@ struct PrivateMessageFeedbackTests {
     }
 
     @Test func anUnconfirmedSendAsksToCheckTheMPs() {
-        #expect(PrivateMessageFeedback.text(for: .checkTopic)?.contains("vérifiez vos MP") == true)
+        #expect(PrivateMessageFeedback.text(for: .checkTopic)?.contains("vérifie tes MP") == true)
     }
 
     @Test func closingWithoutSendingSaysNothing() {

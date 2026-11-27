@@ -150,7 +150,7 @@ struct MultiAccountConsistencyTests {
         #expect(AccountRowView.statusText(.valid, expiry: expiry, now: expiry.addingTimeInterval(-1)) != nil)
         // Not confirmed by the forum: the stored date says nothing yet.
         #expect(AccountRowView.statusText(.restored, expiry: expiry) == nil)
-        #expect(AccountRowView.statusText(.expired, expiry: expiry) == "Session expirée : reconnectez-vous")
+        #expect(AccountRowView.statusText(.expired, expiry: expiry) == "Session expirée : reconnecte-toi")
     }
 
     // MARK: - Helpers
@@ -172,7 +172,7 @@ struct MultiAccountConsistencyTests {
         return RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()), store: store, initial: .tab(.favorites),
             clearsIconBadgeBeforeCount: clears
         )

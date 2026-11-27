@@ -2,6 +2,8 @@
 public enum PseudoListError: Error, Sendable, Equatable {
     /// The pseudo is empty once zero-width spaces are removed.
     case emptyPseudo
+    /// The account's key (`AccountKey`) is empty: a blocklist belongs to an account (#1184).
+    case emptyAccount
     /// The stored data could not be read or decoded; the store refuses to write so the data is not overwritten.
     case loadFailed(reason: String)
     /// The stored data comes from a newer format version; the store refuses to write.

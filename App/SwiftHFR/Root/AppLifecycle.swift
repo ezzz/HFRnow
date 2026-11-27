@@ -27,6 +27,8 @@ final class AppLifecycle {
         var evictOffline: @MainActor () async -> Void
         /// The app lock and the seasons follow the phase (LOT-173, LOT-166).
         var lockAndSeasons: @MainActor (ScenePhase) -> Void
+        /// An account became current: the notification prompt, in context rather than at launch (#1172).
+        var askNotificationPermission: @MainActor (String?) async -> Void
     }
 
     private let events = AppWideEvents()
@@ -56,9 +58,11 @@ final class AppLifecycle {
         await steps.evictOffline()
     }
 
-    /// The current account changed: the import goes on with it, once for the change.
+    /// The current account changed: the notification prompt, then the import goes on with it, once for the change. The prompt
+    /// comes first: right after the login it answers, never later over the import's own summary.
     func currentAccountChanged(to account: String?) async {
         guard events.isNew(account, for: "currentAccount") else { return }
+        await steps.askNotificationPermission(account)
         await steps.importForAccount(account)
     }
 
@@ -103,7 +107,8 @@ extension AppLifecycle {
                 if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
                 // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
                 if phase == .active { seasonal.sceneDidBecomeActive() }
-            }
+            },
+            askNotificationPermission: { account in await MPNotificationPrompt.live.accountBecameCurrent(account) }
         ))
     }
 }

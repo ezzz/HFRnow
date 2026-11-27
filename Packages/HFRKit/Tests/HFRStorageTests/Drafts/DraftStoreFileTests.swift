@@ -53,6 +53,20 @@ import Testing
         #expect(try Data(contentsOf: persistence.quarantineURL) == original)
     }
 
+    /// #1182: the screens tell the member once that drafts were set aside, not at every composer opening.
+    @Test func theRecoveryNoticeIsTakenOnce() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "drafts.json")
+        try Data("not json".utf8).write(to: file)
+        let store = DraftStore(persistence: FileDraftPersistence(fileURL: file))
+        #expect(await store.takeRecoveredCorruptDataNotice())
+        #expect(await !store.takeRecoveredCorruptDataNotice())
+        #expect(await store.didRecoverFromCorruptData()) // the fact stays; only the notice is taken
+        let healthy = DraftStore(persistence: FileDraftPersistence(fileURL: directory.appending(path: "other.json")))
+        #expect(await !healthy.takeRecoveredCorruptDataNotice())
+    }
+
     @Test func healthyFileIsNotReportedAsRecovered() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

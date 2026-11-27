@@ -144,7 +144,7 @@ struct OfflineReadingTests {
         await #expect(throws: ListLoadError.savedPageUnreadable) {
             try await Self.services(cache).pageSource.page(for: ReaderTarget(source: .topic(OfflineCorpus.pizza), page: 1))
         }
-        #expect(ListLoadError.savedPageUnreadable.detail.contains("Supprimez"))
+        #expect(ListLoadError.savedPageUnreadable.detail.contains("Supprime"))
     }
 
     @Test func aPrivateConversationIsNotSaved() async throws {

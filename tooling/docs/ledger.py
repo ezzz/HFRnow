@@ -34,6 +34,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'common'))
+import pr_refs  # noqa: E402  (tooling/common/pr_refs.py: the claim check and the sweep read the same lines)
 import fold  # noqa: E402  (tooling/docs/fold.py)
 
 REPO = 'ezzz/HFRnow'
@@ -47,7 +49,6 @@ GAP_COLUMNS = ('Id', 'Feature', 'Legacy behaviour', 'Legacy ref', 'SwiftHFR fina
 ALIASES = {'whattheswiftappdoes': 'SwiftHFR final', 'lotpr': 'Lot/Feat'}
 HEADING = re.compile(r'(?im)^###[ \t]+Ledger[ \t]*$')
 FENCE = re.compile(r'^```([\w-]*)[ \t]*\n(.*?)^```[ \t]*$', re.S | re.M)
-ISSUE = re.compile(r'(?im)^[ \t]*(?:closes|refs)[ \t]+#(\d+)\b')
 
 
 class LedgerError(Exception):
@@ -88,9 +89,9 @@ def parse_body(body):
 
 
 def issue_number(body, pr):
-    """The issue the PR closes or refs (first one), else the PR number."""
-    m = ISSUE.search(body or '')
-    return int(m.group(1)) if m else int(pr)
+    """The issue the PR closes (first closing ref; a `Refs` only when there is none), else the PR number."""
+    issue = pr_refs.primary_issue(body)
+    return issue if issue is not None else int(pr)
 
 
 def parse_edit(lines):

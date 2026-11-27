@@ -2,14 +2,14 @@ import HFRStorage
 import UIKit
 
 // Port of HFRswift/Swift/Common.swift (AppHaptics, lines 50-85) and SuperHFRplus/Helpers/UIImpactFeedbackGenerator+UserDefaults.m
-// @ 2440d79. Differences: the store and the generator are injected; no call site exists yet (they come with their screens).
+// @ 2440d79. Differences: the store and the generator are injected; only impacts are played (legacy's notification haptics have no
+// call site, #1196).
 /// Every haptic of the app goes through here, so the "Retours haptiques" setting (`haptics`, default on) governs all of them.
 @MainActor
 struct HapticFeedback {
     /// What to play.
     enum Kind: Equatable {
         case impact(UIImpactFeedbackGenerator.FeedbackStyle)
-        case notification(UINotificationFeedbackGenerator.FeedbackType)
     }
 
     private let store: any SettingsStore
@@ -33,12 +33,6 @@ struct HapticFeedback {
         perform(.impact(style))
     }
 
-    /// A success, warning or error notification, unless haptics are off.
-    func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        guard isEnabled else { return }
-        perform(.notification(type))
-    }
-
     /// The UIKit generators; the default `perform`.
     static func play(_ kind: Kind) {
         switch kind {
@@ -46,10 +40,6 @@ struct HapticFeedback {
             let generator = UIImpactFeedbackGenerator(style: style)
             generator.prepare()
             generator.impactOccurred()
-        case .notification(let type):
-            let generator = UINotificationFeedbackGenerator()
-            generator.prepare()
-            generator.notificationOccurred(type)
         }
     }
 }

@@ -30,9 +30,9 @@ struct MPStorageCreationQuestionView: View {
                     Button("Valider") { apply(choice.validate()) }
                 }
             }
-            .alert("Sans stockage MP", isPresented: $choice.asksRefusalConfirmation) {
-                Button("Confirmer", role: .destructive) { apply(choice.confirmRefusal()) }
-                Button("Revenir", role: .cancel) { choice.goBack() }
+            .alert(AlertTitles.mpStorageRefusalQuestion, isPresented: $choice.asksRefusalConfirmation) {
+                Button(AlertVerbs.skipMPStorage, role: .destructive) { apply(choice.confirmRefusal()) }
+                Button(AlertVerbs.cancel, role: .cancel) { choice.goBack() }
             } message: {
                 Text(MPStorageFunctionInfo.refusalMessage)
             }

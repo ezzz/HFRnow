@@ -20,7 +20,7 @@
 | SwiftHFR | Legacy @ `87fe0d1c` |
 |---|---|
 | `App/SwiftHFR/Reader/Actions/QualityAlertActionModel.swift` | `MessagesView.swift` (`MessagePopupActionSupport`: `isAQAlreadySignaled`, `createAQ`; `askAQPrompt`) |
-| `App/SwiftHFR/Reader/Actions/ReaderQualityAlertFlow.swift` | `MessagesView.swift` (`MessagePopupPromptSheet`, the AQ sheet) |
+| `App/SwiftHFR/Reader/Actions/ReaderQualityAlertFlow.swift` | `MessagesView.swift` (`MessagePopupPromptSheet`, the AQ sheet); a typed title is not thrown away without asking (swipe refused, « Annuler » asks « Abandonner cette alerte ? », #1169) |
 
 ## UX evolutions (app lots)
 - **GAP-069** (`b·operator`, operator decision of 2026-11-07 on #224): a message that **someone else's** AQ already holds offers

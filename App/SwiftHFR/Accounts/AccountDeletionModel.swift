@@ -34,6 +34,8 @@ final class AccountDeletionModel {
     private(set) var leftovers: [String] = []
     /// True when the last wipe could not delete the empty Keychain item; `retry()` deletes it.
     private(set) var keychainItemPending = false
+    /// The reading positions could not be read, so the last wipe could not erase them: « Repartir de zéro » is offered (#1182).
+    private(set) var positionsAreUnreadable = false
 
     @ObservationIgnored private let accounts: AccountsModel
     @ObservationIgnored private let eraser: AccountDataEraser
@@ -76,6 +78,22 @@ final class AccountDeletionModel {
         await run(account: key, name: key)
     }
 
+    /// « Repartir de zéro » on the reading positions, after the member confirmed (#1182): the unreadable file is set aside
+    /// (`.corrupt`, never deleted), so the app reads no position of any account any more; the leftovers are read again and
+    /// list what is still on the device (a read that works again sets nothing aside).
+    func discardUnreadablePositions() async {
+        guard positionsAreUnreadable, !isErasing else { return }
+        do {
+            try await eraser.positions.discardUnreadableData()
+        } catch {
+            phase = .refused(message: UnreadableDataRecovery.failure)
+            return
+        }
+        positionsAreUnreadable = false
+        phase = .idle
+        await refreshLeftovers()
+    }
+
     /// Deletes the empty Keychain item the last wipe left.
     func retry() async {
         guard keychainItemPending, !isErasing else { return }
@@ -103,6 +121,8 @@ final class AccountDeletionModel {
     private func run(account: String, name: String) async {
         let keychainFailed = !removeKeychainItemIfEmpty()
         let failed = await eraser.erase(account: account)
+        let positionsFailToLoad = await eraser.positions.loadFailure() != nil
+        positionsAreUnreadable = failed.contains(.readingPositions) && positionsFailToLoad
         await refreshLeftovers()
         guard keychainFailed || !failed.isEmpty else {
             phase = .erased(name: name)
@@ -139,8 +159,8 @@ final class AccountDeletionModel {
     }
 
     private static let keychainTitle = "l’élément du trousseau"
-    private static let keychainFailure = "L’élément vide du trousseau n’a pas pu être supprimé. Réessayez."
-    private static let genericFailure = "Le compte n’a pas pu être retiré. Réessayez."
+    private static let keychainFailure = "L’élément vide du trousseau n’a pas pu être supprimé. Réessaie."
+    private static let genericFailure = "Le compte n’a pas pu être retiré. Réessaie."
     static let legacyImportFailure =
-        "Le compte n’a pas pu être exclu de l’import de l’ancienne app : rien n’a été effacé. Réessayez."
+        "Le compte n’a pas pu être exclu de l’import de l’ancienne app : rien n’a été effacé. Réessaie."
 }

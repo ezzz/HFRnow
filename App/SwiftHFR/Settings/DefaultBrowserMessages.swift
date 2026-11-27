@@ -17,7 +17,7 @@ enum DefaultBrowserMessages {
     /// line is the operator's « Les liens du forum (sujets, MP, profils) restent toujours dans l'app » limited to the reader,
     /// the only screen where that holds (see above).
     static let explanation = [
-        "Activé : les liens s’ouvrent dans une nouvelle fenêtre de votre navigateur (hors de l’app).",
+        "Activé : les liens s’ouvrent dans une nouvelle fenêtre de ton navigateur (hors de l’app).",
         "Désactivé : les liens s’ouvrent dans une fenêtre à l’intérieur de l’app.",
         "Dans le lecteur, les liens du forum (sujets, MP, profils) restent toujours dans l’app."
     ]

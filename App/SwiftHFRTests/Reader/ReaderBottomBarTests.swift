@@ -91,58 +91,134 @@ struct ReaderBottomBarTests {
         #expect(ReaderScrollGeometry.pastEnd(offsetY: -28, viewportHeight: 800, contentHeight: 300, insetTop: 100, insetBottom: 50) == 72)
     }
 
-    @Test func onlyAPullBeyondTheThresholdRefreshes() {
+    @Test func onlyAPullBeyondTheThresholdIsFullSize() {
         let scrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.contentInset = UIEdgeInsets(top: 100, left: 0, bottom: 50, right: 0)
         scrollView.contentSize = CGSize(width: 390, height: 1000)
         scrollView.contentOffset = CGPoint(x: 0, y: 250 + ReaderPullWatcher.threshold - 1)
-        #expect(!ReaderPullWatcher.isPulledPastEnd(scrollView))
+        #expect(ReaderPullWatcher.pull(of: scrollView) < ReaderPullWatcher.threshold)
         scrollView.contentOffset = CGPoint(x: 0, y: 250 + ReaderPullWatcher.threshold)
-        #expect(ReaderPullWatcher.isPulledPastEnd(scrollView))
+        #expect(ReaderPullWatcher.pull(of: scrollView) >= ReaderPullWatcher.threshold)
         // At the end of the page, but not pulled: nothing.
         scrollView.contentOffset = CGPoint(x: 0, y: 250)
-        #expect(!ReaderPullWatcher.isPulledPastEnd(scrollView))
-    }
-
-    /// A pan gesture already let go: what UIKit hands the watcher at the end of a drag.
-    private final class ReleasedPan: UIPanGestureRecognizer {
-        override var state: UIGestureRecognizer.State {
-            get { .ended }
-            set {}
-        }
+        #expect(ReaderPullWatcher.pull(of: scrollView) <= 0)
     }
 
     @MainActor
     private final class Pulls {
-        var times = 0
+        var edges: [PullEdge] = []
+        var tops: [CGFloat] = []
+        var bottoms: [CGFloat] = []
+        var finger = true
     }
 
-    /// The watcher's gesture action: a release beyond the threshold reports a pull, a shorter one or a drag still under way does not.
-    @Test func theWatcherReportsAPullOnlyWhenTheDragEndsBeyondTheThreshold() {
+    private func pullScrollView() -> UIScrollView {
         let scrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.contentSize = CGSize(width: 390, height: 1000)
-        let pulls = Pulls()
-        let watcher = ReaderPullWatcher()
-        watcher.track(scrollView) { pulls.times += 1 }
-        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold - 1)
-        watcher.panned(ReleasedPan())
-        #expect(pulls.times == 0)
-        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold)
-        watcher.panned(UIPanGestureRecognizer())
-        #expect(pulls.times == 0, "a drag that has not ended does not refresh")
-        watcher.panned(ReleasedPan())
-        #expect(pulls.times == 1)
+        return scrollView
     }
 
-    /// Only the topic and MP reader refreshes on a pull: its pages carry the hint, "Filtrer les posts" builds without it.
-    @Test func onlyTheReadersPagesOfferThePull() async {
-        #expect(!ReaderRenderOptions().offersPullToRefresh)
+    private func watching(_ scrollView: UIScrollView, _ pulls: Pulls) -> ReaderPullWatcher {
+        let watcher = ReaderPullWatcher()
+        watcher.isFingerDown = { _ in pulls.finger }
+        watcher.track(scrollView, progress: { pulls.tops.append($0); pulls.bottoms.append($1) }, pulled: { pulls.edges.append($0) })
+        return watcher
+    }
+
+    /// #1207: the icon grows with the pull and the refresh fires once, when it is full, without waiting for the release; a new
+    /// touch, once the finger left, refreshes again.
+    @Test func theWatcherFiresOnceWhenTheIconIsFullAndAgainForANewTouch() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = watching(scrollView, pulls)
+        let threshold = ReaderPullWatcher.threshold
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold / 2)
+        #expect(pulls.edges.isEmpty)
+        #expect(pulls.bottoms.last == 0.5)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold - 1)
+        #expect(pulls.edges.isEmpty, "short of full size: nothing")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold)
+        #expect(pulls.edges == [.bottom])
+        #expect(pulls.bottoms.last == 1)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold + 30)
+        #expect(pulls.edges == [.bottom], "held past the threshold: still one refresh")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200)
+        #expect(pulls.bottoms.last == 0, "back at the end: the icon is gone")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold)
+        #expect(pulls.edges == [.bottom], "same touch, finger still down: no second refresh")
+        pulls.finger = false
+        scrollView.contentOffset = CGPoint(x: 0, y: 200)
+        pulls.finger = true
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold)
+        #expect(pulls.edges == [.bottom, .bottom], "a new touch")
+        withExtendedLifetime(watcher) {}
+    }
+
+    /// #1207 (review round 2): a lift with no momentum moves no offset, yet the next touch refreshes again.
+    @Test func aLiftWithoutAnyOffsetChangeArmsTheNextTouch() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = watching(scrollView, pulls)
+        let threshold = ReaderPullWatcher.threshold
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold)
+        #expect(pulls.edges == [.bottom])
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold + 1)
+        #expect(pulls.edges == [.bottom], "same touch")
+        watcher.fingerLifted()
+        #expect(pulls.bottoms.last == 0, "the icon goes with the finger")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold + 2)
+        #expect(pulls.edges == [.bottom, .bottom], "a new touch refreshes again")
+    }
+
+    /// #1207 (review): the reader refreshes from the top too, with the top icon.
+    @Test func aPullPastTheTopGrowsTheTopIconAndFiresTheTopEdge() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = watching(scrollView, pulls)
+        scrollView.contentOffset = CGPoint(x: 0, y: -ReaderPullWatcher.threshold / 2)
+        #expect(pulls.tops.last == 0.5 && pulls.bottoms.last == 0)
+        #expect(pulls.edges.isEmpty)
+        scrollView.contentOffset = CGPoint(x: 0, y: -ReaderPullWatcher.threshold)
+        #expect(pulls.edges == [.top])
+        #expect(ReaderPullWatcher.topPull(of: scrollView) == ReaderPullWatcher.threshold)
+        withExtendedLifetime(watcher) {}
+    }
+
+    /// Letting go before the icon is full does nothing: no refresh, and the icon goes with the pull.
+    @Test func aPullLetGoBeforeFullSizeRefreshesNothing() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = watching(scrollView, pulls)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold - 1)
+        pulls.finger = false
+        scrollView.contentOffset = CGPoint(x: 0, y: 200)
+        #expect(pulls.edges.isEmpty)
+        #expect(pulls.bottoms.last == 0)
+        withExtendedLifetime(watcher) {}
+    }
+
+    /// A fling that overshoots an end is not a pull: with no finger on the page, nothing grows and nothing refreshes.
+    @Test func anOvershootWithoutAFingerIsNotAPull() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        pulls.finger = false
+        let watcher = watching(scrollView, pulls)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold * 2)
+        scrollView.contentOffset = CGPoint(x: 0, y: -ReaderPullWatcher.threshold * 2)
+        #expect(pulls.edges.isEmpty)
+        #expect((pulls.tops + pulls.bottoms).allSatisfy { $0 == 0 })
+        withExtendedLifetime(watcher) {}
+    }
+
+    /// #1207 (operator, 2026-11-18): the end-of-page hint « Tirer vers le haut pour actualiser » is gone; the growing icon is the cue.
+    @Test func theReadersPageHasNoPullHint() async {
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), source: FakeTopicPages())
-        #expect(reader.currentRenderOptions().offersPullToRefresh)
         await reader.onAppear()
-        #expect(reader.document?.html.contains("class=\"pull-hint\"") == true)
+        let html = reader.document?.html ?? ""
+        #expect(!html.isEmpty)
+        #expect(!html.contains("pull-hint") && !html.contains("Tirer vers le haut"))
     }
 
     @MainActor
@@ -184,18 +260,42 @@ struct ReaderBottomBarTests {
         #expect(!box.atPageEnd)
     }
 
-    /// A pull past the end plays legacy's light impact and reloads the page on screen, keeping the position, as "Actualiser".
-    @Test func aPullPastTheEndRefreshesThePageOnScreenWithAHaptic() async throws {
+    /// A pull past an end plays legacy's light impact and reloads the page on screen, keeping the position, as "Actualiser"; only
+    /// the pulled end's icon turns, and neither after the refresh (#1207).
+    @Test(arguments: [PullEdge.top, PullEdge.bottom])
+    func aPullRefreshesThePageOnScreenWithAHaptic(edge: PullEdge) async throws {
         let setup = try await wired()
         let (reader, controller, pages, box, token) = (setup.reader, setup.controller, setup.pages, setup.box, setup.token)
         let before = pages.requests.count
-        controller.events.pulled(token + 1)
+        controller.events.pulled(edge, token + 1)
         #expect(box.played.isEmpty, "a pull reported for another document does nothing")
-        controller.events.pulled(token)
+        controller.events.pulled(edge, token)
         #expect(box.played == [.impact(.light)])
+        #expect(reader.pulledEdge == edge, "only the pulled end's icon turns")
         for _ in 0..<200 where pages.requests.count == before { try await Task.sleep(for: .milliseconds(10)) }
         #expect(pages.requests.count == before + 1)
         #expect(pages.requests.last?.page == 2)
         #expect(reader.document?.keepsScrollPosition == true)
+        for _ in 0..<200 where reader.pulledEdge != nil { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(reader.pulledEdge == nil, "the icon stops with the refresh")
+        #expect(box.played == [.impact(.light), .impact(.light)], "the pull's own impact at the start, one at completion (#1310)")
+    }
+
+    /// A first load, a page change or a toolbar refresh is no pull: no icon turns for them.
+    @Test func aLoadThatNoPullStartedTurnsNoIcon() async throws {
+        let setup = try await wired()
+        #expect(setup.reader.pulledEdge == nil)
+        await setup.reader.refresh()
+        #expect(setup.reader.pulledEdge == nil)
+    }
+
+    /// The pull progress of another document (a late report) changes nothing; the shown one reaches the model.
+    @Test func thePullProgressFollowsTheShownDocumentOnly() async throws {
+        let setup = try await wired()
+        let (reader, controller, token) = (setup.reader, setup.controller, setup.token)
+        controller.events.pullProgress(0.5, 0.25, token + 1)
+        #expect(reader.pullTop == 0 && reader.pullBottom == 0)
+        controller.events.pullProgress(0.5, 0.25, token)
+        #expect(reader.pullTop == 0.5 && reader.pullBottom == 0.25)
     }
 }

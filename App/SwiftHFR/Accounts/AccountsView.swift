@@ -12,6 +12,8 @@ struct AccountsView: View {
     @State private var pendingRemoval: AccountRow?
     @State private var confirmErase = false
     @State private var actionError: String?
+    /// What `actionError` is about, for the alert's title (#1175).
+    @State private var actionErrorTitle = AlertTitles.accountSwitchFailed
 
     var body: some View {
         ThemedNavigationStack {
@@ -52,20 +54,21 @@ struct AccountsView: View {
                     Button("OK") { dismiss() }
                 }
             }
-            .sheet(item: $loginTarget) { target in
-                LoginView(target: target, accounts: accounts)
+            // #1176: pushed on this sheet's stack, never a second sheet over it (HIG › Sheets).
+            .navigationDestination(item: $loginTarget) { target in
+                LoginView(target: target, accounts: accounts, presentation: .pushed)
             }
             .confirmationDialog(
                 "Retirer ce compte ?", isPresented: removalBinding, titleVisibility: .visible, presenting: pendingRemoval
             ) { row in
                 Button("Retirer \(row.displayName)", role: .destructive) { remove(row) }
             } message: { _ in
-                Text("Le compte est retiré de l’app. Vous pourrez l’ajouter de nouveau avec son mot de passe.")
+                Text("Le compte est retiré de l’app. Tu pourras l’ajouter de nouveau avec son mot de passe.")
             }
             .confirmationDialog("Effacer les comptes enregistrés ?", isPresented: $confirmErase, titleVisibility: .visible) {
                 Button("Effacer", role: .destructive) { Task { await accounts.eraseStoredAccounts() } }
             }
-            .alert("Action impossible", isPresented: errorBinding) {
+            .alert(actionErrorTitle, isPresented: errorBinding) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(actionError ?? "")
@@ -80,6 +83,7 @@ struct AccountsView: View {
             switch problem {
             case .corrupted:
                 Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }
+                    .themedDestructive()
             case .unavailable:
                 Button("Réessayer") { Task { await accounts.retryRestore() } }
                     .disabled(accounts.isRestoring)
@@ -101,6 +105,7 @@ struct AccountsView: View {
         do {
             try accounts.select(row.id)
         } catch {
+            actionErrorTitle = AlertTitles.accountSwitchFailed
             actionError = AccountMessages.message(for: error)
         }
     }
@@ -109,7 +114,7 @@ struct AccountsView: View {
     /// the login and again on the logged-in home page and followed list the app loads (HFR-PROTOCOL §6b, `W03`, `R74`; other
     /// pages not captured).
     static let footer = """
-        Vos mots de passe ne sont jamais enregistrés : seule la session du forum est gardée, dans le trousseau. \
+        Tes mots de passe ne sont jamais enregistrés : seule la session du forum est gardée, dans le trousseau. \
         HFR garde un compte connecté 30 jours, prolongés chaque fois que l’app ouvre le forum avec ce compte ; passé ce délai, \
         « Se reconnecter » suffit, et les brouillons, listes et réglages du compte restent.
         """
@@ -122,6 +127,7 @@ struct AccountsView: View {
         do {
             try accounts.remove(row.id)
         } catch {
+            actionErrorTitle = AlertTitles.accountRemoveFailed
             actionError = AccountMessages.message(for: error)
         }
     }
@@ -173,7 +179,7 @@ struct AccountRowView: View {
         case .restored: nil
         case .valid: expiry.flatMap { $0 > now ? "Session valable jusqu’au \($0.formatted(expiryStyle))" : nil }
         case .checking: "Vérification de la session…"
-        case .expired: "Session expirée : reconnectez-vous"
+        case .expired: "Session expirée : reconnecte-toi"
         case .checkFailed: "Session non vérifiée (forum injoignable)"
         }
     }

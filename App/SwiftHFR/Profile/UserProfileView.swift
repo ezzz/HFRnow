@@ -20,7 +20,7 @@ struct UserProfileView: View {
                 .navigationTitle(model.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                    SheetCloseToolbarItem { dismiss() }
                     ToolbarItem(placement: .primaryAction) {
                         Button { Task { await model.reload() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                             .disabled(model.isLoading)
@@ -29,6 +29,7 @@ struct UserProfileView: View {
                 .task { await model.onAppear() }
                 // A blocklist toggle here can be an account's first one (LOT-131): the sheet covers the root's questions.
                 .blocklistSyncQuestions()
+                .signInToBlockSheet(isPresented: Bindable(model).wantsSignIn)
                 .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         }
     }
@@ -67,10 +68,8 @@ struct UserProfileView: View {
             }
             .listLook()
             .refreshable { await model.reload() }
-        } else if let error = model.error {
-            LoadFailureView(error: error, retry: model.reload)
         } else {
-            ProgressView("Chargement du profil…").frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScreenStateView(state: ScreenLoadState(error: model.error, isLoading: true), retry: model.reload)
         }
     }
 
@@ -101,7 +100,7 @@ private struct ProfileHeaderSection: View {
                     url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill", generation: model.loadGeneration
                 )
                     .frame(width: 98, height: 70)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(.rect(cornerRadius: 12)) // an avatar clip, not a card (#693)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(verbatim: profile.pseudo).scaledFont(.title2).bold().textSelection(.enabled)
@@ -132,6 +131,10 @@ private struct ProfileHeaderSection: View {
                 Button { Task { await model.toggle(.blocklist) } } label: {
                     Label(model.isBlocked ? "Retirer de la liste noire" : "Ajouter à la liste noire", systemImage: "hand.raised")
                 }
+            }
+            if model.offersSignInToBlock {
+                Button { model.requestSignIn() } label: { Label(SignInToBlock.title, systemImage: "person.crop.circle.badge.plus") }
+                    .accessibilityHint(SignInToBlock.hint)
             }
             if model.offers(.allowlist) {
                 Button { Task { await model.toggle(.allowlist) } } label: {

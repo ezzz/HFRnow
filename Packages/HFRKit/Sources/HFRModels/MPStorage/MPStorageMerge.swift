@@ -3,8 +3,9 @@ import Foundation
 /// Three-way merge of the MPStorage document (Q-6). `base` is the copy this app last read, `ours` is `base` plus
 /// local edits, `theirs` is the copy just re-read from the forum before writing. Rules, documented in
 /// `docs/lots/LOT-062-mpstorage-merge.md`:
-/// - only the `0.1` entry is merged; other entries, root keys and namespaces this app does not model come from
-///   `theirs` unless this app changed them;
+/// - only the `0.1` entry is merged; the other entries come from `theirs` (this app never reads them from `ours`), and the
+///   root keys and namespaces this app does not model are merged key by key against `base` (this app's change is kept, unless it
+///   deleted a key `theirs` changed);
 /// - list items are matched by `storageKey`; a side that did not change an item since `base` takes the other
 ///   side's version; a change beats a concurrent deletion; on a real conflict this app's edit wins (it is the
 ///   last writer); a dated deletion (tombstone) removes a dated item created before it;

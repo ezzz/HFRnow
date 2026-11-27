@@ -40,9 +40,6 @@ struct ReaderRenderOptions: Equatable, Sendable {
     var style = ThemeStyle.modern
     /// Who is highlighted, collapsed or allowlisted (LOT-117); nothing by default.
     var visibility = VisibilityPolicy.none
-    /// End the page with the pull-to-refresh hint (#820): only the topic and MP reader refreshes on a pull
-    /// (`TopicReaderModel.currentRenderOptions`); "Filtrer les posts" builds its pages without it.
-    var offersPullToRefresh = false
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -101,10 +98,6 @@ enum TopicHTMLBuilder {
             }
         }
         html += "</main>\n"
-        if options.offersPullToRefresh {
-            // Under the last message, tone on tone, visible at rest (#820, #932). VoiceOver has the "Actualiser" buttons.
-            html += "<p class=\"pull-hint\" aria-hidden=\"true\">Tirer vers le haut pour actualiser</p>\n"
-        }
         html += "</body>\n</html>\n"
         return html
     }
@@ -255,10 +248,17 @@ enum TopicHTMLBuilder {
         var lines: [String] = []
         if let note = message.editNote, !note.isEmpty { lines.append("Message édité par \(HTMLEscaping.text(note))") }
         // Legacy's count bubble (`LinkItem.m:237-238`, `.quotedhfrlink` of `style-liste.css:419-431` @ 87fe0d1c), at the right of the
-        // footer. Legacy made it a link to HFR's `quote_only=1` page; that page is not captured (#126), so it is inert here.
+        // footer, a link to HFR's `quote_only=1` page (capture `R126a`, #1039): a button for VoiceOver, with the link only when it is
+        // one the app can open (`HFRQuotingLink`); otherwise it stays the inert count.
         var bubble = ""
         if let count = message.quotedByCount, count > 0 {
-            bubble = "<span class=\"quoted-bubble\" role=\"img\" aria-label=\"Message cité \(count) fois\">\(count)</span>"
+            if let link = message.quotedByURL, HFRQuotingLink(url: link) != nil {
+                let label = count == 1 ? "Voir le message qui cite celui-ci" : "Voir les \(count) messages qui citent celui-ci"
+                bubble = "<a class=\"quoted-bubble\" role=\"button\" href=\"\(HTMLEscaping.text(link.absoluteString))\""
+                    + " aria-label=\"\(label)\">\(count)</a>"
+            } else {
+                bubble = "<span class=\"quoted-bubble\" role=\"img\" aria-label=\"Message cité \(count) fois\">\(count)</span>"
+            }
         }
         guard !lines.isEmpty || !bubble.isEmpty else { return "" }
         return "<footer class=\"trailer\">" + lines.map { "<p>\($0)</p>" }.joined() + bubble + "</footer>\n"

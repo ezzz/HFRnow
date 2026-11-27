@@ -42,13 +42,14 @@ import Testing
         #expect(try await store.reset(Self.cuisine, to: spot(1, minutes: 1), account: "user1") == false)
     }
 
-    @Test func accountsAreKeptApartAndComparedExactly() async throws {
+    /// Accounts are apart; one account is one key whatever its spelling (`AccountKey`, #1184).
+    @Test func accountsAreKeptApartByTheirKey() async throws {
         let store = ReadingPositionStore(persistence: InMemoryReadingPositionPersistence())
         try await store.advance(Self.cuisine, to: spot(3), account: "user1")
         try await store.advance(Self.cuisine, to: spot(7), account: "user2")
         #expect(await store.position(of: Self.cuisine, account: "user1") == spot(3))
         #expect(await store.position(of: Self.cuisine, account: "user2") == spot(7))
-        #expect(await store.position(of: Self.cuisine, account: "User1") == nil)
+        #expect(await store.position(of: Self.cuisine, account: "User1") == spot(3))
     }
 
     @Test func topicsAreKeyedByCategoryAndNumber() async throws {

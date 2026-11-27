@@ -1,7 +1,7 @@
 import HFRStorage
 import SwiftUI
 
-// Port of HFRswift/Swift/AppSettingsView.swift (icon Picker, lines 360-365, `applyIconSelection` 213-224) @ 87fe0d1c. Differences:
+// Port of HFRswift/Swift/AppSettingsView.swift (icon Picker, lines 411-416, `applyIconSelection` 221-231) @ 87fe0d1c. Differences:
 // a screen behind the "Icône" row (LOT-119 shell) instead of an inline picker; the checked icon follows the system's current icon;
 // a grid by pack with a preview of every icon (GAP-148, LOT-189).
 /// The "Icône" settings screen (LOT-123, packs and previews LOT-189).
@@ -46,7 +46,10 @@ struct AppIconSettingsView: View {
             .disabled(!model.isAvailable || model.isSwitching)
         }
         .background(Color(.systemGroupedBackground))
-        .alert("Icône", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+        .alert(
+            AlertTitles.iconChangeFailed,
+            isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+        ) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(model.errorMessage ?? "")

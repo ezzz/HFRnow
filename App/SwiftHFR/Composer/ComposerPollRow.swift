@@ -42,7 +42,7 @@ struct ComposerPollRow: View {
             return "Les options de sondage n’ont pas pu être lues."
         case .notOffered:
             return model.isNewTopic
-                ? "Le forum ne propose pas de sondage à cette étape. Créez le sujet, puis éditez son premier message."
+                ? "Le forum ne propose pas de sondage à cette étape. Crée le sujet, puis édite son premier message."
                 : "Le formulaire du forum ne propose pas la création d’un sondage pour ce message."
         case .offered:
             return model.poll.draft?.problem().map(ComposerMessages.poll)

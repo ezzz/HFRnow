@@ -20,6 +20,8 @@ extension ReaderWebController {
         var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
         var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped a picture inside a link that is not an image (#912): the app routes it, asking first when it leaves the app.
+        var pictureLink: @MainActor (URL) -> Void = { _ in }
         /// A short sentence for the reader's feedback line (the result of "Enregistrer dans Photos", #615).
         var notice: @MainActor (_ text: String) -> Void = { _ in }
         /// The reader left the screen: its web view left its window after SwiftUI's `onDisappear` (`+Presence`, issue #750).
@@ -28,8 +30,10 @@ extension ReaderWebController {
         var returned: @MainActor () -> Void = {}
         /// The end of document `token` came on screen (true) or left it (false): the end-of-page bar (#820).
         var pageEnd: @MainActor (_ atEnd: Bool, _ token: Int) -> Void = { _, _ in }
-        /// The user pulled past the end of document `token` and let go beyond the threshold: a refresh (#820).
-        var pulled: @MainActor (_ token: Int) -> Void = { _ in }
+        /// The user pulled past an end of document `token` until the icon was full: a refresh (#820, #1207).
+        var pulled: @MainActor (_ edge: PullEdge, _ token: Int) -> Void = { _, _ in }
+        /// How far, as the icons' scales (0 to 1), the page is pulled past its top and end (#1207); 0 at rest and under a composer.
+        var pullProgress: @MainActor (_ top: CGFloat, _ bottom: CGFloat, _ token: Int) -> Void = { _, _, _ in }
     }
 
     /// `reader.js` says whether the page's end is on screen (#820); the page gets no answer.
@@ -38,9 +42,15 @@ extension ReaderWebController {
         return nil
     }
 
-    /// The pull watcher saw a pull past the end: reported for the document on screen, never under an open composer (#653).
-    func pulledPastEnd() {
+    /// The pull watcher saw a pull past an end: reported for the document on screen, never under an open composer (#653).
+    func pulledPastEnd(_ edge: PullEdge) {
         guard let document, !ignoresPageTaps else { return }
-        events.pulled(document.token)
+        events.pulled(edge, document.token)
+    }
+
+    /// The pulls grew or shrank: the icons' scales for the document on screen; none under an open composer (#653).
+    func pullProgressChanged(top: CGFloat, bottom: CGFloat) {
+        guard let document else { return }
+        events.pullProgress(ignoresPageTaps ? 0 : top, ignoresPageTaps ? 0 : bottom, document.token)
     }
 }

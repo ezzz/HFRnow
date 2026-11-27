@@ -11,8 +11,8 @@ enum FilteredPostsMessages {
 
     /// What the filter keeps, then what « Minimum de citations » is and how it acts.
     static let explanation = [
-        "Depuis un sujet (menu … › Filtrer les posts), n’affiche que les messages cités au moins N fois, les vôtres, "
-            + "ceux qui vous citent ou vous mentionnent, et ceux de votre liste blanche si l’option est activée.",
+        "Depuis un sujet (menu … › Filtrer les posts), n’affiche que les messages cités au moins N fois, les tiens, "
+            + "ceux qui te citent ou te mentionnent, et ceux de ta liste blanche si l’option est activée.",
         "« Minimum de citations » est ce N : plus il est grand, moins il reste de messages."
     ]
 }

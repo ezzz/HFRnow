@@ -41,8 +41,8 @@ enum AccountMessages {
         switch error {
         case .login(let error): message(for: error)
         case .store(let error): message(for: error)
-        case .unknownAccount: "Ce compte n’est plus enregistré. Ajoutez-le de nouveau."
-        case .storeFailed: "L’enregistrement du compte a échoué. Réessayez."
+        case .unknownAccount: "Ce compte n’est plus enregistré. Ajoute-le de nouveau."
+        case .storeFailed: "L’enregistrement du compte a échoué. Réessaie."
         }
     }
 
@@ -50,17 +50,17 @@ enum AccountMessages {
     static func message(for error: LoginError) -> String? {
         switch error {
         case .missingCredentials:
-            "Saisissez votre pseudo et votre mot de passe."
+            "Saisis ton pseudo et ton mot de passe."
         case .invalidCredentials:
-            "Pseudo ou mot de passe incorrect. Vérifiez-les puis réessayez."
+            "Pseudo ou mot de passe incorrect. Vérifie-les puis réessaie."
         case .unrecognizedResponse:
-            "Le forum a répondu de façon inattendue (maintenance ou trop de tentatives ?). Réessayez dans quelques minutes."
+            "Le forum a répondu de façon inattendue (maintenance ou trop de tentatives ?). Réessaie dans quelques minutes."
         case .missingIdentityCookie:
-            "Le forum n’a pas ouvert de session. Vérifiez que les cookies ne sont pas bloqués, puis réessayez."
+            "Le forum n’a pas ouvert de session. Vérifie que les cookies ne sont pas bloqués, puis réessaie."
         case .accountMismatch:
-            "Ces identifiants ouvrent un autre compte que celui-ci. Pour l’ajouter, utilisez « Ajouter un compte »."
+            "Ces identifiants ouvrent un autre compte que celui-ci. Pour l’ajouter, utilise « Ajouter un compte »."
         case .missingHashCheck:
-            "La session ouverte par le forum est incomplète. Réessayez."
+            "La session ouverte par le forum est incomplète. Réessaie."
         case .network(let error):
             message(for: error)
         }
@@ -72,13 +72,13 @@ enum AccountMessages {
         case .cancelled:
             nil
         case .offline:
-            "Pas de connexion à internet. Vérifiez le réseau puis réessayez."
+            "Pas de connexion à internet. Vérifie le réseau puis réessaie."
         case .timedOut:
-            "Le forum ne répond pas. Réessayez dans quelques instants."
+            "Le forum ne répond pas. Réessaie dans quelques instants."
         case .httpStatus(let code, _):
-            "Le forum a renvoyé l’erreur \(code). Réessayez plus tard."
+            "Le forum a renvoyé l’erreur \(code). Réessaie plus tard."
         case .invalidRequest, .invalidResponse, .transport, .unscripted:
-            "La connexion au forum a échoué. Réessayez."
+            "La connexion au forum a échoué. Réessaie."
         }
     }
 
@@ -86,13 +86,13 @@ enum AccountMessages {
     static func message(for error: CredentialStoreError) -> String {
         switch error {
         case .corrupted:
-            "Les comptes enregistrés sont illisibles. Ouvrez « Comptes » pour les effacer."
+            "Les comptes enregistrés sont illisibles. Ouvre « Comptes » pour les effacer."
         case .unsupportedVersion:
-            "Les comptes ont été enregistrés par une version plus récente de l’app. Mettez l’app à jour."
+            "Les comptes ont été enregistrés par une version plus récente de l’app. Mets l’app à jour."
         case .invalidPseudo, .pseudoMismatch:
-            "Le forum a renvoyé une session qui ne correspond pas à ce pseudo. Réessayez."
+            "Le forum a renvoyé une session qui ne correspond pas à ce pseudo. Réessaie."
         case .keychain(let status):
-            "Le trousseau a refusé l’enregistrement (code \(status)). Réessayez."
+            "Le trousseau a refusé l’enregistrement (code \(status)). Réessaie."
         }
     }
 
@@ -100,13 +100,13 @@ enum AccountMessages {
     static func message(for problem: StoreProblem) -> String {
         switch problem {
         case .corrupted:
-            "Les comptes enregistrés sont illisibles. Effacez-les, puis ajoutez de nouveau vos comptes."
+            "Les comptes enregistrés sont illisibles. Efface-les, puis ajoute de nouveau tes comptes."
         case .newerVersion:
-            "Les comptes ont été enregistrés par une version plus récente de l’app. Mettez l’app à jour pour les retrouver."
+            "Les comptes ont été enregistrés par une version plus récente de l’app. Mets l’app à jour pour les retrouver."
         case .unavailable(let status?):
-            "Le trousseau est inaccessible (code \(status)). Déverrouillez l’appareil puis réessayez."
+            "Le trousseau est inaccessible (code \(status)). Déverrouille l’appareil puis réessaie."
         case .unavailable(nil):
-            "Les comptes enregistrés sont inaccessibles. Déverrouillez l’appareil puis réessayez."
+            "Les comptes enregistrés sont inaccessibles. Déverrouille l’appareil puis réessaie."
         }
     }
 }

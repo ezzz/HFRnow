@@ -5,7 +5,8 @@ import Observation
 // Port of HFRswift/Swift/AppSettingsView.swift (ProfileFilterListEditorView: reloadProfiles, addProfile, removeProfiles, `:581-700`)
 // and of Classes/BlackListTableViewController.m / WhiteListTableViewController.m (`addPseudoToList:`, delete row) @ 2440d79.
 // Differences: the logic is a model over LOT-117's store (GAP-209); a list the store cannot read shows its failure and a retry
-// instead of an empty list (writes are refused, the file is never overwritten); a pseudo already listed says so.
+// instead of an empty list (writes are refused, the file is never overwritten), with « Repartir de zéro » as the way out
+// (#1182); a pseudo already listed says so.
 /// State of one list editor in Réglages (LOT-118): the sorted pseudos, the field for a manual add, and the errors.
 @MainActor
 @Observable
@@ -17,6 +18,8 @@ final class PseudoListEditorModel {
     var draft = ""
     /// The error of the last add or removal, for an alert; the view clears it.
     var errorMessage: String?
+    /// What `errorMessage` is about, for the alert's title (#1175); set with it.
+    var errorTitle = AlertTitles.pseudoAddFailed
     /// Set when the stored lists cannot be read or written: the list shown is then not the stored one.
     private(set) var unreadableMessage: String?
     /// True once `load()` finished once, so the empty message does not flash before the first read.
@@ -79,6 +82,18 @@ final class PseudoListEditorModel {
         await load()
     }
 
+    /// "Repartir de zéro", after the member confirmed (#1182): the unreadable file is set aside as `.corrupt`, never deleted,
+    /// and both lists start empty and writable.
+    func discardUnreadable() async {
+        do {
+            try await manager.discardUnreadableData()
+        } catch {
+            errorTitle = AlertTitles.listResetFailed
+            errorMessage = UnreadableDataRecovery.failure
+        }
+        await load()
+    }
+
     /// Adds the pseudo of the field. The field is emptied when the pseudo is listed afterwards, new or not, unless the user
     /// typed something else meanwhile (the add waits for the queued removals): that newer text stays.
     func add() async {
@@ -89,8 +104,12 @@ final class PseudoListEditorModel {
         do {
             let added = try await manager.add(pseudo, to: kind)
             if draft == submitted { draft = "" }
-            if !added { errorMessage = "\(pseudo) est déjà dans la liste." }
+            if !added {
+                errorTitle = AlertTitles.pseudoAlreadyListed
+                errorMessage = "\(pseudo) est déjà dans la liste."
+            }
         } catch {
+            errorTitle = AlertTitles.pseudoAddFailed
             errorMessage = kind.addFailure
         }
         await load()
@@ -113,6 +132,7 @@ final class PseudoListEditorModel {
                 do {
                     try await manager.remove(pseudo, from: kind)
                 } catch {
+                    errorTitle = AlertTitles.pseudoRemoveFailed
                     errorMessage = kind.removeFailure(pseudo)
                 }
             }

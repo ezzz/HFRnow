@@ -268,7 +268,7 @@ struct MPStorageSyncModelTests {
         let fixture = try await Self.make(thread: 7, state: .off)
         fixture.login.value = false
         await fixture.model.setEnabled(true)
-        #expect(fixture.model.status == .failed("Connectez-vous pour activer le stockage MP."))
+        #expect(fixture.model.status == .failed("Connecte-toi pour activer le stockage MP."))
         #expect(await fixture.remote.calls.isEmpty)
     }
 

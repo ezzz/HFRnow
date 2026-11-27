@@ -11,6 +11,10 @@ private final class ProbeBox {
     /// The hosting window's usable horizontal range: the screen's width less its side safe-area insets (the iPhone Duo cover
     /// screen keeps 84 pt on its trailing side for the system bars), whatever the device (#1084).
     var leadingEdge: CGFloat = 0
+    /// The hosting window's top safe-area inset: under it, where the full-screen composers' buttons sit (#1137).
+    var topInset: CGFloat = 0
+    /// The hosting window's height.
+    var height: CGFloat = 0
     var trailingEdge: CGFloat = 0
     var midX: CGFloat { (leadingEdge + trailingEdge) / 2 }
 
@@ -31,7 +35,7 @@ struct ComposerLayoutHostedTests {
 
     private func host(
         size: DynamicTypeSize, text: String, model: ReplyComposerModel = ComposerFixture.model(poster: ScriptedPoster([])),
-        placement: ComposerPlacement = .sheet, modern: Bool = true
+        placement: ComposerPlacement = .sheet, modern: Bool = true, keyboard: CGFloat? = nil
     ) async throws -> ProbeBox {
         let box = ProbeBox()
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
@@ -49,7 +53,17 @@ struct ComposerLayoutHostedTests {
         window.isHidden = false
         defer { window.isHidden = true }
         window.layoutIfNeeded()
+        // A keyboard of this height: the card's room (#1136) is measured only once a keyboard has shown.
+        if let keyboard {
+            let frame = CGRect(x: 0, y: window.bounds.height - keyboard, width: window.bounds.width, height: keyboard)
+            NotificationCenter.default.post(
+                name: UIResponder.keyboardWillChangeFrameNotification, object: nil,
+                userInfo: [UIResponder.keyboardFrameEndUserInfoKey: frame]
+            )
+        }
         box.leadingEdge = window.safeAreaInsets.left
+        box.topInset = window.safeAreaInsets.top
+        box.height = window.bounds.height
         box.trailingEdge = window.bounds.width - window.safeAreaInsets.right
         // Polls until the draft is read, then until the text is laid out (a cold simulator can take a while).
         for _ in 0..<100 where !model.canEdit { try await Task.sleep(for: .milliseconds(50)) }
@@ -88,6 +102,23 @@ struct ComposerLayoutHostedTests {
         #expect(abs(editor.height - layout.editorHeight) < 1, "editor \(editor.height), cap \(layout.editorHeight)")
         #expect(card.insetBy(dx: -0.5, dy: -0.5).contains(controls), "card \(card), controls \(controls)")
         #expect(controls.minY >= editor.maxY - 0.5, "editor \(editor), controls \(controls)")
+        #expect(abs(card.height - layout.textCardHeight) < 1, "card \(card.height), textCardHeight \(layout.textCardHeight)")
+    }
+
+    /// #1286: with an image inserted and a keyboard up, the editor's cap takes the chips row off the room, so the card stays within
+    /// the room (the card once ignored the row and was one row too tall).
+    @Test func anInsertedImageKeepsTheCardWithinTheRoom() async throws {
+        guard isPhone else { return } // the docked card is an iPhone's
+        let snippet = "[img]https://img.example/a.jpg[/img]"
+        let model = ComposerFixture.model(poster: ScriptedPoster([]))
+        model.imageChips = [ComposerImageChip(snippet: snippet, thumbnail: try #require(URL(string: "https://img.example/a.th.jpg")))]
+        let box = try await host(size: .large, text: snippet + "\n" + Self.longText, model: model, keyboard: 336)
+        let card = try #require(box.frames[.card])
+        let editor = try #require(box.frames[.editor])
+        let layout = box.layout
+        try #require(layout.availableHeight != nil, "the keyboard measured the room")
+        #expect(layout.chips == ComposerImageChipsRow.height, "the layout the view draws carries the chips row")
+        #expect(abs(editor.height - layout.editorHeight) < 1, "editor \(editor.height), cap \(layout.editorHeight)")
         #expect(abs(card.height - layout.textCardHeight) < 1, "card \(card.height), textCardHeight \(layout.textCardHeight)")
     }
 
@@ -192,6 +223,33 @@ struct ComposerLayoutHostedTests {
         let tool = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)))
         #expect(abs(circle.width - tool.diameter) < 0.5, "circle \(circle), chip \(tool.diameter)")
         #expect(abs(circle.height - tool.diameter) < 0.5, "circle \(circle), chip \(tool.diameter)")
+    }
+
+    /// #1137: a new private message and a new topic open full screen with no height toggle, and their three glass buttons sit in
+    /// the top band, just under the safe area, fully visible, above the recipient and subject fields.
+    @Test(arguments: [true, false])
+    func aNewMessageOrATopicOpensFullWithItsButtonsInTheTopBand(isNewTopic: Bool) async throws {
+        guard isPhone else { return }
+        let target: ComposerTarget = isNewTopic ? .newTopic(newTopicTarget) : .newPrivateMessage(newMessageTarget)
+        let model = ReplyComposerModel(
+            composing: target, services: ComposerFixture.services(poster: ScriptedPoster([])), autosaveDelay: .seconds(60)
+        )
+        let box = try await host(size: .large, text: "Bonjour", model: model)
+        #expect(box.frames[.heightToggle] == nil, "no height toggle")
+        let card = try #require(box.frames[.card])
+        let fields = try #require(box.frames[.fields])
+        #expect(card.maxY > box.height / 2, "the card fills the screen: \(card), window \(box.height)")
+        for part in [ComposerLayoutProbe.Part.closeCircle, .draftsCircle, .sendCircle] {
+            guard let circle = box.frames[part] else {
+                // A new composer has no drafts button (LOT-101: only a topic's reply archives drafts).
+                #expect(part == .draftsCircle, "\(part) is missing")
+                continue
+            }
+            #expect(circle.minY >= box.topInset - 0.5, "\(part) under the safe area: \(circle), inset \(box.topInset)")
+            #expect(circle.maxY <= box.topInset + 100, "\(part) in the top band: \(circle)")
+            #expect(circle.maxY <= fields.minY + 0.5, "\(part) above the fields: \(circle), fields \(fields)")
+            #expect(circle.minX >= box.leadingEdge - 0.5 && circle.maxX <= box.trailingEdge + 0.5, "\(part) fully visible: \(circle)")
+        }
     }
 
     /// A new private message has its recipient and subject between the floating buttons and the card: the card keeps the

@@ -3,18 +3,15 @@ import HFRModels
 import HFRParsing
 import HFRStorage
 
-/// Which conversations the "Deux listes" switch shows (LOT-171).
-enum MPSegment: String, CaseIterable, Sendable {
-    /// One-to-one conversations ("MP").
-    case oneToOne
-    /// Group conversations ("MP multiples").
-    case group
-
+extension MPSegment {
     /// Switch label.
-    var title: String { self == .oneToOne ? "MP" : "MP multiples" }
-
-    /// Whether `thread` belongs to this segment (`PrivateMessageThread.isGroup`, legacy `MPListView.swift:376-377`).
-    func contains(_ thread: PrivateMessageThread) -> Bool { thread.isGroup == (self == .group) }
+    var title: String {
+        switch self {
+        case .all: "Tous"
+        case .oneToOne: "MP"
+        case .group: "MP multiples"
+        }
+    }
 }
 
 /// A page of the private message list ready to display.

@@ -98,7 +98,7 @@ form may be minutes old), so the release is the app's own, with LOT-049's rule; 
 
 - Logged out: `ComposerServices` is nil, so the quote handlers decline (`canQuote`) and no quote entry or selection menu entry is offered.
 - A page without an answer form (closed topic, private conversation of the Messages tab): nothing to quote into.
-- A second quote while one is being fetched is ignored (legacy `isLoadingQuoteTemplate`).
+- A second quote while one is being fetched is ignored (legacy `isLoadingQuoteTemplate`). Since #1190 the same flag holds the reader's one composer slot (`composerSlotIsFree`): « Editer » sets it while its form loads, and « Répondre », the quotes, « Editer » and the author menu's MP are refused while it is held, a composer is open or a reply is handed to the screen; a result that lands after another composer opened is dropped with a line saying so.
 - A selection reported for a document that is no longer the one shown, or for a continuation copy: dropped.
 - Quoting twice the same message with another passage adds a second block; the same block twice adds nothing.
 - The merged text is saved like typing (after a pause); closing the sheet on it keeps it in the draft.

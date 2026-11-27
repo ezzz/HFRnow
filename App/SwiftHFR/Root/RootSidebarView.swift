@@ -103,9 +103,9 @@ struct RootSidebarView: View {
     /// The labels' colour: the system's primary for Legacy, as before; a theme's `textPrimary` (#842).
     private var primaryText: Color { appearance.listColors.map { Color(uiColor: $0.text) } ?? Color.primary }
 
-    /// A sidebar list selects an optional; deselecting keeps the current destination.
+    /// A sidebar list selects an optional; deselecting keeps the current destination, and the row already shown reloads its list (#426).
     private var selection: Binding<SidebarDestination?> {
-        Binding(get: { model.sidebarDestination }, set: { if let new = $0 { model.selectedDestination = new } })
+        Binding(get: { model.sidebarDestination }, set: { if let new = $0 { model.selectFromSidebar(new) } })
     }
 
     @ViewBuilder
@@ -136,12 +136,15 @@ struct RootSidebarView: View {
         case .tab(.favorites): ReaderColumn(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
         case .tab(.messages): MessageReaderColumn(model: model.messages, reader: environment.reader, composer: environment.composer)
         case .plus(let entry): PlusDetailColumn(entry: entry, model: model, environment: environment)
-        default: ContentUnavailableView("Choisissez un élément", systemImage: "sidebar.left")
+        default: ContentUnavailableView("Choisis un élément", systemImage: "sidebar.left")
         }
     }
 
-    /// What a row of `entry`'s list calls to open a topic in the detail column: a new reader over this session's pages.
-    static func detailOpener(model: RootModel, environment: AppEnvironment, entry: PlusEntry) -> OpenTopicInDetail {
+    /// What a row of `entry`'s list calls to open a topic as the entry's reader (`RootModel.detailReaders`): a new reader over this
+    /// session's pages. Beside the list in the split; on the Plus stack of the tab bar (`PlusStackReader`, `besideTheList` false).
+    static func detailOpener(
+        model: RootModel, environment: AppEnvironment, entry: PlusEntry, besideTheList: Bool = true
+    ) -> OpenTopicInDetail {
         OpenTopicInDetail(
             open: { target, title in
                 model.openInDetail(
@@ -152,17 +155,21 @@ struct RootSidebarView: View {
                     for: entry
                 )
             },
-            close: { model.closeDetail(for: entry) }
+            close: { model.closeDetail(for: entry) },
+            besideTheList: besideTheList
         )
     }
 }
 
-/// Opens a topic in the detail column of the regular-width iPad split: set on the content column of Bookmarks and Alertes
-/// Qualitay (#685), nil elsewhere, where a list pushes the topic on its own stack (the Plus tab of the tab bar).
+/// Opens the topic a Bookmarks or Alertes Qualitay row names as the entry's reader (`RootModel.detailReaders`): set on the content
+/// column of the split (#685), where the reader shows beside the list, and on the Plus tab of the tab bar (`PlusStackReader`),
+/// where it is pushed over the list; nil on a plain stack.
 struct OpenTopicInDetail {
     let open: @MainActor (ReaderTarget, String) -> Void
     /// Empties the detail column (a deleted bookmark it showed, LOT-132).
     var close: @MainActor () -> Void = {}
+    /// The reader shows beside the list (the split's detail column, where the row opened stays selected), not over it.
+    var besideTheList = true
 
     @MainActor
     func callAsFunction(_ target: ReaderTarget, title: String) { open(target, title) }

@@ -3,33 +3,53 @@
 :root {
   color-scheme: light dark;
   --text: #1c1c1e;
-  --secondary: #6c6c70;
-  --background: #ffffff;
-  --separator: #d1d1d6;
+  --secondary: var(--app-light-secondary, #6c6c70);
+  --background: var(--app-light-background, #ffffff);
+  --separator: var(--app-light-separator, #d1d1d6);
   --quote-border: #8e8e93;
   --quote-background: #f2f2f7;
   --action: var(--app-action-light, #007aff);
-  --placeholder: #e5e5ea;
+  /* The `--app-light-*` are « Doux »'s (#1213, set by the app only for that light style); without them the page is today's white. */
+  --placeholder: var(--app-light-placeholder, #e5e5ea);
   /* Visibility (LOT-117): legacy defaults of the "love" colour, `theme_day_color_love` hsb(0.9, 0.1, 1) and
      `theme_night_color_love` hsb(0.9, 0.9, 0.3) (Common.swift:438-441 @ 2440d79); the border is the same colour at full
      saturation and brightness (`MessagesView.swift:2402`); the moderation background is `messageModoBackgroundColor`. */
   --love: #ffe6f5;
   --love-border: #ff0099;
   --modo: #ffeeee;
-  /* Message separation (#568): the even messages sit on a tint of the text colour over the background, so the surface follows
-     light, dark, the dark brightness slider and the classic style. The rule is a tint too, stronger than --separator: the app sets
-     --app-dark-separator on every reader, so the rule cannot reuse it (--separator stays for the quiet dashed lines inside a
-     message). Legacy drew a near-black 1 px rule above each message (style-liste-light.css:153-160). */
-  --alt-strength: 5%;
+  /* Message separation (#568, without its alternating tint since #1210: legacy has none): a 1 px rule below each message, a tint of
+     the text colour over the background, so it follows light, dark, the dark brightness slider and the classic style. It is
+     stronger than --separator: the app sets --app-dark-separator on every reader, so the rule cannot reuse it (--separator
+     stays for the quiet dashed lines inside a message). Legacy drew a near-black 1 px rule above each message
+     (style-liste-light.css:153-160). */
   --rule-strength: 25%;
+  /* The folded (blocklisted) quote's tint: 5 % of the text colour over the page; 3 % in dark, where 5 % over the legacy grey puts its
+     secondary-text header at 4.4999:1 (#1210). */
+  --blocked-tint: 5%;
   --separator-strong: color-mix(in srgb, var(--text) var(--rule-strength), var(--background));
-  --surface-alt: color-mix(in srgb, var(--text) var(--alt-strength), var(--background));
   /* Legacy message body (#819, legacy @ 87fe0d1c). Text: legacy passes 15 pt times the picker factor through `UIFontMetrics(.body)` (`MessagesView.swift:3376-3381`,
      `Common.swift:314-322`) and injects it (`:669-684`), i.e. 15/17 of the user's Dynamic Type body, times the in-app scale (LOT-169). Indent of the body text in the modern style: it starts
      under the pseudo, which sits one avatar (2.2em) and one gap (0.5em) after the header's edge (legacy 52 px next to a 30 px avatar,
      `MessagesView.swift:1827`; the classic style is flat, 10 px: same line). rem, not em: the body text is smaller than the header's. */
   --content-em: calc(var(--text-scale, 1) * 15 / 17 * 1rem);
   --indent: calc(var(--text-scale, 1) * 2.7rem);
+  /* Text-size floor (#1237), the rule of `TextScale.pointSize` (#1157): below 100 % a text never shrinks under 11 px, and a text the
+     system already gives under 11 px (a small Dynamic Type size) is kept as it is, so 100 % and above are unchanged. Each size is the
+     scaled one, floored per element (a ratio of the body's rem, or of the message text's `--content-em`), since an `em` chain would
+     floor the parent only. */
+  --floor: 11px;
+  --fs-body: max(calc(var(--text-scale, 1) * 1rem), min(1rem, var(--floor)));
+  --fs-content: max(var(--content-em), min(calc(15 / 17 * 1rem), var(--floor)));
+  --fs-85: max(calc(0.85 * var(--text-scale, 1) * 1rem), min(0.85rem, var(--floor)));
+  --fs-765: max(calc(0.765 * var(--text-scale, 1) * 1rem), min(0.765rem, var(--floor)));
+  --fs-70: max(calc(0.7 * var(--text-scale, 1) * 1rem), min(0.7rem, var(--floor)));
+  --fs-85-content: max(calc(0.85 * var(--content-em)), min(calc(0.85 * 15 / 17 * 1rem), var(--floor)));
+  /* Nested 0.85 em steps: a code header (b.s1 in table.code) and what sits in the signature (0.85 of 0.85 of the message text), then a
+     code header in a signature. The ratio is each element's real nesting at 100 %, not a shared one. */
+  /* Both are already under 11 px at 100 % (10.8 and 9.2 at the default size): they keep that size when shrunk, never smaller or
+     bigger (operator, #1237), the same `min(size at 100 %, 11 px)` as the others. */
+  --fs-7225-content: max(calc(0.7225 * var(--content-em)), min(calc(0.7225 * 15 / 17 * 1rem), var(--floor)));
+  --fs-614-content: max(calc(0.614125 * var(--content-em)), min(calc(0.614125 * 15 / 17 * 1rem), var(--floor)));
   /* The grey silhouette of a member without an avatar (legacy `avatar_male_gray_*`, `style-liste-light.css:203-205`). */
   --silhouette: #aeaeb2;
   --silhouette-background: #e5e5ea;
@@ -39,27 +59,28 @@
   :root {
     --text: #f2f2f7;
     --secondary: #a1a1a6;
-    --background: var(--app-dark-background, #000000);
-    --separator: var(--app-dark-separator, #38383a);
+    --background: var(--app-dark-background, #2e2f33);
+    --separator: var(--app-dark-separator, #4a4b50);
     --quote-border: #636366;
     --action: var(--app-action-dark, #0a84ff);
-    --placeholder: var(--app-dark-placeholder, #2c2c2e);
+    --placeholder: var(--app-dark-placeholder, #35363b);
     --love: #4d0831;
     --modo: #4a2e3c;
-    --alt-strength: 9%;
     --rule-strength: 35%;
     --silhouette: #636366;
     --silhouette-background: #2c2c2e;
+    --blocked-tint: 3%;
   }
+  /* A continuation (75 % opacity) keeps its date and note readable on the legacy grey (#1210): secondary text at 75 % was 3.45:1 there, the
+     page text at 75 % is far above 4.5:1. */
+  .message.continuation .date, .message.continuation .continuation-note { color: var(--text); }
+  /* The classic header is 15 % accent over the page: the date in secondary text was 3.75:1 on it over the legacy grey (6.5:1 on black). */
+  .style-classic .message .date { color: var(--text); }
 }
 
-/* Increase Contrast: a stronger tint and rule (HIG, Accessibility: colours must hold in light, dark and increased contrast).
-   Light stops at 7 %, not 10 %: --secondary on a 10 % surface is 4.27:1, under 4.5:1 (7 %: 4.55:1). */
+/* Increase Contrast: a stronger rule (HIG, Accessibility: colours must hold in light, dark and increased contrast). */
 @media (prefers-contrast: more) {
-  :root { --alt-strength: 7%; --rule-strength: 50%; }
-}
-@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-  :root { --alt-strength: 16%; --rule-strength: 50%; }
+  :root { --rule-strength: 50%; }
 }
 
 /* --app-* are the "Thème" settings (LOT-121): both accents and the dark surfaces at the chosen brightness, set on <html> by the
@@ -71,7 +92,7 @@ html { font: -apple-system-body; -webkit-text-size-adjust: 100%; }
 /* The page ends `FloatingSpacing.gap` above the floating bottom bar (operator, #820, 2026-11-16: one gap with the composer's,
    #895), set on <html> by the builder. */
 body {
-  font-size: calc(var(--text-scale, 1) * 1rem);
+  font-size: var(--fs-body);
   margin: 0; padding: 0 0 var(--floating-gap, 8px); color: var(--text); background: var(--background); overflow-wrap: anywhere;
 }
 a { color: var(--action); }
@@ -97,11 +118,9 @@ a { color: var(--action); }
   content: "Nouveau"; position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%);
   padding: 0.1em 0.7em; border-radius: 999px; border: 1px solid var(--action); color: var(--text);
   background: color-mix(in srgb, var(--action) 20%, var(--background));
-  font-size: 0.7em; font-weight: 600; line-height: 1.3; white-space: nowrap;
+  font-size: var(--fs-70); font-weight: 600; line-height: 1.3; white-space: nowrap;
 }
 .message { padding: 0.6em 1em 0; border-bottom: 1px solid var(--separator-strong); }
-/* `nth-of-type` counts articles only, so the dashed `div.separator1` between pages does not shift the alternation. */
-article.message:nth-of-type(even) { background: var(--surface-alt); }
 .message .header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.25em; }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; flex: none; }
 /* The avatar and its silhouette share one box (issues #595, #819): the picture covers the silhouette, which shows alone when the member
@@ -127,7 +146,7 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 /* The byline is the message's heading (role="heading", LOT-163): it takes the author's place in the header row. */
 .message .byline { display: flex; flex: 1 1 auto; min-width: 0; }
 .message .author { font-weight: 600; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
-.message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
+.message .date { color: var(--secondary); font-size: var(--fs-85); margin-left: auto; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
 /* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
    (default) tints the header with the accent at 3 %, classic at 15 % and adds the 8 px content padding legacy gave it. */
 .style-modern .message .header { background: color-mix(in srgb, var(--action) 3%, transparent); }
@@ -137,7 +156,7 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 /* The legacy body (#819): smaller text, tight blocks. `* { margin: 0 }` of the legacy stylesheet (`style-liste.css:39-47`) leaves
    paragraphs without margin (legacy's `.content br` block rule, `style-liste-light.css:514-519`, is not ported: it did not tighten a blank
    line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`; its 10 px right padding is `--text-right` below, added to the message's own 1em: wider than legacy's 10 px in total, on purpose: the operator asked for wider margins earlier, #1038 to be confirmed on #893); lists keep 1em and 2em (`:343-347`). */
-.message .content { font-size: var(--content-em); padding-bottom: 10px; padding-right: var(--text-right); }
+.message .content { font-size: var(--fs-content); padding-bottom: 10px; padding-right: var(--text-right); }
 .content p { margin: 0; }
 .content ul, .content ol { margin: 1em 0; padding-left: 2em; }
 .style-modern .message .content { padding-left: var(--indent); }
@@ -149,14 +168,23 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .style-classic .message.me, .style-classic .message.whitelist { --text-inset: calc(0.6 * var(--content-em) + 2px); }
 .style-modern .message.me, .style-modern .message.whitelist { --text-inset: calc(var(--indent) + 0.5 * var(--content-em) + 2px); }
 .continuation { opacity: 0.75; }
-.continuation-note, .deleted-note, .trailer { color: var(--secondary); font-size: 0.85em; }
+.continuation-note, .deleted-note { color: var(--secondary); font-size: var(--fs-85); }
+.trailer { color: var(--secondary); font-size: var(--fs-85); }
 .trailer p { margin: 0.25em 0 0; }
 /* The "Message cité N fois" count (#1039): legacy's speech bubble at the right of the footer (`.quotedhfrlink`, `style-liste.css:419-431`
-   @ 87fe0d1c), drawn in CSS instead of the `08-chat.png` image so it follows every theme. Not a tap target: the page it led to is not captured. */
+   @ 87fe0d1c), drawn in CSS instead of the `08-chat.png` image so it follows every theme. Raised by 0.2em (about 3 px at the default
+   text size; operator, 2026-11-18: it sat slightly too low): `top` moves it without changing the footer's height. With a link it
+   is a tap target: a box of at least 44 px by 44 px centred on the bubble, and the system's own press highlight (no custom effect);
+   the "+" button of the next message is positioned too and comes later, so it wins where the two overlap. */
 .trailer { display: flex; align-items: flex-end; }
 .quoted-bubble {
-  margin: 0.25em 0 0 auto; min-width: 1.6em; box-sizing: border-box; padding: 0.15em 0.5em; border-radius: 0.9em 0.9em 0.9em 0.2em;
-  background: var(--secondary); color: var(--background); font-weight: 600; font-size: 0.9em; line-height: 1.3; text-align: center;
+  position: relative; top: -0.2em; margin: 0.25em 0 0 auto; min-width: 1.6em; box-sizing: border-box; padding: 0.15em 0.5em;
+  border-radius: 0.9em 0.9em 0.9em 0.2em; background: var(--secondary); color: var(--background); font-weight: 600; font-size: var(--fs-765);
+  line-height: 1.3; text-align: center; text-decoration: none;
+}
+a.quoted-bubble::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: max(calc(100% + 22px), 44px); height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 .content img, .signature img { max-width: 100%; height: auto; }
@@ -177,15 +205,42 @@ hr { visibility: hidden; height: 12px; margin: 0; }
 hr:last-child { display: none; }
 /* No rule above or below a quote (#1038): legacy draws the left bar only (`style-liste-dark.css:296-300` @ 87fe0d1c). */
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0 0 0 4px; }
-/* Without a fill a quote shows the message's own surface, even messages included: --secondary on the 5 % tint is 4.55:1 or more
-   (see --alt-strength above). */
-b.s1 { font-size: 0.85em; color: var(--secondary); }
+b.s1 { font-size: var(--fs-85-content); color: var(--secondary); }
+/* A header changes the font size, so a sub or sup inside it reads the header's own size at 100 % (both variables: a header in a code
+   block takes the code rule below), not the context's (#1304). */
+b.s1 { --context-100: calc(0.85 * 15 / 17 * 1rem); --code-100: var(--context-100); }
 b.s1 a { color: var(--text); font-weight: 700; }
+table.code b.s1, table.fixed b.s1, .signature b.s1 { font-size: var(--fs-7225-content); }
+.signature table.code b.s1, .signature table.fixed b.s1 { font-size: var(--fs-614-content); }
+table.code b.s1, table.fixed b.s1, .signature b.s1 { --context-100: calc(0.7225 * 15 / 17 * 1rem); }
+.signature table.code b.s1, .signature table.fixed b.s1 { --context-100: calc(0.614125 * 15 / 17 * 1rem); }
+.content { --context-100: calc(15 / 17 * 1rem); }
+.signature { --context-100: calc(0.85 * 15 / 17 * 1rem); }
+table.code, table.fixed { --code-100: calc(0.85 * var(--context-100, 1rem)); }
+/* sub and sup: `font-size: smaller` is the parent over 1.2 in WebKit. The floor reads the context's size at 100 % (--context-100 and
+   --code-100, from rem constants), never the possibly floored parent, so a child is never bigger than at 100 %. Written here, not as a
+   :root variable, because a var() in a custom property resolves where the property is declared. */
+sub, sup { font-size: max(calc(1em / 1.2), min(calc(var(--context-100, 1rem) / 1.2), var(--floor))); }
+table.code sub, table.fixed sub, table.code sup, table.fixed sup {
+  font-size: max(calc(1em / 1.2), min(calc(var(--code-100, 1rem) / 1.2), var(--floor)));
+}
+/* A sub or sup inside another one is the context over 1.44 at 100 % (1.2 twice), not the 100 % size of its parent over 1.2 (#1304). */
+:is(sub, sup) :is(sub, sup) { font-size: max(calc(1em / 1.2), min(calc(var(--context-100, 1rem) / 1.44), var(--floor))); }
+table.code :is(sub, sup) :is(sub, sup), table.fixed :is(sub, sup) :is(sub, sup) {
+  font-size: max(calc(1em / 1.2), min(calc(var(--code-100, 1rem) / 1.44), var(--floor)));
+}
+/* Third level (1.2 three times). Deeper levels are not covered: they take the third level's size at 100 %, a little
+   above their own. */
+:is(sub, sup) :is(sub, sup) :is(sub, sup) { font-size: max(calc(1em / 1.2), min(calc(var(--context-100, 1rem) / 1.728), var(--floor))); }
+table.code :is(sub, sup) :is(sub, sup) :is(sub, sup), table.fixed :is(sub, sup) :is(sub, sup) :is(sub, sup) {
+  font-size: max(calc(1em / 1.2), min(calc(var(--code-100, 1rem) / 1.728), var(--floor)));
+}
 
 /* Code: monospace, scroll sideways instead of widening the page. */
-table.code, table.fixed { font-size: 0.85em; }
+table.code, table.fixed { font-size: var(--fs-85-content); }
 table.code *, table.fixed * { font-family: ui-monospace, Menlo, monospace; }
 table.code td, table.fixed td { overflow-x: auto; }
+.signature table.code, .signature table.fixed { font-size: var(--fs-7225-content); }
 ol.olcode { margin: 0; padding-left: 2.5em; white-space: pre; }
 /* Legacy turned the olcode keyword colour "blue" into the action colour (LinkItem.m:265, kept as served by LOT-034). */
 ol.olcode span[style="color:blue"] { color: var(--action) !important; }
@@ -202,7 +257,7 @@ table.spoiler.open div.masque { visibility: visible; }
    the article's padding, --edge) and the padding puts the text back at --text-inset, with the 10 px right padding of the text. */
 .signature {
   margin: 0.75em calc(-1 * var(--edge)) 0; padding: 0.5em calc(var(--edge) + var(--text-right)) 0 calc(var(--edge) + var(--text-inset));
-  border-top: 1px dashed var(--separator); font-size: calc(0.85 * var(--content-em)); color: var(--secondary);
+  border-top: 1px dashed var(--separator); font-size: var(--fs-85-content); color: var(--secondary);
 }
 /* A blocklisted post's children carry their own 1em margins (below), so the signature only needs the text inset. */
 .message.blocked .blocked-post > .signature:not(summary) {
@@ -212,27 +267,25 @@ table.spoiler.open div.masque { visibility: visible; }
 
 /* Images and videos that wait for a tap, and refused images shown as their URL (LOT-071 D-071-1, D-071-2). */
 button.image-tap, button.video {
-  font: inherit; font-size: 0.85em; color: var(--text); background: var(--placeholder);
+  font: inherit; font-size: var(--fs-85-content); color: var(--text); background: var(--placeholder);
   border: none; border-radius: 8px; padding: 0.6em 0.8em; margin: 0.25em 0; display: inline-block; max-width: 100%;
 }
+/* The video button and pill are children of the article, not of the message text: 0.85 of the body. */
+button.video { font-size: var(--fs-85); }
 .videos { margin-top: 0.5em; }
 /* The thumbnail card of a plain YouTube link (#1037): the pill until the thumbnail has loaded (`reader.js` adds `has-thumb`), then the
    thumbnail (hqdefault is 4:3 with black bars: cropped to 16:9) under a play mark drawn here, no extra request. */
 .videolinks { margin-top: 0.5em; }
 a.video-card { display: block; position: relative; max-width: 480px; margin: 0.25em 0; text-decoration: none; }
-a.video-card .video-pill { display: inline-block; font-size: 0.85em; color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
+a.video-card .video-pill { display: inline-block; font-size: var(--fs-85); color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
 a.video-card img.video-thumb, a.video-card .video-play { display: none; }
 a.video-card.has-thumb img.video-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--placeholder); }
 a.video-card.has-thumb .video-pill { display: none; }
 a.video-card.has-thumb .video-play { display: block; position: absolute; top: 50%; left: 50%; width: 3.2em; height: 3.2em; margin: -1.6em 0 0 -1.6em; border-radius: 50%; background: rgba(0, 0, 0, 0.6); }
 a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top: 50%; left: 50%; margin: -0.7em 0 0 -0.45em; border-style: solid; border-width: 0.7em 0 0.7em 1.2em; border-color: transparent transparent transparent #fff; }
-.image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
+.image-link { font-size: var(--fs-85-content); color: var(--secondary); word-break: break-all; }
+.signature button.image-tap, .signature .image-link { font-size: var(--fs-7225-content); }
 
-/* The pull-to-refresh hint of the reader's pages (#820): `FloatingSpacing.gap` under the last message, small and almost tone on
-   tone, in the flow, so at rest it shows above the floating bar, never under it (operator decision of 2026-11-16 on #932). */
-.pull-hint { margin: var(--floating-gap, 8px) 0 0; padding: 0 16px; text-align: center; font-size: 0.75em; line-height: 1.2; color: var(--secondary); opacity: 0.75; }
-/* Hidden, not removed, while the pull does nothing (a composer is open): the page keeps its length, so nothing moves. */
-.no-pull-hint .pull-hint { visibility: hidden; }
 /* Message menu (LOT-087): the author and the "+" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
@@ -242,7 +295,7 @@ a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top
    the cross about where legacy's 32 pt box had it. */
 .message button.menu-button {
   display: flex; align-items: center; justify-content: center; box-sizing: border-box; flex: none;
-  width: 44px; height: 44px; margin: -12px -6px -12px 0; padding: 0; border: 0; background: none; color: var(--action);
+  position: relative; width: 44px; height: 44px; margin: -12px -6px -12px 0; padding: 0; border: 0; background: none; color: var(--action);
 }
 .message button.menu-button svg { display: block; width: 16px; height: 16px; }
 
@@ -258,41 +311,45 @@ a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top
 .style-modern .message.me .content, .style-modern .message.whitelist .content { padding-left: calc(var(--indent) + 0.5em); }
 .message.whitelist .header { background: color-mix(in srgb, var(--love) 40%, transparent); border-left-color: var(--love-border); }
 .style-classic .message.whitelist .header { background: var(--love); }
-/* Classic header on an even message: the 15 % accent band over --background, so the date (--secondary) keeps 4.5:1 (it measured 4.48:1
-   light, 4.32:1 with Increase Contrast, over --surface-alt). Equal specificity to the classic rules above, which it follows. */
-.style-classic .message:where(:nth-of-type(even)) .header,
-.style-classic .message.me:where(:nth-of-type(even)) .header {
-  --tint: color-mix(in srgb, var(--action) 15%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
 .message.whitelist .avatar { box-sizing: border-box; border: 2px solid var(--love-border); }
 .message.whitelist .content { background: color-mix(in srgb, var(--love) 40%, transparent); border-left: 2px solid var(--love-border); padding-left: 0.6em; }
 .style-classic .message.whitelist .content { background: var(--love); }
 .message.mode .content { background: var(--modo); }
 table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); }
+/* Secondary text on the tinted whitelist surfaces (#644): `--secondary` is 4.45:1 on the classic header's `--love` and 4.05:1 on the
+   folded blocked quote's tint over `--love` (4.45 in modern). Pulling it 20 % toward the page text gives 5.67 and 5.15 in light; the
+   quote header rule also holds in dark (the text is lighter than `--secondary`). The classic header date is light only: in dark #1210
+   draws it in `--text`, which a rule of higher specificity here would undo. Follows the themes, which set `--secondary` and `--text`. */
+.message.whitelist { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
+@media not (prefers-color-scheme: dark) { .style-classic .message.whitelist .header .date { color: var(--secondary-tinted); } }
+.message.whitelist table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
+/* More cases of the same class (#1358). A folded blocked quote on the moderation background (`--modo`) puts `--secondary` at 4.23:1 in
+   light (4.30 in dark); the same pull toward the page text gives 5.39 and 5.19. A continuation's 75 % opacity fades text and surface
+   together: its date and note are 2.7 to 3.3:1 in light and its folded quote header 3.0 to 3.4 in both modes, whatever the author; the
+   page text is above 6.4 there, as dark's date and note already use it (#1210). The other `--secondary` texts of a continuation
+   (ordinary quote header, signature, trailer) are raised by the rule below (#1360). */
+.message.mode { --secondary-tinted: color-mix(in srgb, var(--secondary) 80%, var(--text)); }
+.message.mode table.quote-blocked > * > tr > td > b.s1 { color: var(--secondary-tinted); }
+@media not (prefers-color-scheme: dark) {
+  .message.continuation .date, .message.continuation .continuation-note, .message.whitelist.continuation .header .date { color: var(--text); }
+}
+.message.continuation table.quote-blocked > * > tr > td > b.s1 { color: var(--text); }
+/* The other `--secondary` texts of a continuation (#1360): the ordinary quote header, the signature, the trailer and its count bubble.
+   The 75 % fade puts them at 2.8 to 4.1:1: the quote header on the allowlist or moderation tint down to 2.8, the signature and the
+   trailer on the page at 3.15 in light and 3.61 in dark, the bubble (`--background` on `--secondary`) the same. 70 % toward the page
+   text gives 5.0 in light and 5.7 in dark on the worst surface and keeps them softer than the body. A dedicated variable: a custom
+   property cannot refer to itself. The image link, the deleted note and a blocked summary share the colour and the surface of those
+   texts and follow the same rule; no hosted test draws them. */
+.message.continuation { --secondary-faded: color-mix(in srgb, var(--secondary) 30%, var(--text)); }
+.message.continuation :is(b.s1, .signature, .trailer, .image-link, .deleted-note, .blocked-summary) { color: var(--secondary-faded); }
+.message.continuation .quoted-bubble { background: var(--secondary-faded); }
 table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
-table.quote-blocked { background: color-mix(in srgb, var(--text) 5%, transparent); }
-/* On an even message the three tints sit over --background, not over --surface-alt: the folded quote header (--secondary, 0.85rem)
-   measured 4.30:1 on tinted-over-tinted in light (4.13:1 with Increase Contrast), under 4.5:1. The same tint is a gradient layer over
-   the page colour; :where() keeps the specificity of the rules above, and these come after them. */
-:where(article.message:nth-of-type(even)) table.quote-me {
-  --tint: color-mix(in srgb, var(--action) 3%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
-:where(article.message:nth-of-type(even)) table.quote-allowed {
-  --tint: color-mix(in srgb, var(--love) 30%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
-:where(article.message:nth-of-type(even)) table.quote-blocked {
-  --tint: color-mix(in srgb, var(--text) 5%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
-
+table.quote-blocked { background: color-mix(in srgb, var(--text) var(--blocked-tint), transparent); }
 /* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */
 .message.blocked { padding: 0; }
 .message.blocked .blocked-post > :not(summary) { margin-left: 1em; margin-right: 1em; }
 .message.blocked .blocked-post[open] { padding-bottom: 0.75em; }
-.blocked-summary { display: flex; align-items: center; gap: 0.5em; padding: 0.5em 1em; color: var(--secondary); font-size: 0.85em; cursor: pointer; }
+.blocked-summary { display: flex; align-items: center; gap: 0.5em; padding: 0.5em 1em; color: var(--secondary); font-size: var(--fs-85); cursor: pointer; }
 .blocked-author { font-weight: 600; }
 .blocked-note { margin-left: auto; }
 .blocked-post[open] > .blocked-summary { border-bottom: 1px solid var(--separator); margin-bottom: 0.5em; }
@@ -306,7 +363,7 @@ table.quote-blocked { cursor: pointer; }
 table.quote-blocked > * > tr > td { padding: 0.4em 0.6em; }
 table.quote-blocked:not(.open) > * > tr > td { font-size: 0; padding: calc(0.4 * var(--content-em)) calc(0.6 * var(--content-em)); }
 table.quote-blocked:not(.open) > * > tr > td > :not(b.s1) { display: none; }
-table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: calc(0.85 * var(--content-em)); }
+table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: var(--fs-85-content); --context-100: calc(0.85 * 15 / 17 * 1rem); }
 table.quote-blocked > * > tr > td > b.s1 { display: flex; justify-content: space-between; gap: 0.5em; }
 /* The header is a block line now, so the `<br>` that ended it would add a blank line: hide it. */
 table.quote-blocked > * > tr > td > b.s1 + br { display: none; }
@@ -317,7 +374,7 @@ table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { 
 
 /* A gallery theme (LOT-188, THEMES.md §3): the app sets --app-theme-{light,dark}-* and data-app-theme on <html>
    (ThemeAppearance.readerScript); Legacy removes the attribute, so none of the rules below applies and its page is the one above.
-   The page is the theme's surface; #568's --surface-alt and --separator-strong stay derived from --text and --background. */
+   The page is the theme's surface; #568's --separator-strong stays derived from --text and --background. */
 :root[data-app-theme] {
   --text: var(--app-theme-light-text);
   --secondary: var(--app-theme-light-secondary);
@@ -351,7 +408,7 @@ table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { 
   }
 }
 /* :where() keeps these at the specificity of the rules they extend, and they come last: `b.s1 a` (a quote's author) keeps
-   --text, a [code] block keeps its own background on an even message instead of stepping back to the page, and a quote inside a
+   --text, a [code] block keeps its own background instead of stepping back to the page, and a quote inside a
    spoiler writes --text on its own background, not the spoiler's text. --app-theme-font is the theme's design (unset: the
    declaration is invalid and the body keeps the system family it inherits). */
 :where(:root[data-app-theme]) body { font-family: var(--app-theme-font); }

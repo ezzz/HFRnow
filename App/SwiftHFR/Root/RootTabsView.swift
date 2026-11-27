@@ -49,6 +49,20 @@ struct RootTabsView: View {
             .badge(model.plusBadge)
         }
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)
+        // Re-selecting the current tab reloads its list with a haptic (GAP-007, UXD-04, #426).
+        .background {
+            TabBarReselectionObserver(
+                onReselect: { index in
+                    guard let tab = RootTab.atBarIndex(index, hasSearch: hasSearchTab) else { return }
+                    Task { await model.reselect(tab) }
+                },
+                onSelect: { index in
+                    guard let tab = RootTab.atBarIndex(index, hasSearch: hasSearchTab) else { return }
+                    model.selectedTab = tab
+                }
+            )
+            .frame(width: 0, height: 0)
+        }
         // EXPERIMENTAL(searchTab, #896): the selection follows the option and the Plus search entry.
         .onChange(of: model.selectedDestination, initial: true) { model.settleSearchTab(isOn: hasSearchTab) }
         .onChange(of: hasSearchTab) { model.settleSearchTab(isOn: hasSearchTab) }
@@ -182,7 +196,7 @@ struct TopicsColumn: View {
                 .appScreenBackground()
             }
         } else {
-            ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
+            ContentUnavailableView("Choisis un forum", systemImage: "list.bullet")
         }
     }
 }

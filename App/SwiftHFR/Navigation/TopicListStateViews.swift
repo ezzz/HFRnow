@@ -13,23 +13,49 @@ struct AllSectionsCollapsedView: View {
         } description: {
             Text("La vue filtrée masque les sections repliées.")
         } actions: {
-            Button("Afficher les sections repliées") { options.showsCollapsedSections = true }
-            Button("Tout déplier") { Task { await options.expandAll() } }
+            Button("Afficher les sections repliées") { options.showCollapsedSectionsFromEmptyState() }
+            Button("Tout déplier") { Task { await options.expandAllFromEmptyState() } }
         }
+    }
+}
+
+/// A sign-in prompt as an empty state: its button opens the login of its target, or the accounts when the store has a problem.
+struct SignInPromptView: View {
+    let prompt: SignInPrompt
+    let refresh: () async -> Void
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
+    @State private var loginTarget: LoginTarget?
+    @State private var showsAccounts = false
+
+    var body: some View {
+        EmptyStateView(
+            title: prompt.title, symbol: prompt.systemImage, message: prompt.message,
+            action: (prompt.action, { openLogin() }), refresh: refresh
+        )
+        .sheet(item: $loginTarget) { target in
+            if let accounts { LoginView(target: target, accounts: accounts) }
+        }
+        .sheet(isPresented: $showsAccounts) { AccountsView() }
+    }
+
+    /// As the account button: a damaged account store is repaired in the accounts, not by adding another.
+    private func openLogin() {
+        if accounts?.storeProblem == nil { loginTarget = prompt.target } else { showsAccounts = true }
     }
 }
 
 struct EmptyListView: View {
     let reason: EmptyReason
+    /// Favoris without an account: legacy's prompt, with its button instead of a refresh (#824); nil on every other list.
+    var prompt: (AccountRow?) -> SignInPrompt? = { _ in nil }
     let refresh: () async -> Void
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
 
     var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: "tray")
-        } description: {
-            if let message { Text(message) }
-        } actions: {
-            Button("Actualiser") { Task { await refresh() } }
+        if let prompt = prompt(accounts?.current) {
+            SignInPromptView(prompt: prompt, refresh: refresh)
+        } else {
+            EmptyStateView(title: title, symbol: "tray", message: message, refresh: refresh)
         }
     }
 
@@ -44,27 +70,8 @@ struct EmptyListView: View {
     private var message: String? {
         switch reason {
         case .nothing: nil
-        case .signInRequired(let notice): notice ?? "Connectez-vous pour voir cette liste."
+        case .signInRequired(let notice): notice ?? "Connecte-toi pour voir cette liste."
         case .notice(let notice): notice
         }
-    }
-}
-
-/// HFR's confirmation of a new topic, above the list.
-struct TopicSentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import HFRStorage
+import LocalAuthentication
 import Observation
 import SwiftUI
 
@@ -39,10 +40,40 @@ enum AppLockOutcome: Sendable, Equatable {
     case passcodeNotSet
 }
 
+/// How the device unlocks the app, for the settings switch's title (#1173): what `LAContext` reports, never a method the device lacks.
+enum AppLockMethod: Sendable, Equatable {
+    case faceID, touchID, opticID
+    /// The device reports no biometry: the device code alone. A sensor with nothing enrolled (or locked out) is still reported as
+    /// `.faceID` / `.touchID`: `biometryType` is set whatever `canEvaluatePolicy` returns, and the device does offer that method.
+    case codeOnly
+
+    /// Maps the biometry the device reports.
+    init(biometry: LABiometryType) {
+        switch biometry {
+        case .faceID: self = .faceID
+        case .touchID: self = .touchID
+        case .opticID: self = .opticID
+        default: self = .codeOnly
+        }
+    }
+
+    /// The switch's title, naming the method the device has (« code » alone without biometry).
+    var switchTitle: String {
+        switch self {
+        case .faceID: "Verrouiller l’app (Face ID / code)"
+        case .touchID: "Verrouiller l’app (Touch ID / code)"
+        case .opticID: "Verrouiller l’app (Optic ID / code)"
+        case .codeOnly: "Verrouiller l’app (code)"
+        }
+    }
+}
+
 /// Asks the device owner to authenticate (`LAContext`, policy `deviceOwnerAuthentication`); a scripted double in tests.
 protocol DeviceOwnerAuthenticating: Sendable {
     /// Whether the policy can be evaluated now.
     func availability() -> AppLockAvailability
+    /// The biometry the device offers, for the switch's title.
+    var method: AppLockMethod { get }
     /// Shows the system sheet (Face ID or Touch ID, then the device code) with `reason`.
     func authenticate(reason: String) async -> AppLockOutcome
 }
@@ -71,6 +102,9 @@ final class AppLockModel {
     private(set) var message: String?
     /// Whether the app is in the foreground and active.
     private(set) var isActive = true
+
+    /// The settings switch's title: names Face ID, Touch ID, Optic ID or the code, as the device has it (#1173).
+    var switchTitle: String { authenticator.method.switchTitle }
 
     /// Whether every scene shows the cover instead of the app.
     var isCovered: Bool { isEnabled && (isLocked || !isActive) }
@@ -108,7 +142,7 @@ final class AppLockModel {
             case .available:
                 break
             case .passcodeNotSet:
-                message = "Définissez un code sur l’appareil pour utiliser le verrouillage."
+                message = "Définis un code sur l’appareil pour utiliser le verrouillage."
                 return
             case .unavailable:
                 message = "Le verrouillage n’est pas disponible sur cet appareil."
@@ -163,7 +197,7 @@ final class AppLockModel {
         case .cancelled:
             break
         case .failed:
-            message = "Authentification échouée. Réessayez."
+            message = "Authentification échouée. Réessaie."
         }
     }
 
@@ -184,6 +218,7 @@ extension AppLockModel {
 
 /// Never shows a system sheet (previews).
 private struct NoAuthentication: DeviceOwnerAuthenticating {
+    var method: AppLockMethod { .faceID }
     func availability() -> AppLockAvailability { .available }
     func authenticate(reason: String) async -> AppLockOutcome { .cancelled }
 }

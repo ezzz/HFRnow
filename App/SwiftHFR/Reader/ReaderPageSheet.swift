@@ -2,6 +2,11 @@ import SwiftUI
 
 /// The rules of the "Page numéro" sheet, apart from the view so they are tested as they are.
 enum ReaderPagePicker {
+    /// Legacy's fixed 260 pt stop (`Common.swift:3212` @ 87fe0d1c) stays the first one and is where the sheet opens; `.medium` lets
+    /// the member drag it taller when Dynamic Type makes the field and the two button rows taller than that, and the content
+    /// scrolls meanwhile (#1167, HIG › Typography).
+    static let detents: Set<PresentationDetent> = [.height(260), .medium]
+
     /// One quick button of the sheet's second row.
     enum Step: Int, CaseIterable {
         case minusTen = -10, minusOne = -1, plusOne = 1, plusTen = 10
@@ -54,7 +59,8 @@ enum ReaderPagePicker {
 
 // Port of HFRswift/Swift/Common.swift (TopicPagePickerSheet, TopicPagePickerQuickButton) @ 87fe0d1c (lines 3063-3190).
 // Differences: the quick buttons use the system tint, not `themePalette.actionTintColor` / `.systemGray3` (GAP-060, follow-up
-// in the PR's issue list). The field opens on the current page, as legacy does (`Common.swift:3532` @ 87fe0d1c).
+// in the PR's issue list). The field opens on the current page, as legacy does (`Common.swift:3532` @ 87fe0d1c). A second
+// detent and a scrolling content for large text sizes, which legacy's fixed 260 pt lacks (#1167).
 /// The "Page numéro" sheet: first | number | last, then -10 | -1 | +1 | +10, "Valider" opens the page.
 struct ReaderPageSheet: View {
     let maxPage: Int
@@ -70,32 +76,35 @@ struct ReaderPageSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Choisir une page entre 1 et \(maxPage)").font(.footnote).foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    quickButton(systemImage: "backward.end", label: "Première page") { input = "1" }
-                    TextField("1...\(maxPage)", text: $input)
-                        .keyboardType(.numberPad)
-                        .font(.body.monospacedDigit())
-                        .textFieldStyle(.roundedBorder)
-                        .multilineTextAlignment(.center)
-                    quickButton(systemImage: "forward.end", label: "Dernière page") { input = "\(maxPage)" }
-                }
-                HStack(spacing: 10) {
-                    ForEach(ReaderPagePicker.Step.allCases, id: \.self) { step in
-                        quickButton(title: step.title, label: step.accessibilityLabel) {
-                            input = ReaderPagePicker.stepped(input, by: step, maxPage: maxPage)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Choisir une page entre 1 et \(maxPage)").font(.footnote).foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        quickButton(systemImage: "backward.end", label: "Première page") { input = "1" }
+                        TextField("1...\(maxPage)", text: $input)
+                            .keyboardType(.numberPad)
+                            .font(.body.monospacedDigit())
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.center)
+                        quickButton(systemImage: "forward.end", label: "Dernière page") { input = "\(maxPage)" }
+                    }
+                    HStack(spacing: 10) {
+                        ForEach(ReaderPagePicker.Step.allCases, id: \.self) { step in
+                            quickButton(title: step.title, label: step.accessibilityLabel) {
+                                input = ReaderPagePicker.stepped(input, by: step, maxPage: maxPage)
+                            }
                         }
                     }
                 }
+                .padding(20)
             }
-            .padding(20)
+            // The sheet opens at 260 pt as legacy's; at a large text size the member can drag it taller and the content
+            // scrolls meanwhile (#1167).
+            .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Page numéro")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Fermer", systemImage: "xmark") { dismiss() }
-                }
+                SheetCloseToolbarItem { dismiss() }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Valider") {
                         if let page = ReaderPagePicker.target(input, maxPage: maxPage) {
@@ -107,7 +116,7 @@ struct ReaderPageSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(260)])
+        .presentationDetents(ReaderPagePicker.detents)
         .presentationDragIndicator(.visible)
     }
 

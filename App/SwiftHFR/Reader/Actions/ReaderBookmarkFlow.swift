@@ -9,7 +9,7 @@ struct ReaderBookmarkFlow: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Stockage MP", isPresented: consentShown, presenting: bookmarks?.pendingConsent) { draft in
+            .alert(AlertTitles.mpStorageQuestion, isPresented: consentShown, presenting: bookmarks?.pendingConsent) { draft in
                 // The draft comes from the alert: SwiftUI clears the presenting state before the button runs (LOT-087).
                 Button("Activer") { Task { await bookmarks?.answerConsent(true, for: draft) } }
                 Button("Annuler", role: .cancel) { Task { await bookmarks?.answerConsent(false, for: draft) } }
@@ -39,6 +39,7 @@ private struct BookmarkTitleSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
     @State private var title = ""
+    @State private var isAskingDiscard = false
 
     var body: some View {
         NavigationStack {
@@ -46,7 +47,7 @@ private struct BookmarkTitleSheet: View {
                 Section {
                     Group {
                         Text("Créer un bookmark sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
-                        TextField("Ajoutez un titre", text: $title)
+                        TextField("Ajoute un titre", text: $title)
                             .textInputAutocapitalization(.sentences)
                             .focused($focused)
                             .submitLabel(.done)
@@ -63,11 +64,17 @@ private struct BookmarkTitleSheet: View {
             .navigationTitle("Bookmark")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { if DiscardConfirmation.hasText(title) { isAskingDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) { Button("Créer", action: submit).disabled(problem != nil) }
             }
             .task { focused = true }
         }
+        // A typed title is not thrown away without asking (#1169).
+        .discardConfirmation(
+            "Abandonner ce bookmark ?", hasChanges: DiscardConfirmation.hasText(title), isAsking: $isAskingDiscard
+        ) { dismiss() }
     }
 
     private var problem: String? { BookmarkActionModel.titleProblem(title) }

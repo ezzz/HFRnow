@@ -25,6 +25,12 @@ final class TopicReaderModel {
     private(set) var page: ReaderPage?
     /// A load is running.
     private(set) var isLoading = false
+    /// The page is pulled past its top or its end: the refresh icons' scales, 0 to 1 (#1207).
+    var pullTop: CGFloat = 0
+    /// The end's pull, same scale.
+    var pullBottom: CGFloat = 0
+    /// The end whose pull started the refresh that is running; only that icon turns (a first load or a page change turns none).
+    var pulledEdge: PullEdge?
     /// Failure of the latest load; cleared by the next success.
     private(set) var error: ListLoadError?
     /// The document for the web view; replaced by every successful load.
@@ -46,6 +52,8 @@ final class TopicReaderModel {
     let confirmationTimer = ConfirmationAutoDismiss()
     /// The message menu on screen; nil when none.
     var presentedMenu: MessageMenu?
+    /// « Connectez-vous pour bloquer » was picked in the author menu: the reader opens the login (LOT-159 D3).
+    var asksLogin = false
     /// Short confirmation of the last menu action ("Lien copié"), shown until cleared.
     var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
@@ -54,7 +62,8 @@ final class TopicReaderModel {
     var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
-    /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
+    /// A composer is being prepared (a quote being fetched, or an edit form, #1190): another waits for it, as legacy's
+    /// `isLoadingQuoteTemplate` (LOT-086).
     var isLoadingQuote = false
     /// The messages of this topic selected for a multi-quote, as last read from the session (the menu reads it again before it opens).
     var quoteSelected: Set<Int> = []
@@ -72,8 +81,8 @@ final class TopicReaderModel {
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
     /// The reload a confirmed or unconfirmed write asked for and that has not delivered yet (#908): a disappearance that stops
-    /// it (`viewDidDisappear`) leaves it owed, and the screen coming back runs it, so the result of a send is never lost to a
-    /// page that stays as it was before the write. Any newer load that delivers settles it.
+    /// it (`viewDidDisappear`) leaves it owed, and the screen coming back or the last composer closing runs it, so the result
+    /// of a send is never lost to a page that stays as it was before the write. Any newer load that delivers settles it.
     private(set) var owedFollowUp: WriteFollowUp?
     /// The owed reload started when the last composer closed (tests await it).
     @ObservationIgnored private(set) var owedTask: Task<Void, Never>?
@@ -292,6 +301,7 @@ final class TopicReaderModel {
     var isPrivateConversation: Bool {
         switch requested.source {
         case .topic(let topic): topic.category == .privateMessages
+        case .quotingMessages(let link): link.topic.category == .privateMessages
         }
     }
 
@@ -328,8 +338,19 @@ final class TopicReaderModel {
     /// The last one closing runs a write's reload that waited for it (#908) while the reader is on screen.
     func composer(_ composer: ReaderComposer, isOpen: Bool) {
         if isOpen { openComposers.insert(composer) } else { openComposers.remove(composer) }
-        guard !isOpen, openComposers.isEmpty, isOnScreen, let owedFollowUp, page != nil, !isLoading else { return }
-        owedTask = Task { [weak self] in await self?.runOwed(owedFollowUp) }
+        guard !isOpen, let owedFollowUp, canRunOwed else { return }
+        owedTask = Task { [weak self] in await self?.runOwedIfStillDue(owedFollowUp) }
+    }
+
+    /// The reader can run an owed reload now: on screen, a page shown, nothing loading, no composer open.
+    private var canRunOwed: Bool { openComposers.isEmpty && isOnScreen && page != nil && !isLoading }
+
+    /// The task the last composer closing queued runs after what that turn started, such as the reload of the reply just
+    /// sent (#950 round 3): it runs `followUp` only while it is still what is owed and the reader can still run it, so a
+    /// stale edit reload never cancels a newer one.
+    private func runOwedIfStillDue(_ followUp: WriteFollowUp) async {
+        guard owedFollowUp == followUp, canRunOwed else { return }
+        await runOwed(followUp)
     }
 
     /// The reply sheet closed: after a confirmed reply, shows HFR's sentence and the topic's latest post; after an
@@ -398,7 +419,10 @@ final class TopicReaderModel {
     /// thread is not captured (`R24` is a public topic). Its last known page is asked for; when that page's pager says
     /// the reply opened a new one, that page is asked for next.
     func showLatestPost() async {
-        guard let page, let shown else { return }
+        guard let page, let current = shown else { return }
+        // A reply written in the quote view (#1039) lands at the end of its topic, not among the quoting posts.
+        var shown = current
+        if case .quotingMessages = current.source, let topic = page.topicID { shown = ReaderTarget(source: .topic(topic)) }
         guard page.topicID?.category == .privateMessages else {
             await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage, followUp: .latestPost)
             return
@@ -422,7 +446,8 @@ final class TopicReaderModel {
         await load(servedTarget.atPage(served.maxPage), keepsScrollPosition: false, anchor: .lastMessage, followUp: followUp)
     }
 
-    /// Runs the reload a write still owes (#908): the screen came back after a disappearance stopped it.
+    /// Runs the reload a write still owes (#908): the screen came back, or the last composer closed, after a disappearance
+    /// stopped it.
     private func runOwed(_ followUp: WriteFollowUp) async {
         ReaderLog.debug("owed follow-up model=\(debugID)")
         switch followUp {
@@ -550,11 +575,7 @@ final class TopicReaderModel {
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
-            var result = await TopicReaderModel.fetch(target, from: source)
-            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (issue #566).
-            if case .failure(.cancelled) = result, !Task.isCancelled {
-                result = await TopicReaderModel.fetch(target, from: source)
-            }
+            let result = await TopicReaderModel.fetch(target, from: source)
             // Delivered, page or failure: what a write owed is settled, in the same turn (a failure shows "Réessayer").
             if settles { self?.settleFollowUp(generation: mine) }
             self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
@@ -568,7 +589,10 @@ final class TopicReaderModel {
         _ target: ReaderTarget, from source: any TopicPageSource
     ) async -> Result<ReaderPage, ListLoadError> {
         do throws(ListLoadError) {
-            return .success(try await source.page(for: target))
+            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (#566, #1191).
+            return .success(try await retryingUnrequestedCancellation(cancelledAs: .cancelled) {
+                () async throws(ListLoadError) -> ReaderPage in try await source.page(for: target)
+            })
         } catch {
             return .failure(error)
         }
@@ -592,7 +616,12 @@ final class TopicReaderModel {
         task = nil
         switch result {
         case .success(let loaded):
-            let source = loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
+            // The quote view stays the quote view (#1039): the page's topic would make a refresh ask for the whole topic.
+            let source: ReaderTarget.Source = if case .quotingMessages = target.source {
+                target.source
+            } else {
+                loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
+            }
             // HFR may serve another page than the one asked (past the end): the target follows the page served.
             shown = ReaderTarget(source: source).atPage(loaded.currentPage)
             page = loaded

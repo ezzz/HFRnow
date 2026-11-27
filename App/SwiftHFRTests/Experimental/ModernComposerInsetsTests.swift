@@ -93,7 +93,7 @@ struct ModernComposerInsetsTests {
     func aToolChipFitsInsideItsCellAroundItsGlyph(density: ListDensity) {
         let metrics = ComposerBarMetrics(density: density, scale: TextScale(percent: 100))
         let cell = ComposerControlRow.cellSize(metrics.cellSize, inCard: true)
-        let diameter = ComposerToolStyle.chipDiameter(cell: cell)
+        let diameter = ComposerChip.chipDiameter(cell: cell)
         #expect(diameter > metrics.glyphSize, "the glyph sits inside its chip")
         #expect(diameter < cell, "neighbouring chips never touch")
     }

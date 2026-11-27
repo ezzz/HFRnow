@@ -10,6 +10,20 @@ struct AboutModelTests {
         AboutModel(topicPages: FakeTopicPages())
     }
 
+    // LOT-159 (operator 2026-11-24): « Sur le forum : Topic Unique » opens the app's topic (legacy `credits.html:12` @ 87fe0d1c,
+    // `sujet_1711`) in the reader, through the router as any topic link.
+    @Test func theForumContactOpensTheAppsTopicInTheReader() throws {
+        let model = model()
+        model.openForumContact()
+        let link = try #require(model.selected)
+        let reader = try #require(model.reader(for: link))
+        guard case .topic(let topic) = reader.requested.source else {
+            Issue.record("the contact does not open a topic")
+            return
+        }
+        #expect(topic == TopicID(category: .forum(25), topic: 1711))
+    }
+
     @Test func versionShowsShortVersionAndBuild() {
         let version = AppVersion(info: ["CFBundleShortVersionString": "1.0", "CFBundleVersion": "42"])
         #expect(version.display == "1.0 (42)")

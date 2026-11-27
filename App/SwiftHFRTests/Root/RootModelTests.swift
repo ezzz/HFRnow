@@ -18,7 +18,7 @@ struct RootModelTests {
         let root = RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            favorites: NavigationModel(dataSource: counted, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: store, initial: initial, privateMessageCount: count
         )
@@ -104,16 +104,8 @@ struct RootModelTests {
         #expect(PlusEntry.allCases.filter(\.isDestructive) == [.deleteAccount])
     }
 
-    @Test func everyPlusEntryIsBuiltAndNamesNoOwningLot() {
-        let expected: [(PlusEntry, String?)] = [
-            (.settings, nil), (.search, nil), (.bookmarks, nil), (.qualityAlerts, nil),
-            (.credits, nil), (.charter, nil), (.deleteAccount, nil)
-        ]
-        #expect(expected.map(\.0) == PlusEntry.allCases)
-        for (entry, lot) in expected {
-            #expect(entry.owningLot == lot)
-            #expect(entry.isBuilt == (lot == nil))
-        }
+    @Test func thePlusEntriesAreTheSevenOfTheList() {
+        #expect(PlusEntry.allCases == [.settings, .search, .bookmarks, .qualityAlerts, .credits, .charter, .deleteAccount])
     }
 
     @Test func sidebarRowsUseTheLegacySymbols() {
@@ -139,7 +131,6 @@ struct RootModelTests {
         #expect(RootModel.favoritesSources == [.favorites, .flagged])
         // The environment-built model passes the Catégories constant to its navigation model; Favoris opens on its mode's list.
         #expect(RootModel.categoriesStartupSource == nil)
-        #expect(RootModel.favoritesStartupSource == TopicSource(mode: .flagsAndFavorites))
     }
 
     @Test func settingsChangesShowAfterReloadSettings() async {

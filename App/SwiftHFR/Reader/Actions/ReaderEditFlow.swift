@@ -1,8 +1,9 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (the `ProgressView` of a prefill, `:4472`; the alerts "Edition impossible", "Supprimer ce
-// message ?" and "Suppression impossible", `:4618-4640`; the composer's full-screen cover) @ 2440d79. Differences: GAP-096, GAP-097; the
-// composer is the reader's, as a reply's (LOT-084): a bar docked at the bottom of the page on an iPhone (#853), a sheet on an iPad.
+// message ?" and "Suppression impossible", `:4618-4640`; the composer's full-screen cover) @ 2440d79. Differences: GAP-096, GAP-097;
+// the delete alert's buttons name the action, « Annuler » / « Supprimer » (#1151, legacy « Non » / « Oui »); the composer is the
+// reader's, as a reply's (LOT-084): a bar docked at the bottom of the page on an iPhone (#853), a sheet on an iPad.
 /// The screens of "Editer" and "Supprimer" (LOT-088), all driven by `MessageWriteModel`. No branch on `writes`: it arrives after the
 /// first render, and a branch would rebuild the reader's web view.
 struct ReaderEditFlow: ViewModifier {
@@ -13,7 +14,7 @@ struct ReaderEditFlow: ViewModifier {
             .overlay {
                 if let progress = writes?.progress {
                     // Floats over the page (LOT-185: glass for floating elements).
-                    ProgressView(progress).padding().glassEffect(in: .rect(cornerRadius: 12))
+                    ProgressView(progress).padding().floatingCard(.glass)
                 }
             }
             // The reader suspends its page's taps while `editor` is set (`TopicReaderView`, #653).
@@ -29,8 +30,8 @@ struct ReaderEditFlow: ViewModifier {
                 isPresented: Binding(get: { writes?.pendingDelete != nil }, set: { if !$0 { writes?.pendingDelete = nil } }),
                 presenting: writes?.pendingDelete
             ) { target in
-                Button("Non", role: .cancel) {}
-                Button("Oui", role: .destructive) { Task { await writes?.confirmDelete(target) } }
+                Button(AlertVerbs.cancel, role: .cancel) {}
+                Button(AlertVerbs.deleteMessage, role: .destructive) { Task { await writes?.confirmDelete(target) } }
             } message: { _ in
                 Text("Cette action est définitive.")
             }

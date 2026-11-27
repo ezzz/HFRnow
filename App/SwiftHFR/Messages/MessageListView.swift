@@ -1,10 +1,16 @@
 import HFRModels
+import HFRStorage
 import SwiftUI
 
-// Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
-// in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
+// Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: logged out, the sign-in prompt of
+// `MPListView.swift:588` @ 87fe0d1c (#1317, GAP-037), « Se reconnecter » with a current account;
+// paged (legacy shows page 1 only); the conversation opens
+// in the reader column (GAP-110); the Tous / MP / MP multiples switch is new (LOT-171, #899), its last position remembered per account.
 // LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); GAP row pending #545.
 // #1013: the switch is a row of the list under the large title, so it scrolls away with it.
+// GAP-713: no « Actualiser » button, on the iPhone Duo cover screen either (legacy puts one at the bottom of the toolbar column there,
+// `MPListView.swift:676` @ 87fe0d1c, drawn at the top, a defect): a pull refreshes the list everywhere (operator, #1239, following
+// #1206); the Messages root is never pushed, so the cover screen adds nothing to it.
 /// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
 /// "Nouveau message" opens the new-MP composer (LOT-128) when an account is current and the page links to the form.
 struct MessageListView: View {
@@ -13,6 +19,9 @@ struct MessageListView: View {
     let composer: ComposerServices?
     @State private var newMessage: ReplyComposerModel?
     @State private var titleVisibility = TitleVisibility()
+    /// "Page numéro…" of a row menu: the row asked about, and the page typed.
+    @State private var pagePrompt: TopicSummary?
+    @State private var pageText = ""
 
     var body: some View {
         let loader = model.loader
@@ -25,14 +34,23 @@ struct MessageListView: View {
                 if loader.value != nil {
                     ForEach(model.visibleThreads) { thread in
                         MessageRowView(
-                            thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
+                            thread: thread, isUnread: model.isUnread(thread),
                             flagLabel: model.flagLabel(for: thread)
                         )
                         .themedRowText()
                         // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
-                        .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
+                        .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread)))
                         .listLookRow(isSelected: model.selected == thread)
                         .tag(thread)
+                        // The legacy quick actions, then (#676) "Marquer non lu" and "Supprimer" after a divider.
+                        .contextMenu {
+                            TopicRowMenu(topic: thread.summary, context: .privateMessages, open: { _, opening in
+                                model.open(thread, at: opening)
+                            }, askPage: { topic in
+                                pageText = "\(TopicQuickActions.suggestedPage(of: topic))"
+                                pagePrompt = topic
+                            })
+                        }
                     }
                 }
             }
@@ -46,7 +64,7 @@ struct MessageListView: View {
             // Both can show: a message HFR confirmed stays confirmed when the reload after it fails.
             VStack(spacing: 8) {
                 if let confirmation = model.sentConfirmation {
-                    MessageSentBanner(text: confirmation, close: model.clearSentConfirmation)
+                    ConfirmationBanner(text: confirmation, close: model.clearSentConfirmation)
                 }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)
@@ -69,17 +87,23 @@ struct MessageListView: View {
                 }
             }
         }
+        .coverScreenListActions()
         .sheet(item: $newMessage) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newMessageDidClose(reason, subject: composer.subject) }
             }
         }
-        .refreshable { await model.refresh() }
+        .modifier(TopicPagePrompt(topic: $pagePrompt, text: $pageText) { topic, opening in
+            // The prompt's row is a summary: its conversation is the one the page lists.
+            if let thread = loader.value?.threads.first(where: { $0.summary.id == topic.id }) { model.open(thread, at: opening) }
+        })
+        .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task { await model.onAppear() }
         // Separate from the list's load, which never waits for MPStorage (LOT-130): the flags appear when the copy is read.
         .task { await model.mpStorage?.start() }
         .alert(
-            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
+            AlertTitles.markUnreadFailed,
+            isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
         ) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -91,53 +115,33 @@ struct MessageListView: View {
     private func overlay(_ loader: ContentLoader<MessageListContent>) -> some View {
         if let content = loader.value {
             if model.isSearchingSegment, model.visibleThreads.isEmpty {
-                ProgressView("Recherche des \(model.segment.title)")
+                ProgressView("Recherche dans « \(model.segment.title) »")
             } else if model.visibleThreads.isEmpty {
                 EmptyMessagesView(
-                    reason: content.emptyReason ?? .nothing, segment: model.display == .split ? model.segment : nil,
-                    refresh: model.refresh
+                    reason: content.emptyReason ?? .nothing, segment: model.segment,
+                    prompt: model.signInPrompt(current:), refresh: model.refresh
                 )
             }
-        } else if let error = loader.error {
-            LoadFailureView(error: error, retry: model.retry)
-        } else if loader.isLoading {
-            ProgressView("Chargement des messages")
+        } else {
+            ScreenStateView(state: ScreenLoadState(error: loader.error, isLoading: loader.isLoading), retry: model.retry)
         }
-    }
-}
-
-/// HFR's confirmation of a new private message or of a conversation marked unread, above the list.
-private struct MessageSentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }
 
 private struct EmptyMessagesView: View {
     let reason: EmptyReason
-    /// The switch position when the list is split: the page may hold none of it though later pages exist.
-    let segment: MPSegment?
+    /// The switch position: the page may hold none of it though later pages exist.
+    let segment: MPSegment
+    /// Logged out: legacy's prompt with its button instead of a refresh (#1317).
+    let prompt: (AccountRow?) -> SignInPrompt?
     let refresh: () async -> Void
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
 
     var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: symbol)
-        } description: {
-            if let message { Text(message) }
-        } actions: {
-            Button("Actualiser") { Task { await refresh() } }
+        if let prompt = prompt(accounts?.current) {
+            SignInPromptView(prompt: prompt, refresh: refresh)
+        } else {
+            EmptyStateView(title: title, symbol: symbol, message: message, refresh: refresh)
         }
     }
 
@@ -147,7 +151,7 @@ private struct EmptyMessagesView: View {
             switch segment {
             case .group: "Aucun MP multiple"
             case .oneToOne: "Aucun MP individuel"
-            case nil: "Aucun message privé"
+            case .all: "Aucun message privé"
             }
         case .signInRequired: "Connexion requise"
         case .notice: "Rien à afficher"
@@ -161,7 +165,7 @@ private struct EmptyMessagesView: View {
     private var message: String? {
         switch reason {
         case .nothing: nil
-        case .signInRequired(let notice): notice ?? "Connectez-vous pour lire vos messages privés."
+        case .signInRequired(let notice): notice ?? "Connecte-toi pour lire tes messages privés."
         case .notice(let notice): notice
         }
     }
@@ -184,7 +188,7 @@ private struct EmptyMessagesView: View {
     }
 }
 
-/// The "MP" / "MP multiples" switch of the split list, each segment with its own unread count (page-bounded).
+/// The Tous / MP / MP multiples switch, each segment with its own unread count (page-bounded).
 private struct MessageSegmentSwitch: View {
     let model: MessageListModel
 

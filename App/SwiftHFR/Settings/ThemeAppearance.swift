@@ -17,6 +17,8 @@ struct ThemeAppearance: Equatable, Sendable {
     var darkBrightness: Double
     /// How dark the dark surfaces are (`theme_dark_style`, LOT-122); the brightness multiplier applies on top of it.
     var darkStyle = DarkStyle.standard
+    /// How the light surfaces look (`theme_light_style`, #1213): « Blanc » is today's look and sends nothing new; « Doux » is warm.
+    var lightStyle = LightStyle.blanc
     /// The colours of the gallery's theme (LOT-188), or nil for Legacy: the values above, today's app, untouched. A theme's
     /// tokens replace the accent, the screen background and the reader's palette; the hue, style and brightness above then only
     /// feed what the theme does not define (the reader's `--app-dark-*` surfaces, which its own palette covers).
@@ -65,14 +67,17 @@ struct ThemeAppearance: Equatable, Sendable {
         return ThemeColor(hue: hsb.hue, saturation: hsb.saturation, brightness: adjusted, alpha: color.alpha)
     }
 
-    /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is the `reader.css` dark palette (LOT-083), so the
-    /// default is unchanged. These feed `reader.css`'s tokens: its message rule and alternate surface (#568) derive from the
-    /// text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background` is still sent but
-    /// not read by the reader (a border-only quote, #819: legacy
-    /// `style-liste.css:329-334`); it is kept for the settings tests.
+    /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is legacy's grey (#1210): the page is
+    /// `rgba(46, 47, 51)` (`style-liste-dark.css:263-266, 563-564` @ 87fe0d1c) and the quote surface another legacy dark surface,
+    /// `rgba(38, 40, 47)` (`#actualiserbtn` `:330`, `#toolbarpage` `:602`); the placeholder (secondary text keeps 4.5:1 on it) and the
+    /// quiet separator are lifted to stay apart from that grey. « Plus sombre » and OLED stay near black. These feed `reader.css`'s
+    /// tokens: its message rule derives
+    /// from the text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background`
+    /// is still sent but not read by the reader (a border-only quote, #819: legacy `style-liste.css:329-334`); it is kept for the
+    /// settings tests.
     static func readerDarkSurfaces(_ style: DarkStyle) -> [(variable: String, color: ThemeColor)] {
         let palette: [Int] = switch style {
-        case .standard: [0x000000, 0x1C1C1E, 0x2C2C2E, 0x38383A]
+        case .standard: [0x2E2F33, 0x26282F, 0x35363B, 0x4A4B50]
         case .darker: [0x0B0B0C, 0x17181A, 0x232326, 0x2E2E31]
         case .oled: [0x000000, 0x111113, 0x1C1C1E, 0x38383A]
         }
@@ -117,11 +122,15 @@ struct ThemeAppearance: Equatable, Sendable {
         case darkOnly(ThemeColor)
         /// A theme's `background`, in both appearances (a dynamic colour).
         case theme(light: ThemeRGB, dark: ThemeRGB)
+        /// Legacy's « Doux » light style (#1213): this colour in light, and in dark the dark style's (nil: the system's, which is
+        /// black in dark, as the standard style leaves it). Painted in both appearances with one dynamic colour, like a theme's.
+        case softLight(light: ThemeColor, dark: ThemeColor?)
     }
 
     /// The screen fill of the current theme and style.
     var screenFill: ScreenFill {
         if let themeVariants { return .theme(light: themeVariants.light.background, dark: themeVariants.dark.background) }
+        if let light = lightScreenBackground { return .softLight(light: light, dark: darkScreenBackground) }
         return darkScreenBackground.map(ScreenFill.darkOnly) ?? .system
     }
 
@@ -140,6 +149,7 @@ struct ThemeAppearance: Equatable, Sendable {
     var readerVariables: [(name: String, value: String)] {
         [("--app-action-light", dayAccent.cssRGB), ("--app-action-dark", nightAccent.cssRGB)]
             + readerSurfaces.map { ($0.variable, $0.color.cssRGB) }
+            + lightSurfaces.map { ($0.variable, $0.color.cssRGB) }
             + readerThemeVariables
     }
 
@@ -180,18 +190,22 @@ struct ThemeAppearance: Equatable, Sendable {
     var readerBackground: UIColor {
         if let surface = themeColor(\.surface) { return surface }
         let dark = readerSurfaces.first { $0.variable == "--app-dark-background" }?.color.uiColor ?? .black
-        return UIColor { $0.userInterfaceStyle == .dark ? dark : UIColor.systemBackground.resolvedColor(with: $0) }
+        let light = lightScreenBackground?.uiColor
+        return UIColor { $0.userInterfaceStyle == .dark ? dark : (light ?? UIColor.systemBackground.resolvedColor(with: $0)) }
     }
 
     /// The dark theme's text and secondary text (`reader.css` dark palette), which the contrast checks and the settings preview use.
     static let darkText = ThemeColor(hex: 0xF2F2F7)
     static let darkSecondaryText = ThemeColor(hex: 0xA1A1A6)
 
-    /// A reader surface at `darkBrightness`. The darker and OLED styles never lift the page background above their own value:
-    /// at 150 % the darker background (#0B0B0C) would put a continuation date (secondary text at 75 % opacity on the tinted
-    /// header) under 4.5:1 (CodeRabbit on #589); the slider still darkens it, and still scales the other surfaces.
+    /// A reader surface at `darkBrightness`. No style lifts the page background above its own value: at 150 % the darker background
+    /// (#0B0B0C) would put a continuation date (secondary text on the tinted header) under 4.5:1 (CodeRabbit on #589), and the
+    /// standard style's legacy grey (#2E2F33, #1210) has no headroom either (secondary text is 5.2:1 on it, 3.6:1 at 150 %). The
+    /// standard quote surface and placeholder, which carry secondary text, are capped the same way (every standard surface but the
+    /// separator). The slider still darkens them, and still scales the separator (and the other styles' other surfaces).
     private func readerSurface(_ variable: String, _ color: ThemeColor) -> ThemeColor {
-        guard darkStyle != .standard, variable == "--app-dark-background", darkBrightness > 1 else { return adjustedDark(color) }
+        let isCapped = darkStyle == .standard ? variable != "--app-dark-separator" : variable == "--app-dark-background"
+        guard isCapped, darkBrightness > 1 else { return adjustedDark(color) }
         var capped = self
         capped.darkBrightness = 1
         return capped.adjustedDark(color)
@@ -202,6 +216,8 @@ struct ThemeAppearance: Equatable, Sendable {
     var readerScript: String {
         // Inside a function: the reader's world is shared by every user script, so nothing is declared at its top level.
         let lines = readerVariables.map { "s.setProperty('\($0.name)', '\($0.value)');" }
+            // « Blanc » takes Doux's variables back off the page (a live switch back); their fallbacks are today's light look.
+            + (lightStyle == .blanc ? Self.lightVariableNames.map { "s.removeProperty('\($0)');" } : [])
         guard themeVariants != nil else {
             let flag = "document.documentElement.removeAttribute('data-app-theme');"
             return (["(() => { const s = document.documentElement.style;"] + lines + [flag, "})();"]).joined(separator: " ")

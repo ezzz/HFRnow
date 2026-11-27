@@ -152,7 +152,7 @@ struct AccountMenuPlacementTests {
             let model = RootModel(
                 forums: forums,
                 categories: NavigationModel(dataSource: data, forums: forums, startupSource: RootModel.categoriesStartupSource),
-                favorites: NavigationModel(dataSource: data, forums: forums, startupSource: RootModel.favoritesStartupSource),
+                favorites: NavigationModel(dataSource: data, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
                 messages: MessageListModel(source: FakePrivateMessages()),
                 store: InMemorySettingsStore(), initial: nil, privateMessageCount: PrivateMessageCount()
             )

@@ -14,7 +14,7 @@ struct MPStorageSettingsSection: View {
                 if let model {
                     MPStorageSettingsRows(model: model)
                 } else {
-                    Text("Connectez-vous pour utiliser le stockage MP.").foregroundStyle(.secondary)
+                    Text("Connecte-toi pour utiliser le stockage MP.").foregroundStyle(.secondary)
                 }
             }.themedListRow()
         } header: {
@@ -49,6 +49,9 @@ struct MPStorageSettingsRows: View {
         } else if case .failed(let message) = model.status {
             Text(message).scaledFont(.footnote).foregroundStyle(.themedError)
         }
+        if model.copyIsUnreadable, model.status != .working {
+            UnreadableDataRecoveryButton(content: "les données du stockage MP") { await model.discardUnreadableCopy() }
+        }
     }
 
     /// The account's state in words.
@@ -82,8 +85,8 @@ enum MPStorageFunctionInfo {
     /// What the confirmation of a « Non » to the creation question says (operator, 2026-11-17, #1014): every function that
     /// needs the storage message, and that nothing is deleted.
     static var refusalMessage: String {
-        "Sans le stockage MP, vous perdez :\n"
+        "Sans le stockage MP, tu perds :\n"
             + MPStorageFunction.allCases.map { "• \(title($0))" }.joined(separator: "\n")
-            + "\nRien n'est supprimé du forum. Vous pourrez l'activer plus tard dans Réglages › Stockage MP."
+            + "\nRien n'est supprimé du forum. Tu pourras l'activer plus tard dans Réglages › Stockage MP."
     }
 }

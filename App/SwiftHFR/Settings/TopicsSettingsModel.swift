@@ -77,11 +77,11 @@ extension ReplyButtonBehavior {
     /// `hidden` leaves the quote entries of the message menu.
     var explanation: String {
         switch self {
-        case .quick: "Icône « + » : ouvre votre brouillon du sujet, avec les citations sélectionnées ajoutées."
+        case .quick: "Icône « + » : ouvre ton brouillon du sujet, avec les citations sélectionnées ajoutées."
         case .forum:
-            "Icône crayon : même réponse que « Réponse rapide » (votre brouillon du sujet, avec les citations sélectionnées), "
+            "Icône crayon : même réponse que « Réponse rapide » (ton brouillon du sujet, avec les citations sélectionnées), "
                 + "seule l’icône change."
-        case .hidden: "Pas de bouton de réponse : répondez depuis le menu d’un message (« Citer »)."
+        case .hidden: "Pas de bouton de réponse : réponds depuis le menu d’un message (« Citer »)."
         }
     }
 }

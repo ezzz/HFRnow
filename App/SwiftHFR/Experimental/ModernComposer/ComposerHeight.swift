@@ -1,15 +1,17 @@
 import CoreGraphics
 import SwiftUI
 
-/// How tall the composer is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
-/// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it (in the
+/// How tall the composer is (#653): on an iPhone a reply and an edit open at partial height (a new topic and a new private
+/// message open full screen with no toggle, `ReplyComposerModel.opensFullScreen`, #1137: new content has no page to keep in
+/// view), a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it (in the
 /// reader a bar docked at the bottom of the page, elsewhere a sheet: `ComposerPlacement`, #853), and
 /// a control switches to the full height and back (operator, 2026-11-08 for a reply, 2026-11-10 for the others, 2026-11-10
 /// reference for the card). The device decides, not the width's size class: inside an
 /// iPad's form sheet the width is compact too (measured on the iPad Pro 13" simulator, iOS 27.1). In compact height (an iPhone
 /// in landscape) the system shows every sheet at full height whatever its detents, so there is no toggle there (the reader's
 /// docked bar fills the reader there too).
-/// Every opening starts at partial height: the height chosen with the toggle is not remembered (operator, 2026-11-10).
+/// Every opening of a reply or an edit starts at partial height: the height chosen with the toggle is not remembered
+/// (operator, 2026-11-10).
 ///
 /// Legacy shows the composer full screen (`MessagesView.swift:5429-5443`, `coverVerticalFullScreen` @ 87fe0d1c): the partial
 /// height is a (b) evolution asked by the operator (GAP-653).
@@ -19,9 +21,10 @@ enum ComposerHeight: Equatable {
     /// The sheet's full height.
     case full
 
-    /// The composer offers the partial height and its toggle: an iPhone in regular height.
-    static func offersToggle(isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?) -> Bool {
-        isPhone && verticalSizeClass != .compact
+    /// The composer offers the partial height and its toggle: an iPhone in regular height, unless it opens full screen with no
+    /// way to shrink it (`opensFull`: a new private message or topic, #1137).
+    static func offersToggle(isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?, opensFull: Bool = false) -> Bool {
+        isPhone && verticalSizeClass != .compact && !opensFull
     }
 
     /// The height the sheet shows: the one `chosen` with the toggle; before any choice, partial, or full at an accessibility
@@ -29,9 +32,10 @@ enum ComposerHeight: Equatable {
     /// (measured at AX XL on the iPhone 18 Pro Max simulator, #749; operator decision, confirmed 2026-11-11). Full without the
     /// toggle (an iPad, or compact height, where the system shows the sheet full anyway), whatever was chosen in regular height.
     static func shown(
-        chosen: ComposerHeight?, isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?, largeText: Bool = false
+        chosen: ComposerHeight?, isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?, largeText: Bool = false,
+        opensFull: Bool = false
     ) -> ComposerHeight {
-        guard offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass) else { return .full }
+        guard offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass, opensFull: opensFull) else { return .full }
         return chosen ?? (largeText ? .full : .partial)
     }
 
@@ -56,8 +60,8 @@ enum ComposerHeight: Equatable {
 struct ComposerCardLayout: Equatable {
     /// Lines the editor shows with no text, so the caret and the first line of a reply have room.
     static let minimumLines: CGFloat = 2
-    /// Lines past which the editor scrolls inside the card: about the third of the screen the original request (#653) gave the
-    /// text and the control row on a 6.9" iPhone, so the page above keeps its top third with the keyboard up.
+    /// Lines the editor always shows before it scrolls: about the third of the screen the original request (#653) gave the text and
+    /// the control row on a 6.9" iPhone. It is the cap until the room is measured, and the floor of the cap after (#1136).
     static let maximumLines: CGFloat = 6
     /// `UITextView`'s `textContainerInset` (8 pt top and bottom), which `TextEditor` keeps around the text.
     static let editorInsets: CGFloat = 16
@@ -74,14 +78,48 @@ struct ComposerCardLayout: Equatable {
     var text: CGFloat = 0
     /// One line of the body font at the current text size.
     var line: CGFloat = 0
+    /// The tallest card the screen allows (`room`): the editor grows up to it, then scrolls. nil until it is measured: today's
+    /// six lines (#1136).
+    var availableHeight: CGFloat?
+    /// The standard navigation bar's height (HIG, 44 pt for the inline bar; not yet measured on iOS 27: to confirm on the device,
+    /// #893): the card stays below it.
+    static let navigationBarHeight: CGFloat = 44
+    /// Lines of the body font kept visible of the page above the card, so the header of its last message shows (#1136).
+    static let pageStripLines: CGFloat = 3
+
+    /// The room for the card on a screen: the window less the top safe area, the navigation bar, the keyboard and a strip of the
+    /// page above (`pageStripLines`). The system lifts the sheet over the keyboard, so the keyboard counts here, not in the
+    /// card's own height. Never negative.
+    static func room(window: CGFloat, topInset: CGFloat, keyboard: CGFloat, line: CGFloat) -> CGFloat {
+        max(0, window - topInset - navigationBarHeight - keyboard - pageStripLines * line)
+    }
     /// The space above and below the card with legacy's chrome (an iPad, or the option off). The modern composer's is
     /// `ComposerChrome.cardInsets` (#895).
     static let gap: CGFloat = 8
 
-    /// The editor's height: its text's, between two and six lines, insets included.
+    /// The editor's height: its text's, from two lines up to `textCap`, insets included.
     var editorHeight: CGFloat {
         let lines = max(line, 1)
-        return min(max(text, Self.minimumLines * lines), Self.maximumLines * lines) + Self.editorInsets
+        return min(max(text, Self.minimumLines * lines), textCap) + Self.editorInsets
+    }
+
+    /// The most text the editor shows before it scrolls: what is left of `availableHeight` once the buttons, the banners, the
+    /// chips, the controls, the gaps and the text view's insets are taken (#1136), never under six lines (the cap before the
+    /// room was measured); six lines until it is.
+    var textCap: CGFloat {
+        let lines = max(line, 1)
+        guard let availableHeight else { return Self.maximumLines * lines }
+        let insets = ComposerChrome.docked.cardInsets
+        let room = availableHeight - top - chips - controls - insets.top - insets.bottom - Self.editorInsets
+        return max(Self.maximumLines * lines, room)
+    }
+
+    /// This layout with the image chips row `height` tall (0 without an image). The editor card and the sheet's detent both read
+    /// it, so the row is taken off the editor's cap in both (#1286: the card once ignored it).
+    func withChips(height: CGFloat) -> ComposerCardLayout {
+        var copy = self
+        copy.chips = height
+        return copy
     }
 
     /// The rounded text card (#854): the image chips, the editor, then the controls on its bottom edge.

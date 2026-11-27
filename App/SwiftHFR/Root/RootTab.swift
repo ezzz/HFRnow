@@ -12,6 +12,17 @@ enum RootTab: Int, CaseIterable, Hashable, Sendable {
     // EXPERIMENTAL(searchTab, #896): the fifth tab, in the bar only while the option is on; the sidebar shows Plus › Rechercher.
     case search
 
+    /// The tabs of the iPhone tab bar from the left, as `RootTabsView` lists them: Recherche, when on, sits before Plus.
+    static func barOrder(hasSearch: Bool) -> [RootTab] {
+        hasSearch ? [.categories, .favorites, .messages, .search, .more] : [.categories, .favorites, .messages, .more]
+    }
+
+    /// The tab at `index` of the bar, nil for an index the bar does not have.
+    static func atBarIndex(_ index: Int, hasSearch: Bool) -> RootTab? {
+        let order = barOrder(hasSearch: hasSearch)
+        return order.indices.contains(index) ? order[index] : nil
+    }
+
     /// Tab title (legacy `MainWindow.swift:1698-1725`).
     var title: String {
         switch self {
@@ -80,17 +91,6 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
         }
     }
 
-    /// The lot that builds the screen behind the entry, nil once it is built: every entry is (LOT-132 Bookmarks, LOT-133 Alertes
-    /// Qualitay), and a future one names its lot here rather than lead to a dead row.
-    var owningLot: String? {
-        switch self {
-        case .settings, .search, .bookmarks, .qualityAlerts, .credits, .charter, .deleteAccount: nil
-        }
-    }
-
-    /// Whether the entry leads to a built screen.
-    var isBuilt: Bool { owningLot == nil }
-
     /// Destructive entries are drawn in red, as legacy.
     var isDestructive: Bool { self == .deleteAccount }
 
@@ -104,9 +104,9 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
     var detailPlaceholder: DetailPlaceholder? {
         switch self {
         case .bookmarks:
-            DetailPlaceholder(title: "Aucun bookmark sélectionné", symbol: "pin", description: "Choisissez un bookmark dans la liste.")
+            DetailPlaceholder(title: "Aucun bookmark sélectionné", symbol: "pin", description: "Choisis un bookmark dans la liste.")
         case .qualityAlerts:
-            DetailPlaceholder(title: "Aucune alerte sélectionnée", symbol: "bell", description: "Choisissez une alerte dans la liste.")
+            DetailPlaceholder(title: "Aucune alerte sélectionnée", symbol: "bell", description: "Choisis une alerte dans la liste.")
         case .settings, .search, .credits, .charter, .deleteAccount:
             nil
         }

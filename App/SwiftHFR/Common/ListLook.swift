@@ -26,6 +26,26 @@ enum ListLook: Sendable, Equatable {
         }
     }
 
+    /// #1073 item 4 (operator, 2026-11-17: a solid accent fill is « un gros bloc de couleur »): the background of a row a list
+    /// can select. A selected row is a light accent tint, twice a state pill's strength (`selectedStrength`) so it stays the
+    /// strongest mark of the row, and the pill of a super favourite, a flag or an unread MP still shows over it. Nil on an
+    /// unselected classic row keeps the card's own background; the dense look's clear row stays clear. Legacy's split-view
+    /// topic row is a solid `actionTintColor` rounded rectangle with white text (`Common.swift:3669-3676`, `:3372-3392` @ 87fe0d1c),
+    /// so the light tint is the operator's decision, not a port.
+    func rowBackground(isSelected: Bool, scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color? {
+        if isSelected { return Color.accentColor.opacity(Self.selectedStrength(scheme: scheme, contrast: contrast)) }
+        return self == .dense ? DenseListLook.rowBackground : nil
+    }
+
+    /// Opacity of the selected row's tint: twice `RowTint.strength`, held at `maxSelectedStrength`: 0.20 in light, 0.30 in dark and
+    /// with Increase Contrast (the cap). It stays a tint and above every pill (the strongest is 0.24).
+    static func selectedStrength(scheme: ColorScheme, contrast: ColorSchemeContrast) -> Double {
+        min(RowTint.strength(scheme: scheme, contrast: contrast) * 2, maxSelectedStrength)
+    }
+
+    /// The most opaque a selection tint gets: 30 %, dark mode and Increase Contrast included.
+    static let maxSelectedStrength = 0.30
+
     /// The inner side inset of a row that keeps the system's vertical insets, and of the section headers: nil keeps the system's.
     func rowSideInset(_ density: ListDensity) -> CGFloat? {
         outerMargin(density) == nil ? nil : density.rowInsets.leading
@@ -74,11 +94,15 @@ private struct ListLookRows: ViewModifier {
     }
 }
 
-/// The background of a row a list can select: the dense look draws the selection itself, its clear row would hide the list's.
+/// The background of a row a list can select: both looks draw a light tint (`ListLook.rowBackground`). The dense look's clear
+/// row would hide the list's selection, and the classic look's system fill is solid.
 private struct ListLookRow: ViewModifier {
     let isSelected: Bool
     @Environment(\.listLook) private var look
     @Environment(\.themeAppearance) private var appearance
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.backgroundProminence) private var backgroundProminence
 
     @ViewBuilder func body(content: Content) -> some View {
         if appearance.listColors != nil {
@@ -86,9 +110,12 @@ private struct ListLookRow: ViewModifier {
             content.themedListRow(isSelected: isSelected)
         } else {
             // EXPERIMENTAL(denseRows, #1107): the dense look's clear or selected row replaces the card's background.
-            content.listRowBackground(
-                look == .dense ? (isSelected ? DenseListLook.selectedRowBackground : DenseListLook.rowBackground) : nil
-            )
+            // #1073: the classic look no longer leaves the system's solid accent fill on the selected row (iPad split).
+            // A selected row is a prominent background to the system, which draws the primary text white (LOT-126, `ReadTitleStyle`):
+            // that is for its solid fill. On the light tint the text keeps its normal colours.
+            content
+                .environment(\.backgroundProminence, isSelected ? .standard : backgroundProminence)
+                .listRowBackground(look.rowBackground(isSelected: isSelected, scheme: scheme, contrast: contrast))
         }
     }
 }

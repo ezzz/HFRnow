@@ -57,14 +57,14 @@ struct MessageReaderColumn: View {
                     onMarkUnread: { [model] outcome in await model.markUnreadEnded(thread, in: readerModel, outcome) }
                 )
             }
-                .id(thread.id)
+                .id("\(thread.id)#\(model.readerGeneration)")
                 // Shown read only once the conversation's last page was fetched: a failed or abandoned load, or an earlier page
                 // with newer messages unseen, leaves the row unread.
                 .onChange(of: readerModel.page.map { $0.currentPage >= $0.maxPage } ?? false, initial: true) { _, onLastPage in
                     if onLastPage, let page = readerModel.page { model.markOpened(thread, page: page.currentPage, of: page.maxPage) }
                 }
         } else {
-            ContentUnavailableView("Choisissez une conversation", systemImage: "envelope")
+            ContentUnavailableView("Choisis une conversation", systemImage: "envelope")
         }
     }
 }

@@ -19,6 +19,8 @@ struct FilteredPostsResult: Equatable, Sendable {
     let maxPage: Int
     /// The last page of the topic was read: there is nothing after this batch.
     let isFinished: Bool
+    /// The page each kept message was read on, by message number: its permalink (LOT-159).
+    var pages: [Int: Int] = [:]
 
     /// Messages kept in this batch.
     var count: Int { page.messages.count }
@@ -32,7 +34,7 @@ struct FilteredPostsResult: Equatable, Sendable {
     /// The batch with nothing left after it.
     func markingFinished() -> FilteredPostsResult {
         FilteredPostsResult(
-            topic: topic, page: page, startPage: startPage, endPage: endPage, maxPage: maxPage, isFinished: true
+            topic: topic, page: page, startPage: startPage, endPage: endPage, maxPage: maxPage, isFinished: true, pages: pages
         )
     }
 }
@@ -60,6 +62,11 @@ final class FilteredPostsModel {
     private(set) var errorMessage: String?
     /// Title of the topic being filtered.
     private(set) var title = ""
+
+    /// Clears the information by itself after `ConfirmationAutoDismiss.delay`, and never under VoiceOver (#1152, #864).
+    let statusTimer = ConfirmationAutoDismiss()
+    /// Speaks the information when it appears (VoiceOver); replaceable in tests.
+    @ObservationIgnored var announce: @MainActor (String) -> Void = { ReaderAccessibility.announce($0) }
 
     private let services: FilteredPostsServices
     private var task: Task<Void, Never>?
@@ -115,7 +122,7 @@ final class FilteredPostsModel {
     /// Filters `topic` from `page`, skipping the messages up to `message` on that page.
     func start(topic: TopicID, title: String, page: Int, after message: Int?, knownMaxPage: Int? = nil) {
         guard !isRunning, !isAdvancing else { return }
-        statusMessage = nil
+        clearStatus()
         errorMessage = nil
         self.title = title
         isRunning = true
@@ -129,7 +136,7 @@ final class FilteredPostsModel {
             case .success(let batch):
                 guard let batch else { return }
                 if batch.page.messages.isEmpty {
-                    statusMessage = "Aucun post n'a été trouvé"
+                    show(status: "Aucun post n'a été trouvé")
                 } else {
                     result = batch
                 }
@@ -156,7 +163,7 @@ final class FilteredPostsModel {
                 guard let batch else { return }
                 if batch.page.messages.isEmpty {
                     result = shown.markingFinished()
-                    statusMessage = "Aucun autre post trouvé"
+                    show(status: "Aucun autre post trouvé")
                 } else {
                     result = batch
                 }
@@ -182,12 +189,24 @@ final class FilteredPostsModel {
     func closeResult() {
         cancel()
         result = nil
+        clearStatus()
+    }
+
+    /// The information is a result HFR gave: say it, and let it go by itself unless VoiceOver runs; the cross is the other way.
+    private func show(status: String) {
+        statusMessage = status
+        announce(status)
+        statusTimer.arm { [weak self] in self?.clearStatus() }
+    }
+
+    private func clearStatus() {
         statusMessage = nil
+        statusTimer.cancel()
     }
 
     /// Hides the information line.
     func dismissStatus() {
-        statusMessage = nil
+        clearStatus()
     }
 
     /// Hides the failure alert.
@@ -212,7 +231,7 @@ final class FilteredPostsModel {
         self.progress = progress
     }
 
-    /// The batch from `page`, normalized; `.success(nil)` when the run was cancelled.
+    /// The batch from `page`, normalized; `.success(nil)` when the run's task was cancelled.
     private func read(
         topic: TopicID, page: Int, after message: Int?, run id: Int
     ) async -> Result<FilteredPostsResult?, FilteredPostsError> {
@@ -220,14 +239,18 @@ final class FilteredPostsModel {
         await services.prepare()
         let criteria = services.criteria()
         do throws(FilteredPostsError) {
-            let batch = try await services.source.batch(in: topic, from: page, after: message, criteria: criteria) { [weak self] progress in
-                await self?.report(progress, run: id)
+            // A cancellation nobody asked for is asked once more (#1191).
+            let batch = try await retryingUnrequestedCancellation(cancelledAs: .network(.cancelled)) {
+                () async throws(FilteredPostsError) -> FilteredPostsBatch in
+                try await services.source.batch(in: topic, from: page, after: message, criteria: criteria) { [weak self] progress in
+                    await self?.report(progress, run: id)
+                }
             }
             if Task.isCancelled { return .success(nil) }
             return .success(try await Self.result(of: batch, topic: topic, title: title, normalizer: services.normalizer))
         } catch {
-            // A cancelled run is not an error to show.
-            if case .network(.cancelled) = error { return .success(nil) }
+            // A cancelled run is not an error to show; a cancellation nobody asked for that came twice is (#1191).
+            if case .network(.cancelled) = error, Task.isCancelled { return .success(nil) }
             return .failure(error)
         }
     }
@@ -261,7 +284,8 @@ final class FilteredPostsModel {
         )
         return FilteredPostsResult(
             topic: topic, page: page, startPage: batch.startPage, endPage: batch.endPage, maxPage: page.maxPage,
-            isFinished: batch.isFinished
+            isFinished: batch.isFinished,
+            pages: Dictionary(batch.posts.map { ($0.block.numreponse, $0.page) }, uniquingKeysWith: { first, _ in first })
         )
     }
 
@@ -274,7 +298,7 @@ final class FilteredPostsModel {
     nonisolated static func message(for error: FilteredPostsError) -> String {
         switch error {
         case .invalidTopic: "Ce sujet ne peut pas être filtré."
-        case .network(.offline): "Pas de connexion. Réessayez une fois connecté."
+        case .network(.offline): "Pas de connexion. Réessaie une fois connecté."
         case .network(.timedOut): "Le forum n'a pas répondu à temps."
         case .network(.httpStatus(let code, _)): "Le forum a répondu avec une erreur (\(code))."
         case .network: "Une page n'a pas pu être lue."

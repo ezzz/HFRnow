@@ -58,7 +58,8 @@ extension SyncedListsStoreTests {
         // Nothing of the first Apple ID went to the second's store.
         #expect(fixture.cloud.value(forKey: SyncedListsStore.allowlistKey) == nil)
         #expect(fixture.cloud.value(forKey: Self.positionsKey) == nil)
-        #expect(Self.lists(fixture.quarantine()["apple-1"]) == [SyncedListsStore.allowlistKey, "positions.Alice", Self.superKey])
+        // Positions are kept under the account key (#1184), as `positions.<account key>` says (LOT-172).
+        #expect(Self.lists(fixture.quarantine()["apple-1"]) == [SyncedListsStore.allowlistKey, "positions.alice", Self.superKey])
 
         await fixture.switchAppleID(to: "apple-1", values: [:])
         #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite()])

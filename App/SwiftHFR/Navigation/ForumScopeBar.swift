@@ -23,7 +23,7 @@ struct ForumScopeBar: View {
             if let section = scope.section(), section.subforumCount > 0 { subforumRow(section) }
             // Rows of the topic block, not a section of their own: legacy's picker and filter sit at the top of the same block (#803).
             TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter).densityRowMargin()
-            if let note { Text(note).font(.footnote).foregroundStyle(.secondary).densityRowMargin() }
+            if let note = model.filterNote { noteRow(note).densityRowMargin() }
         }
         .themedListRow()
     }
@@ -42,12 +42,18 @@ struct ForumScopeBar: View {
         .densityRowMargin()
     }
 
-    /// Why Favoris, Suivis and Lus cannot be chosen: legacy's note when logged out (`MainWindow.swift:699-706` @ 87fe0d1c), or
-    /// a list that names no `subcat` (a sub-forum page without one, or a category opened by path).
-    private var note: String? {
-        guard model.loader.value != nil, !model.offersFilter else { return nil }
-        return model.isSignedIn
-            ? "Le filtre n'est pas disponible pour cette liste : choisissez « Tous les sous-forums »."
-            : "Connexion requise pour Favoris, Suivis et Lus. Vous pouvez consulter « Tous » sans compte."
+    /// Why Favoris, Suivis and Lus cannot be chosen (`TopicListModel.filterNote`): legacy's icon, bold title and subtitle when logged
+    /// out (`MainWindow.swift:699-706` @ 87fe0d1c), or a list that names no `subcat`.
+    @ViewBuilder
+    private func noteRow(_ note: FilterNote) -> some View {
+        if let subtitle = note.subtitle {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(note.title, systemImage: note.systemImage).font(.footnote.weight(.semibold))
+                Text(subtitle).font(.footnote).foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+        } else {
+            Text(note.title).font(.footnote).foregroundStyle(.secondary)
+        }
     }
 }

@@ -137,7 +137,7 @@ struct NewTopicComposerTests {
         model.update(subject: "Sujet")
         model.update(text: "Texte")
         await model.send()
-        #expect(model.errorMessage?.contains("choisissez-la à nouveau") == true)
+        #expect(model.errorMessage?.contains("choisis-la à nouveau") == true)
         #expect(model.picker.options.count == 1)
         #expect(model.picker.selected == "")
         #expect(poster.optionRequests.count == 2)
@@ -219,7 +219,7 @@ struct NewTopicComposerTests {
 
     @Test func refusalsSpeakOfTheTopic() {
         #expect(ComposerMessages.message(for: .tooLong(.subject, maximum: 70), newTopic: true).contains("Le sujet dépasse 70"))
-        #expect(ComposerMessages.message(for: .notLoggedIn, newTopic: true).hasSuffix("renvoyez le sujet."))
+        #expect(ComposerMessages.message(for: .notLoggedIn, newTopic: true).hasSuffix("renvoie le sujet."))
         #expect(ComposerMessages.message(for: .formUnavailable(message: nil), newTopic: true).contains("créer un sujet"))
         #expect(ComposerMessages.message(for: .rejected(message: "Flood"), newTopic: true) == "Flood")
         #expect(!ComposerMessages.message(for: .tooLong(.subject, maximum: 70), newTopic: true).contains("peut-être"))

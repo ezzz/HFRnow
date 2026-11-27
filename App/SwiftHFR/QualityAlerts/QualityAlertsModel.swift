@@ -30,6 +30,9 @@ final class QualityAlertsModel {
 
         var id: String { item.id }
 
+        /// What VoiceOver hears besides the text: the state the weight shows (#1160, as topic rows say « Non lu »).
+        var accessibilityState: String { isNew ? "Nouvelle" : "" }
+
         /// The topic title as lists show it (legacy abbreviates "topic unique" and its spellings).
         var title: String { TopicTitle.displayed(item.topicTitle) }
     }
@@ -67,9 +70,9 @@ final class QualityAlertsModel {
         var detail: String {
             switch self {
             case .unavailable: "Cette version n'a pas d'adresse pour le service des Alertes Qualitay."
-            case .offline: "Vérifiez votre connexion puis réessayez."
-            case .timedOut: "Le service des Alertes Qualitay n'a pas répondu à temps. Réessayez dans un moment."
-            case .other: "La liste des Alertes Qualitay n'a pas pu être lue. Réessayez dans un moment."
+            case .offline: "Vérifie ta connexion puis réessaie."
+            case .timedOut: "Le service des Alertes Qualitay n'a pas répondu à temps. Réessaie dans un moment."
+            case .other: "La liste des Alertes Qualitay n'a pas pu être lue. Réessaie dans un moment."
             }
         }
     }
@@ -152,7 +155,10 @@ final class QualityAlertsModel {
         let lastCheck = self.lastCheck
         isLoading = true
         do throws(AQError) {
-            let items = try await source.feed()
+            // A cancellation nobody asked for is asked once more (#1191).
+            let items = try await retryingUnrequestedCancellation(cancelledAs: .network(.cancelled)) {
+                () async throws(AQError) -> [AQFeedItem] in try await source.feed()
+            }
             let visible = await visibleItems(items)
             guard ticket == loadTicket else { return }
             rows = visible.map { Row(item: $0, isNew: AQClient.isNew($0, since: lastCheck), target: Self.target(of: $0)) }
@@ -163,9 +169,10 @@ final class QualityAlertsModel {
             unreadCount = 0
         } catch {
             guard ticket == loadTicket else { return }
-            if case .network(.cancelled) = error {
+            if case .network(.cancelled) = error, Task.isCancelled {
                 // The screen went away (a tab switch cancels its task): not a failure and not an empty list. Nothing was learned,
-                // so `hasLoaded` stays as it was and the screen asks again when it comes back.
+                // so `hasLoaded` stays as it was and the screen asks again when it comes back. A cancellation nobody asked for
+                // came twice: it ends the load as a failure below, never as "Chargement…" for ever (#1191).
                 isLoading = false
                 return
             }

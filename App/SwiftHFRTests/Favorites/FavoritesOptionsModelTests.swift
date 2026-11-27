@@ -162,6 +162,29 @@ struct FavoritesOptionsModelFailureTests {
         #expect(options.superFavorites.isEmpty)
     }
 
+    /// #1182: stores from a newer build cannot be read; « Repartir de zéro », once confirmed, sets both aside and the folds and
+    /// super-favourites work again. A store that reads fine is left as it is.
+    @Test func discardingUnreadableStoresMakesThemWritable() async {
+        let layout = InMemorySmallStorePersistence(FavoritesLayoutDocument(version: FavoritesLayoutDocument.currentVersion + 1))
+        let supers = InMemorySmallStorePersistence(SuperFavoritesDocument(version: SuperFavoritesDocument.currentVersion + 1))
+        let options = FavoritesOptionsModel(
+            settings: InMemorySettingsStore(),
+            stores: FavoritesStores(
+                layout: FavoritesLayoutStore(persistence: layout), superFavorites: SuperFavoritesStore(persistence: supers),
+                account: "user1"
+            )
+        )
+        await options.reload()
+        #expect(options.canDiscardUnreadable && options.storeProblem != nil)
+        await options.toggleCollapsed("cat:2") // refused: a write problem too
+        await options.discardUnreadable()
+        #expect(!options.canDiscardUnreadable && options.storeProblem == nil)
+        await options.toggleCollapsed("cat:1")
+        await options.toggleSuperFavorite(favoriteTopic(1))
+        #expect(options.collapsedSections == ["cat:1"] && options.superFavorites.count == 1)
+        #expect(layout.document?.collapsedSections == ["cat:1"])
+    }
+
     @Test func unfoldAllNeverFoldsASectionAgain() async {
         let options = favoritesOptions()
         await options.toggleCollapsed("cat:1")

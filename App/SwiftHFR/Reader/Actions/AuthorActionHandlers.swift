@@ -73,7 +73,7 @@ enum PrivateMessageFeedback {
             let message = result.message.trimmingCharacters(in: .whitespacesAndNewlines)
             return message.isEmpty ? "Message privé envoyé" : message
         case .checkTopic:
-            return "Envoi non confirmé : vérifiez vos MP avant de renvoyer."
+            return "Envoi non confirmé : vérifie tes MP avant de renvoyer."
         case .keptDraft, .discardedDraft, .closedWithoutSaving:
             return nil
         }
@@ -92,6 +92,8 @@ final class AuthorMenuFlow {
     /// What runs once the profile sheet is gone (legacy `dismissUserProfile(then:)`, `MessagesView.swift:4422-4436` @
     /// 87fe0d1c): a sheet cannot open while another closes.
     @ObservationIgnored private var afterProfile: (@MainActor () -> Void)?
+    /// The reader the handlers serve, for its one composer slot (#1190); weak: the registry lives in it.
+    @ObservationIgnored private weak var reader: TopicReaderModel?
 
     /// Profil (through `reader`'s link router, LOT-116) and, with a composer, MP. `makeProfile` builds the profile screen's model
     /// of a member (`ReaderServices.profileModel`); `confirm` tells the user the result of a list toggle made on it.
@@ -100,6 +102,7 @@ final class AuthorMenuFlow {
         reader: TopicReaderModel, composer: ComposerServices?, makeProfile: @escaping @MainActor (Int) -> UserProfileModel,
         confirm: @escaping @MainActor (String) -> Void
     ) -> [any MessageActionHandler] {
+        self.reader = reader
         var handlers: [any MessageActionHandler] = [
             ProfileActionHandler { [weak self, weak reader] url, context in
                 guard let self, case .profile(let id)? = reader?.action(forLink: url, defaultBrowser: false) else { return }
@@ -108,11 +111,24 @@ final class AuthorMenuFlow {
         ]
         if let composer {
             handlers.append(PrivateMessageActionHandler { [weak self] target in
-                self?.newMessage = ReplyComposerModel(composing: .newPrivateMessage(target), services: composer)
+                self?.openMessage(to: target, composer: composer)
             })
         }
         return handlers
     }
+
+    /// Opens the MP composer, unless the reader's composer slot is held (a reply, a quote or an edit being prepared, a composer
+    /// open): one composer at a time over the page (#1190); the member is told.
+    private func openMessage(to target: NewMessageTarget, composer: ComposerServices) {
+        if let reader, !reader.composerSlotIsFree {
+            reader.showMenuFeedback(Self.slotHeld)
+            return
+        }
+        newMessage = ReplyComposerModel(composing: .newPrivateMessage(target), services: composer)
+    }
+
+    /// Said when the MP composer cannot open over another one (#1190).
+    static let slotHeld = "Un autre message est en cours d’écriture."
 
     /// Shows `model`, the profile of `context`'s author, with legacy's quick actions (`userProfileQuickActions`,
     /// `MessagesView.swift:4387-4412` @ 87fe0d1c): MP to the message's private-message link when not the user's own post and a
@@ -127,7 +143,7 @@ final class AuthorMenuFlow {
             model.onPrivateMessage = { [weak self, weak model] _ in
                 guard let model else { return }
                 self?.closeProfile(model) { [weak self] in
-                    self?.newMessage = ReplyComposerModel(composing: .newPrivateMessage(target), services: composer)
+                    self?.openMessage(to: target, composer: composer)
                 }
             }
         }

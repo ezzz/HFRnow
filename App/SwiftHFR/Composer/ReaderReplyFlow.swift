@@ -18,7 +18,7 @@ struct ReaderReplyFlow: ViewModifier {
         content
             .safeAreaInset(edge: .top) {
                 if model.error == nil, let confirmation = model.replyConfirmation {
-                    ReplySentBanner(text: confirmation, close: model.clearReplyConfirmation)
+                    ConfirmationBanner(text: confirmation, surface: .glass, close: model.clearReplyConfirmation)
                 }
             }
             .task(id: model.replyConfirmation) {
@@ -32,7 +32,7 @@ struct ReaderReplyFlow: ViewModifier {
                 guard reply == nil else { return } // a composer is open: the request was a double tap
                 guard let composer, let target = model.replyTarget else {
                     // The answer form went away while the quote was fetched: say so instead of dropping the quote silently.
-                    model.showMenuFeedback("Réponse indisponible : la page a changé, réessayez.")
+                    model.showMenuFeedback("Réponse indisponible : la page a changé, réessaie.")
                     return
                 }
                 reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)
@@ -45,26 +45,5 @@ struct ReaderReplyFlow: ViewModifier {
             })
             // The page under the composer scrolls but ignores its taps while it is open (#653).
             .onChange(of: reply != nil) { _, isOpen in model.composer(.reply, isOpen: isOpen) }
-    }
-}
-
-/// HFR's confirmation of a reply, above the page.
-private struct ReplySentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) {
-                Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(.rect) // 44 pt target
-            }
-            .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .glassEffect(.regular, in: .rect(cornerRadius: 12)) // floats over the page, which runs under it (LOT-186)
-        .padding(.horizontal)
     }
 }

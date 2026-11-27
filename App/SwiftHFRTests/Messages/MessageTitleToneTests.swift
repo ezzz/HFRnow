@@ -88,8 +88,8 @@ struct MessageTitleToneTests {
         let background = Self.rgba(.secondarySystemGroupedBackground, theme).rgb
         let readSwatch = Self.swatch(.secondary, dark: dark, background: background)
         let unreadSwatch = Self.swatch(.primary, dark: dark, background: background)
-        let read = try #require(Self.centre(of: readSwatch, background: background), "three blank renders, #704")
-        let unread = try #require(Self.centre(of: unreadSwatch, background: background), "three blank renders, #704")
+        let read = try #require(Self.centre(of: readSwatch, background: background), "no render of the background, #1283")
+        let unread = try #require(Self.centre(of: unreadSwatch, background: background), "no render of the background, #1283")
         #expect(Self.distance(read, Self.painted(ReadTitleStyle.color(for: theme.traits), on: background, theme)) < 0.02)
         #expect(Self.distance(unread, Self.painted(.label, on: background, theme)) < 0.02)
     }
@@ -99,8 +99,8 @@ struct MessageTitleToneTests {
         let accent = Monogram.RGB(red: 0.22, green: 0.5, blue: 0.93)
         let readSwatch = Self.swatch(.secondary, dark: dark, background: accent, prominence: .increased)
         let unreadSwatch = Self.swatch(.primary, dark: dark, background: accent, prominence: .increased)
-        let read = try #require(Self.centre(of: readSwatch, background: accent), "three blank renders, #704")
-        let unread = try #require(Self.centre(of: unreadSwatch, background: accent), "three blank renders, #704")
+        let read = try #require(Self.centre(of: readSwatch, background: accent), "no render of the background, #1283")
+        let unread = try #require(Self.centre(of: unreadSwatch, background: accent), "no render of the background, #1283")
         #expect(Self.distance(read, unread) < 0.02)
     }
 
@@ -151,21 +151,25 @@ struct MessageTitleToneTests {
         return nil
     }
 
-    /// `view` drawn at 1×, or nil when three renders in a row show no `background` in the top-left corner.
+    /// `view` drawn at 1× into a bitmap of ours, or nil when its top-left corner is not `background`.
     ///
-    /// Every view here paints an opaque `background` behind its content, so a corner of another colour is a render
-    /// that failed, done again: under CI load `ImageRenderer` can hand back a blank image ("image provider timed out while
-    /// waiting for phase 6"), whose pixels read (0, 0, 0), 0.41 off the light read colour (#704).
+    /// Not `ImageRenderer.cgImage`: that one rasterizes through a GPU pipeline and waits 2 s for it, and the first render
+    /// of a process first compiles that pipeline (`plane_color`), which took 11.1 s on a loaded CI runner; the renderer
+    /// then hands back a blank image, "image provider timed out while waiting for phase 6" (#704, #1283). Drawing the same
+    /// display list into a Core Graphics context is synchronous, with nothing to wait for. Every view here paints an
+    /// opaque `background` behind its content, so a corner of another colour is a render that went wrong.
     private static func render(_ view: some View, background: Monogram.RGB) -> CGImage? {
-        for attempt in 1...3 {
-            let renderer = ImageRenderer(content: view)
-            renderer.scale = 1
-            guard let image = renderer.cgImage, let corner = pixel(of: image, x: 0, y: 0) else { continue }
-            if distance(corner, background) < 0.02 { return image }
-            // A redo must show in the log, so a slow renderer stays visible on CI even when the test passes.
-            print("#704 blank render redone (try \(attempt), corner \(corner.red) \(corner.green) \(corner.blue))")
+        var image: CGImage?
+        ImageRenderer(content: view).render(rasterizationScale: 1) { size, draw in
+            guard let space = CGColorSpace(name: CGColorSpace.sRGB), let context = CGContext(
+                data: nil, width: Int(size.width.rounded(.up)), height: Int(size.height.rounded(.up)), bitsPerComponent: 8,
+                bytesPerRow: 0, space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return }
+            draw(context)
+            image = context.makeImage()
         }
-        return nil
+        guard let image, let corner = pixel(of: image, x: 0, y: 0), distance(corner, background) < 0.02 else { return nil }
+        return image
     }
 
     private static func centre(of view: some View, background: Monogram.RGB) -> Monogram.RGB? {

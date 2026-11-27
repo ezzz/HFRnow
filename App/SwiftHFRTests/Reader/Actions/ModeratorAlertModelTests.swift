@@ -101,9 +101,9 @@ struct ModeratorAlertModelTests {
             (.formUnavailable(message: nil),
              "Le forum ne propose pas d’alerter les modérateurs sur ce message. Rien n’a été envoyé."),
             (.notLoggedIn,
-             "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis alertez à nouveau."),
+             "Ta session a expiré : rien n’a été envoyé. Reconnecte-toi depuis le menu Comptes, puis alerte à nouveau."),
             (.invalidLink, "Le lien d’alerte de ce message ne mène pas au forum : rien n’a été envoyé."),
-            (.network(.offline), "Pas de connexion à internet : rien n’a été envoyé. Réessayez une fois connecté.")
+            (.network(.offline), "Pas de connexion à internet : rien n’a été envoyé. Réessaie une fois connecté.")
         ]
         for (error, text) in cases {
             let alerts = model(ScriptedAlerter(.failure(error)))
@@ -154,7 +154,7 @@ struct ModeratorAlertModelTests {
         #expect(alerts.composer == nil)
         #expect(alerts.failure?.title == "Alerte impossible")
         #expect(alerts.failure?.message
-            == "Le compte connecté a changé depuis l’ouverture de l’alerte : rien n’a été envoyé. Alertez à nouveau.")
+            == "Le compte connecté a changé depuis l’ouverture de l’alerte : rien n’a été envoyé. Alerte à nouveau.")
     }
 
     // MARK: Mail fallback

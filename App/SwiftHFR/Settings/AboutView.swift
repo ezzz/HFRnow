@@ -44,6 +44,25 @@ struct AboutView: View {
             } footer: {
                 Text("Les sujets de l'app sur le forum, ouverts dans l'app.").themedSectionHeader()
             }
+            // LOT-159 (operator 2026-11-24): legacy's contact block (`credits.html:7-12` @ 87fe0d1c), its sentence above the row.
+            Section {
+                Group {
+                    Text(AboutContact.notice).scaledFont(.footnote).foregroundStyle(.secondary)
+                    Button { model.openForumContact() } label: {
+                        HStack {
+                            Label(AboutContact.forumTitle, systemImage: "bubble.left.and.text.bubble.right")
+                                .foregroundStyle(Color.primary)
+                            Spacer()
+                            Image(systemName: "chevron.forward")
+                                .scaledFont(.footnote).fontWeight(.semibold)
+                                .foregroundStyle(.tertiary)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }.themedListRow()
+            } header: {
+                Text("Nous contacter").themedSectionHeader()
+            }
             Section {
                 Group {
                     NavigationLink { ChangelogView().appScreenBackground() } label: {

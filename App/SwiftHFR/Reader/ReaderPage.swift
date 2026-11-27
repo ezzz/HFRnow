@@ -57,6 +57,8 @@ struct ReaderMessage: Equatable, Sendable, Identifiable {
     var quotes: [MessageQuote] = []
     /// The action links of the message's toolbar (LOT-031); nothing offered when HFR gave none (logged out).
     var actions = MessageActions()
+    /// The `quote_only=1` link of "Message cité N fois" as HFR wrote it (#1039): what a tap on the count bubble opens.
+    var quotedByURL: URL?
 
     /// Unique on a page: the continuation block repeats the previous page's last number.
     var id: String { isContinuation ? "continuation-\(numreponse)" : "t\(numreponse)" }

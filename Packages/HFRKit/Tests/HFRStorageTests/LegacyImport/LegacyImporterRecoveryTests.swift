@@ -26,6 +26,24 @@ struct LegacyImporterRecoveryTests {
         #expect(await harness.destinations.pseudoLists.blocklist(for: "fake user3").isEmpty)
     }
 
+    /// #1184: a blocklist cannot go under an empty account key; a legacy list filed under an empty name is rejected alone.
+    @Test("a legacy blocklist under an empty name is rejected alone; the other lists are imported")
+    func blocklistUnderAnEmptyName() async throws {
+        var harness = try Harness()
+        defer { harness.remove() }
+        harness.accounts = Harness.legacyAccounts
+        try harness.write(blocklistPlist.replacingOccurrences(of: "<key>ghost</key>", with: "<key></key>"), to: LegacyKeys.blocklistFile)
+        try harness.write(allowlistPlist, to: LegacyKeys.allowlistFile)
+        let report = await harness.importer().run(now: now)
+        #expect(await harness.destinations.pseudoLists.blocklist(for: "fakeuser2").map(\.pseudo) == ["fakeblocked1"])
+        #expect(await harness.destinations.pseudoLists.allowlist().map(\.pseudo) == ["fakeloved1"])
+        #expect(report.rejectedItems >= 1)
+        guard case .imported? = report.outcomes[.pseudoLists] else {
+            Issue.record("expected the lists imported, got \(String(describing: report.outcomes[.pseudoLists]))")
+            return
+        }
+    }
+
     @Test("a smiley favourite with a blank code is rejected alone; the later ones are imported")
     func blankSmileyCode() async throws {
         var harness = try Harness()

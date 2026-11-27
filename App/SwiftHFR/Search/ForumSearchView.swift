@@ -19,6 +19,9 @@ struct ForumSearchView: View {
     /// "Annuler" ended the load: no result to announce (the loader keeps the previous value).
     @State private var cancelledLoad = false
     @State private var titleVisibility = TitleVisibility()
+    /// "Page numéro…" of a result's menu: the result asked about, and the page typed.
+    @State private var pagePrompt: TopicSummary?
+    @State private var pageText = ""
 
     var body: some View {
         List {
@@ -35,7 +38,7 @@ struct ForumSearchView: View {
         .pagerBar(pager, hidden: fieldFocused)
         .navigationDestination(item: $model.selected) { topic in
             if let readerModel = model.reader(for: topic) {
-                TopicReaderView(model: readerModel, services: reader, composer: composer)
+                TopicReaderView(model: readerModel, services: reader, composer: composer).id(model.readerGeneration)
             } else {
                 ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder").appScreenBackground()
             }
@@ -50,6 +53,7 @@ struct ForumSearchView: View {
                 AccessibilityNotification.Announcement(summary(content)).post()
             }
         }
+        .modifier(TopicPagePrompt(topic: $pagePrompt, text: $pageText, open: model.open))
         .onChange(of: forums.loader.value, initial: true) { _, content in model.setCategories(from: content) }
     }
 
@@ -109,6 +113,12 @@ struct ForumSearchView: View {
                 }
                 ForEach(content.topics) { topic in
                     SearchResultRow(topic: topic) { model.selected = topic }
+                        .contextMenu {
+                            TopicRowMenu(topic: topic, context: .globalSearch, open: model.open, askPage: { topic in
+                                pageText = "\(TopicQuickActions.suggestedPage(of: topic))"
+                                pagePrompt = topic
+                            })
+                        }
                 }
             }
         }

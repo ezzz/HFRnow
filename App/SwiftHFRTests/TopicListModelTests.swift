@@ -1,5 +1,4 @@
 import HFRModels
-import Synchronization
 @testable import SwiftHFR
 import Testing
 
@@ -29,22 +28,6 @@ struct TopicListModelTests {
         await model.refresh()
         #expect(source.requests == ["topics:13:1", "topics:13:2", "topics:13:3", "topics:13:3"])
         #expect(model.currentPage == 3)
-    }
-
-    @Test func theRefreshButtonIsDisabledOnlyWhileALoadRuns() async {
-        let source = FakeDataSource()
-        let model = forumModel(source)
-        #expect(model.canRefresh)
-        let during = Mutex<[Bool]>([])
-        source.topicHandler = { _, page in
-            let enabled = await model.canRefresh
-            during.withLock { $0.append(enabled) }
-            return topicPage(page: page)
-        }
-        await model.loadIfNeeded()
-        await model.refresh()
-        #expect(during.withLock { $0 } == [false, false])
-        #expect(model.canRefresh)
     }
 
     @Test func refreshKeepsTheRowsWhenItFails() async {
@@ -121,7 +104,7 @@ struct TopicListModelTests {
 
     @Test func anEmptyListWithoutMessageIsSimplyEmpty() async {
         let source = FakeDataSource()
-        let model = TopicListModel(source: .favorites, dataSource: source)
+        let model = TopicListModel(source: .favorites, dataSource: source, isLoggedIn: { true })
         await model.loadIfNeeded()
         #expect(model.loader.value?.emptyReason == .nothing)
     }

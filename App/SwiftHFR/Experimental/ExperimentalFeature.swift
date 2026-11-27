@@ -35,10 +35,6 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Listed in Réglages only once its switch changes something: an option whose path is not built yet is hidden, so there is
-    /// no dead switch, and reads as its default whatever the store holds. Every option is built now (`denseRows` by #905).
-    var isListed: Bool { true }
-
     /// The section that lists it.
     var theme: ExperimentalTheme {
         switch self {
@@ -107,7 +103,7 @@ enum ExperimentalTheme: String, CaseIterable, Identifiable, Sendable {
 
     /// The listed options of this section, in enum order.
     var listedFeatures: [ExperimentalFeature] {
-        ExperimentalFeature.allCases.filter { $0.theme == self && $0.isListed }
+        ExperimentalFeature.allCases.filter { $0.theme == self }
     }
 
     /// The sections that list at least one option: an empty one is not shown.

@@ -9,14 +9,14 @@ struct ReaderQualityAlertFlow: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Alerte Qualitay", isPresented: noticeShown, presenting: notice) { draft in
+            .alert(AlertTitles.qualityNoticeQuestion, isPresented: noticeShown, presenting: notice) { draft in
                 // The draft comes from the alert: SwiftUI clears the presenting state before the button runs (LOT-087).
                 Button("Continuer") { alerts?.answerNotice(true, for: draft) }
                 Button("Annuler", role: .cancel) { alerts?.answerNotice(false, for: draft) }
             } message: { _ in
                 Text(alerts?.noticeMessage ?? "")
             }
-            .alert("Alerte Qualitay", isPresented: additionShown, presenting: addition) { draft in
+            .alert(AlertTitles.qualityAdditionQuestion, isPresented: additionShown, presenting: addition) { draft in
                 Button("Plussoyer") { Task { await alerts?.add(draft) } }
                 Button("Annuler", role: .cancel) {}
             } message: { draft in
@@ -59,6 +59,7 @@ private struct QualityAlertTitleSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
     @State private var title = ""
+    @State private var isAskingDiscard = false
 
     var body: some View {
         NavigationStack {
@@ -78,11 +79,17 @@ private struct QualityAlertTitleSheet: View {
             .navigationTitle("AQ")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { if DiscardConfirmation.hasText(title) { isAskingDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) { Button("Créer", action: submit).disabled(isBlank) }
             }
             .task { focused = true }
         }
+        // A typed title is not thrown away without asking (#1169).
+        .discardConfirmation(
+            "Abandonner cette alerte ?", hasChanges: DiscardConfirmation.hasText(title), isAsking: $isAskingDiscard
+        ) { dismiss() }
     }
 
     private var isBlank: Bool { title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }

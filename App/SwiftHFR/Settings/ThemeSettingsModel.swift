@@ -22,14 +22,43 @@ final class ThemeSettingsModel {
         /// Always dark (`auto_theme` = 0, `theme` = 1).
         case dark
 
-        /// Picker label, as legacy's options (`AppSettingsView.swift:140-148`).
-        var title: String {
+        /// The label under the mode's tile (#1213).
+        var tileTitle: String {
             switch self {
-            case .system: "Automatique (iOS)"
+            case .system: "Système"
             case .light: "Clair"
             case .dark: "Sombre"
             }
         }
+
+        /// What VoiceOver says for the mode's tile (#1213).
+        var tileAccessibilityLabel: String {
+            switch self {
+            case .system: "Thème du système"
+            case .light: "Thème clair"
+            case .dark: "Thème sombre"
+            }
+        }
+
+        /// The Legacy controls this mode shows below the tiles, besides the accent hue (#1213): the light style for light, the dark
+        /// style and brightness for dark, both groups when following iOS.
+        var controls: [ThemeControl] {
+            switch self {
+            case .light: [.lightStyle]
+            case .dark: [.darkStyle, .darkBrightness]
+            case .system: [.lightStyle, .darkStyle, .darkBrightness]
+            }
+        }
+    }
+
+    /// A Legacy control of the "Thème" screen that depends on the mode (#1213).
+    enum ThemeControl: Hashable {
+        /// The « Style du thème clair » picker, with its preview.
+        case lightStyle
+        /// The « Style du thème sombre » picker, with its preview.
+        case darkStyle
+        /// The « Luminosité du thème sombre » slider.
+        case darkBrightness
     }
 
     /// System, light or dark.
@@ -71,6 +100,12 @@ final class ThemeSettingsModel {
     var darkStyle: DarkStyle {
         didSet {
             if darkStyle != oldValue { store.set(darkStyle, for: SettingKey.darkStyle) }
+        }
+    }
+    /// How the light theme looks (« Blanc », « Doux »); `theme_light_style`, device-only (#1213).
+    var lightStyle: LightStyle {
+        didSet {
+            if lightStyle != oldValue { store.set(lightStyle, for: SettingKey.lightStyle) }
         }
     }
     /// The stored theme id (`theme_id`, LOT-188), as stored: nil or an id no bundled theme has reads as Legacy, and stays.
@@ -118,6 +153,7 @@ final class ThemeSettingsModel {
         let selected = self.theme
         return ThemeAppearance(
             dayAccent: dayAccent, nightAccent: nightAccent, darkBrightness: darkBrightness, darkStyle: darkStyle,
+            lightStyle: lightStyle,
             themeVariants: selected.variants, themeFontDesign: selected.fontDesign, themeDecorations: selected.decorations
         )
     }
@@ -139,6 +175,7 @@ final class ThemeSettingsModel {
         // The slider shows the hue of the light accent, as legacy's `resolvedTintHue` did.
         accentHue = storedDay?.hsb.hue ?? ThemeAppearance.defaultHue
         darkStyle = store.value(for: SettingKey.darkStyle)
+        lightStyle = store.value(for: SettingKey.lightStyle)
         darkBrightness = Self.clamp(
             store.value(for: SettingKey.nightBrightness) ?? ThemeAppearance.defaultDarkBrightness,
             to: 0...ThemeAppearance.maximumDarkBrightness
@@ -253,6 +290,20 @@ private struct AppScreenBackground: ViewModifier {
                 .environment(\.screenPaintsLists, true)
                 .containerBackground(for: .navigation) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
                 .containerBackground(for: .navigationSplitView) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
+        case let .softLight(light, dark):
+            // Doux (#1213): one dynamic colour in both appearances, like a theme's, so a flip changes a value, not the structure. This
+            // also hides the list and split-view backgrounds in dark, where « Blanc » leaves them to the system (the iPad sidebar
+            // keeps no material of its own, as under any theme: device check on #893).
+            // The dark side the style leaves to the system is the system's own background, resolved with the trait collection the
+            // fill is drawn in (a sheet's or a popover's elevated level keeps its lighter black).
+            let fill = Color(uiColor: UIColor { traits in
+                traits.userInterfaceStyle == .dark ? (dark?.uiColor ?? UIColor.systemBackground.resolvedColor(with: traits)) : light.uiColor
+            })
+            content
+                .scrollContentBackground(.hidden)
+                .environment(\.screenPaintsLists, true)
+                .containerBackground(for: .navigation) { fill }
+                .containerBackground(for: .navigationSplitView) { fill }
         case let .darkOnly(color):
             let fill = Color(uiColor: color.uiColor)
             let dark = scheme == .dark

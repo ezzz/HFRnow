@@ -8,7 +8,7 @@ struct FilteredPostsMessagesTests {
         let text = FilteredPostsMessages.explanation.joined(separator: " ")
         #expect(FilteredPostsMessages.explanation.count == 2)
         #expect(FilteredPostsMessages.explanation.allSatisfy { !$0.isEmpty })
-        for part in ["cités au moins N fois", "les vôtres", "vous citent", "vous mentionnent", "liste blanche"] {
+        for part in ["cités au moins N fois", "les tiens", "te citent", "te mentionnent", "liste blanche"] {
             #expect(text.contains(part), "\(part)")
         }
         #expect(FilteredPostsMessages.explanation[1].contains("Minimum de citations"))

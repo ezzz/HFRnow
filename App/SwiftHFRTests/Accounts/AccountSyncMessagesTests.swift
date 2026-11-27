@@ -11,9 +11,9 @@ struct AccountSyncMessagesTests {
     /// The text moved from under the switch to the bubble without a change of one character: the operator had reviewed it.
     @Test func theExplanationIsUnchanged() {
         #expect(AccountSyncMessages.explanation == """
-            Vos comptes (cookies de session et jeton hash_check, jamais de mot de passe) sont copiés dans votre trousseau \
-            iCloud, chiffré de bout en bout par Apple, et apparaissent sur vos autres appareils où l’option est activée. \
-            Désactiver l’option retire la copie iCloud sur tous vos appareils ; chaque appareil garde les comptes qui y sont \
+            Tes comptes (cookies de session et jeton hash_check, jamais de mot de passe) sont copiés dans ton trousseau \
+            iCloud, chiffré de bout en bout par Apple, et apparaissent sur tes autres appareils où l’option est activée. \
+            Désactiver l’option retire la copie iCloud sur tous tes appareils ; chaque appareil garde les comptes qui y sont \
             connectés.
             """)
     }

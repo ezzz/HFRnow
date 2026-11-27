@@ -57,6 +57,21 @@ enum AboutTopicLink: CaseIterable, Hashable, Sendable {
     var target: ReaderTarget? { ReaderTarget(link: address) }
 }
 
+// Port of SuperHFRplus/Assets/HTML/credits.html (the "Mentions légales" contact block, `:7-12`) @ 87fe0d1c. Differences: a
+// section of the About screen instead of a static page; the forum contact only, the topic opened in the reader (LOT-159,
+// operator decisions of 2026-11-24 on #249: no private contact).
+/// « Nous contacter » (LOT-159, guideline 1.2 "published contact information"): legacy's sentence and its forum contact.
+enum AboutContact {
+    /// Legacy's sentence above the contact (`credits.html:9`, accents fixed). The product name in it ("HFR+", legacy's) is the
+    /// operator's call.
+    static let notice = "HFR+ n'est pas développé par l'équipe du site hardware.fr, mais de manière bénévole. Pour toutes "
+        + "questions, soucis, bugs, tu peux nous contacter :"
+    /// Legacy's row title (`credits.html:12`).
+    static let forumTitle = "Sur le forum : Topic Unique"
+    /// The topic it opens: the app's topic, legacy's link (`credits.html:12`) in the id form of `AboutTopicLink`.
+    static let forumTopic = AboutTopicLink.superHFRPlus
+}
+
 // Port of HFRswift/Swift/AppSettingsView.swift (aboutSection, appVersion) @ 87fe0d1c. Differences: the topic links and their
 // reader have no legacy counterpart (operator decision 2026-10-28, GAP-151, LOT-120 spec).
 /// Logic of the About screen (LOT-120): the two topic links and the reader a link opens (the version row is `VersionRow`).
@@ -76,6 +91,11 @@ final class AboutModel {
     ) {
         self.topicPages = topicPages
         self.renderOptions = renderOptions
+    }
+
+    /// « Sur le forum : Topic Unique »: opens the app's topic in the reader (LOT-159).
+    func openForumContact() {
+        selected = AboutContact.forumTopic
     }
 
     /// The reader of `link`: the same model while the link stays selected, so a rotation does not reload the page. Nil when the

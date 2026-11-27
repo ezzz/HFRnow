@@ -1,11 +1,13 @@
 import HFRModels
 import SwiftUI
+import UIKit
 
 // Port of HFRswift/Swift/Favorites.swift (FavoritePostFilterProgressBanner, FavoritePostFilterNavigationTarget) and of
 // HFRswift/Swift/MessagesView.swift (the filter mode: subtitle, "Résultats suivants" bottom bar) @ 2440d79.
 // Differences: the filtered posts open in a sheet over the list or the reader, not pushed on the list's stack (the entry
 // points are two, and a sheet works in every layout); "Résultats suivants" can be cancelled and says what it reads; links
-// open in the in-app browser (a forum link does not open a reader from here yet).
+// open in the in-app browser (a forum link does not open a reader from here yet); the result line stays under VoiceOver, is
+// announced and goes after 4 s otherwise, not legacy's 3 s timer (#1152, `Favorites.swift:1054-1063` @ 87fe0d1c).
 // LOT-185: "Résultats suivants" is a `safeAreaBar` with `.glassProminent`, not legacy's `.bottomBar` toolbar item (it holds a
 // state line, a hint and Cancel); the banner is glass; GAP row pending #545.
 
@@ -49,6 +51,15 @@ extension View {
     }
 }
 
+private extension View {
+    /// A bordered glass capsule, not the text box of a plain button (#1152; legacy `Favorites.swift:1215-1255`).
+    func bannerButton() -> some View {
+        buttonStyle(.glass)
+            .controlSize(.small)
+            .font(.footnote.weight(.semibold))
+    }
+}
+
 /// "N posts | page X/Y" with a cancel button while a run reads pages, or an information with "OK" (legacy
 /// `FavoritePostFilterProgressBanner`, `Favorites.swift:1099-1135`).
 struct FilteredPostsBanner: View {
@@ -65,25 +76,21 @@ struct FilteredPostsBanner: View {
             Text(model.bannerText ?? "").font(.footnote).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1).monospacedDigit()
             Spacer(minLength: 8)
             if model.statusMessage == nil {
-                Button("Annuler") { model.cancel() }.font(.footnote.weight(.semibold))
+                Button("Annuler") { model.cancel() }.bannerButton()
             } else {
-                Button("OK") { model.dismissStatus() }.font(.footnote.weight(.semibold))
+                Button("OK") { model.dismissStatus() }.bannerButton()
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .glassEffect(.regular, in: .rect(cornerRadius: 10))
         .accessibilityElement(children: .combine)
-        // Legacy hid an information after 3 seconds.
-        .task(id: model.statusMessage) {
-            guard model.statusMessage != nil else { return }
-            try? await Task.sleep(for: .seconds(3))
-            if !Task.isCancelled { model.dismissStatus() }
-        }
+        // The information goes by itself on the model's timer, never under VoiceOver (#1152; legacy hid it after 3 s).
     }
 }
 
-/// The kept posts of one batch, read-only, with "Résultats suivants" at the bottom.
+/// The kept posts of one batch, read-only, with "Résultats suivants" at the bottom. Each post has the reader's report and block
+/// entries (LOT-159, `FilteredPostsMenuModel`).
 struct FilteredPostsView: View {
     let model: FilteredPostsModel
     let services: ReaderServices
@@ -97,6 +104,8 @@ struct FilteredPostsView: View {
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109): the shared `reader.js` swallows a picture's tap, so this reader must open it.
     @State private var viewer: ImageViewerModel?
+    /// The message and author menus (LOT-159).
+    @State private var menus: FilteredPostsMenuModel?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -114,7 +123,7 @@ struct FilteredPostsView: View {
                         Button("Réessayer") { show(model.result) }
                     }
                 } else {
-                    ProgressView("Chargement des messages")
+                    ProgressView()
                 }
             }
         }
@@ -122,7 +131,7 @@ struct FilteredPostsView: View {
         .navigationSubtitle(model.result?.subtitle ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("Fermer") { model.closeResult() } }
+            SheetCloseToolbarItem { model.closeResult() }
         }
         .safeAreaBar(edge: .top) {
             if model.bannerText != nil { FilteredPostsBanner(model: model).padding(.horizontal).padding(.top, 4) }
@@ -131,6 +140,13 @@ struct FilteredPostsView: View {
             if let result = model.result { NextBatchBar(model: model, result: result) }
         }
         .filteredPostsAlert(model, shown: model.result != nil)
+        .overlay(alignment: .bottom) { if let menus { ReaderMenuFeedbackBanner(model: menus) } }
+        .onChange(of: menus?.menuFeedbackSerial) { ReaderAccessibility.announce(menus?.menuFeedback) }
+        .modifier(ReaderAlertFlow(alerts: menus?.alerts))
+        // A blocked or allowed author: the batch is built again with the lists as they are now, where it was scrolled to. The
+        // first value (the menus made with the first document) is no change.
+        .onChange(of: menus?.listsRevision) { old, _ in if old != nil { rebuild(model.result) } }
+        .signInToBlockSheet(isPresented: Binding(get: { menus?.wantsSignIn ?? false }, set: { menus?.wantsSignIn = $0 }))
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
@@ -154,15 +170,30 @@ struct FilteredPostsView: View {
         nextToken += 1
         readyToken = nil
         failed = false
-        document = ReaderDocument(
-            token: nextToken,
-            html: TopicHTMLBuilder.document(for: result.page, token: nextToken, options: services.settings.renderOptions()),
-            anchor: nil, keepsScrollPosition: false
+        document = menuModel().document(for: result, token: nextToken, keepsScrollPosition: false)
+    }
+
+    /// The batch on screen built again (a list change): the web view stays shown and keeps its position, as the reader's.
+    private func rebuild(_ result: FilteredPostsResult?) {
+        guard let result, readyToken != nil else { return show(result) }
+        nextToken += 1
+        document = menuModel().document(for: result, token: nextToken, keepsScrollPosition: true)
+    }
+
+    /// The menus, made by whichever comes first of the controller and the first document (both need them).
+    private func menuModel() -> FilteredPostsMenuModel {
+        if let menus { return menus }
+        let openURL = self.openURL
+        let made = FilteredPostsMenuModel(
+            services: services, copy: { UIPasteboard.general.string = $0.absoluteString }, openMail: { openURL($0) }
         )
+        menus = made
+        return made
     }
 
     private func makeController() {
         guard controller == nil else { return }
+        let menus = menuModel()
         let controller = ReaderWebController(
             imageFetcher: services.imageFetcher, autoLoadsThirdPartyImages: services.settings.autoLoadsThirdPartyImages
         )
@@ -183,6 +214,14 @@ struct FilteredPostsView: View {
                       let message = model.result?.page.messages.first(where: { $0.numreponse == post }),
                       message.content.embeds.indices.contains(index) else { return }
                 video = VideoItem(embed: message.content.embeds[index])
+            },
+            menu: { [weak controller, weak menus] post, source, anchor, token in
+                guard token == document?.token, let result = model.result, let controller, let menus,
+                      let menu = menus.menu(post: post, source: source, anchor: anchor, in: result) else { return }
+                controller.messageMenu.present(
+                    menu, topInset: controller.obscuredInsets.top,
+                    pick: { action in Task { await menus.perform(action, in: menu) } }, closed: {}
+                )
             },
             image: { images, index, _ in
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))

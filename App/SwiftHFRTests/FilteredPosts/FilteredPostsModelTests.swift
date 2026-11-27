@@ -187,6 +187,34 @@ struct FilteredPostsModelTests {
         #expect(!model.isBusy)
     }
 
+    /// The transport answered `.cancelled` while nothing cancelled the run (#1191): it is asked once more.
+    @Test func aCancellationNobodyAskedForIsRetriedOnce() async {
+        let calls = ReaderCallCounter()
+        let model = model(FakeFilteredSource { _, _, _ throws(FilteredPostsError) in
+            if calls.next() == 1 { throw .network(.cancelled) }
+            return filteredBatch(start: 1, end: 1)
+        })
+        model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
+        await settle(model)
+        #expect(calls.calls == 2)
+        #expect(model.result?.page.messages.count == 2)
+        #expect(model.errorMessage == nil)
+    }
+
+    /// Twice: a failure the member sees, never a banner that vanishes with no result and no message (#1191).
+    @Test func aCancellationNobodyAskedForIsAFailure() async {
+        let calls = ReaderCallCounter()
+        let model = model(FakeFilteredSource { _, _, _ throws(FilteredPostsError) in
+            _ = calls.next()
+            throw .network(.cancelled)
+        })
+        model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
+        await settle(model)
+        #expect(calls.calls == 2)
+        #expect(!model.isBusy && model.result == nil)
+        #expect(model.errorMessage == "Une page n'a pas pu être lue.")
+    }
+
     @Test func aSecondStartWhileRunningIsIgnored() async {
         let gate = ReaderGate()
         let source = FakeFilteredSource { _, _, _ in
@@ -207,7 +235,7 @@ struct FilteredPostsModelTests {
         let model = model(FakeFilteredSource { _, _, _ throws(FilteredPostsError) in throw .network(.offline) })
         model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
         await settle(model)
-        #expect(model.errorMessage == "Pas de connexion. Réessayez une fois connecté.")
+        #expect(model.errorMessage == "Pas de connexion. Réessaie une fois connecté.")
         #expect(model.result == nil)
         model.dismissError()
         #expect(model.errorMessage == nil)

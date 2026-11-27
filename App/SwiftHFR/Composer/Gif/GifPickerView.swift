@@ -3,7 +3,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (GiphyPanel :2294-2340, SDK picker with confirmation screen) @ 2440d79 (GAP-089).
 // Differences: our own grid over the REST client (LOT-098); notice N1 before the first request (LOT-071); LOT-185 rules: the search
-// bar is a `safeAreaBar` whose field is system glass (#856), no hand-made fill.
+// bar is a `safeAreaBar` whose field is system glass (#856), no hand-made fill; the confirmation is pushed in the panel, not a
+// third sheet (#1177).
 /// The GIF panel of the reply sheet: trending or search results in a grid, a tap opens a confirmation, "Insérer" posts
 /// `[img]<url>[/img]`. Thin: every rule is in `GifPickerModel`.
 struct GifPickerView: View {
@@ -12,6 +13,8 @@ struct GifPickerView: View {
     let onInsert: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var isAskingNotice = false
+    /// The GIF the confirmation shows, kept while it pops after « Retour » cleared the selection.
+    @State private var confirmed: GiphyGIF?
     @FocusState private var searchFocused: Bool
 
     private let columns = [GridItem(.adaptive(minimum: 104, maximum: 160), spacing: 6)]
@@ -23,28 +26,38 @@ struct GifPickerView: View {
                 .navigationTitle("GIF")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                    SheetCloseToolbarItem { dismiss() }
                 }
-                .alert("Service de GIF", isPresented: $isAskingNotice) {
+                .alert(AlertTitles.gifServiceQuestion, isPresented: $isAskingNotice) {
                     Button("Annuler", role: .cancel) { dismiss() }
                     Button("Continuer") { Task { await model.acceptNotice() } }
                 } message: {
                     Text(model.noticeMessage)
                 }
+                // Pushed, not a third sheet over the composer (#1177; HIG › Sheets: one sheet at a time): back returns to
+                // the grid.
+                .navigationDestination(isPresented: isConfirming) {
+                    if let gif = model.selected ?? confirmed {
+                        GifConfirmationView(model: model, gif: gif) { snippet in
+                            onInsert(snippet)
+                            model.selected = nil
+                            dismiss()
+                        }
+                        .appScreenBackground()
+                    }
+                }
+                .onChange(of: model.selected?.id) { _, id in if id != nil { confirmed = model.selected } }
         }
         .presentationDetents([.large])
-        .sheet(item: $model.selected) { gif in
-            GifConfirmationView(model: model, gif: gif) { snippet in
-                onInsert(snippet)
-                model.selected = nil
-                dismiss()
-            }
-            .presentationDetents([.medium, .large])
-        }
         .task {
             isAskingNotice = model.isAskingNotice
             await model.start()
         }
+    }
+
+    /// The confirmation is shown while a GIF is selected; going back clears the selection.
+    private var isConfirming: Binding<Bool> {
+        Binding(get: { model.selected != nil }, set: { if !$0 { model.selected = nil } })
     }
 
     @ViewBuilder
@@ -57,7 +70,7 @@ struct GifPickerView: View {
         case .failed(let reason):
             message(reason, icon: "wifi.exclamationmark", action: ("Réessayer", { Task { await model.retry() } }))
         case .loaded where model.items.isEmpty:
-            message("Aucun GIF trouvé. Essayez avec un autre mot.", icon: "questionmark.bubble", action: nil)
+            message("Aucun GIF trouvé. Essaie avec un autre mot.", icon: "questionmark.bubble", action: nil)
         case .loaded:
             grid
         }
@@ -109,7 +122,7 @@ struct GifPickerView: View {
     }
 
     private var searchBar: some View {
-        HStack {
+        HStack(spacing: GifSearchClearButton.spacing) {
             TextField("Rechercher un GIF…", text: $model.query)
                 .focused($searchFocused)
                 .submitLabel(.search)
@@ -118,11 +131,7 @@ struct GifPickerView: View {
                 .onSubmit { searchFocused = false; Task { await model.submitSearch() } }
                 .disabled(model.phase == .idle)
             if !model.query.isEmpty {
-                Button { model.query = ""; Task { await model.submitSearch() } } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Effacer")
+                GifSearchClearButton { model.query = ""; Task { await model.submitSearch() } }
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 9)
@@ -138,7 +147,6 @@ private struct GifConfirmationView: View {
     let model: GifPickerModel
     let gif: GiphyGIF
     let onInsert: (String) -> Void
-    @Environment(\.dismiss) private var dismiss
     /// The full GIF is shown (it can take a moment, and a very large one stays a still frame: `SmileyImageLoader.maximumAnimationPixels`).
     @State private var hasOriginal = false
 
@@ -153,24 +161,20 @@ private struct GifConfirmationView: View {
         }
     }
 
+    /// Pushed inside the panel (#1177): the system back button goes back to the grid, so no « Annuler » of its own.
     var body: some View {
-        ThemedNavigationStack {
-            VStack(spacing: 16) {
-                preview
-                    .aspectRatio(aspect, contentMode: .fit)
-                    .clipShape(.rect(cornerRadius: 10))
-                    .accessibilityLabel(gif.title.isEmpty ? "Aperçu du GIF" : gif.title)
-                Button("Insérer") { if let snippet = model.snippet(for: gif) { onInsert(snippet) } }
-                    .appProminentButtonStyle()
-                    .disabled(model.snippet(for: gif) == nil)
-            }
-            .padding()
-            .navigationTitle("Insérer ce GIF ?")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
-            }
+        VStack(spacing: 16) {
+            preview
+                .aspectRatio(aspect, contentMode: .fit)
+                .clipShape(.rect(cornerRadius: 10))
+                .accessibilityLabel(gif.title.isEmpty ? "Aperçu du GIF" : gif.title)
+            Button("Insérer") { if let snippet = model.snippet(for: gif) { onInsert(snippet) } }
+                .appProminentButtonStyle()
+                .disabled(model.snippet(for: gif) == nil)
         }
+        .padding()
+        .navigationTitle("Insérer ce GIF ?")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var aspect: CGFloat {
@@ -216,5 +220,42 @@ private struct GifPanel: ViewModifier {
                     inserted = true
                 }
             })
+    }
+}
+
+/// The ✕ that clears the search field: a 44 pt hit region (#1296) that overflows the bar's layout, so the glyph and the text
+/// field keep their place and width (same technique as `PollAnswerRemoveButton`, #1292). The region never reaches into the
+/// text field: its leading overhang is capped at the stack's spacing and the rest goes to the trailing side, which has the
+/// bar's and the screen's margins to spare.
+struct GifSearchClearButton: View {
+    /// The spacing between the field and the ✕ in the search bar, which caps how far the region reaches over the field.
+    static let spacing: CGFloat = 8
+
+    let action: () -> Void
+    /// Test seams: the laid-out frames (global) of the hit region (the label's frame, before the negative padding) and of the
+    /// visible glyph.
+    var regionProbe: (@MainActor (CGRect) -> Void)?
+    var glyphProbe: (@MainActor (CGRect) -> Void)?
+    /// The glyph's size once laid out, which the overhang depends on (the default size until it is read).
+    @State private var glyph = CGSize(width: 20, height: 20)
+
+    var body: some View {
+        let sideways = 2 * MinimumHitRegion.overhang(of: glyph.width)
+        let leading = min(sideways / 2, Self.spacing)
+        let vertical = MinimumHitRegion.overhang(of: glyph.height)
+        Button(action: action) {
+            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                .onGeometryChange(for: CGSize.self, of: \.size) { glyph = $0 }
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { glyphProbe?($0) })
+                // The margins are the overhang, so the glyph sits where the negative padding below puts the layout back.
+                .padding(.leading, leading).padding(.trailing, sideways - leading).padding(.vertical, vertical)
+                .minimumHitRegion()
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { regionProbe?($0) })
+        }
+        .buttonStyle(.plain)
+        .padding(.leading, -leading)
+        .padding(.trailing, -(sideways - leading))
+        .padding(.vertical, -vertical)
+        .accessibilityLabel("Effacer")
     }
 }

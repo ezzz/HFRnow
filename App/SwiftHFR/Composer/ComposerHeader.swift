@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerCloseButtonStyle, composerDraftButtonStyle,
+// Port of HFRswift/Swift/AnswerView.swift (composerHeader `:765-819`, composerCloseButtonStyle, composerDraftButtonStyle,
 // composerSendButtonStyle `:1704-1745`) @ 87fe0d1c. Differences: drawn on the docked card instead of a full-screen cover (#653,
 // GAP-653); with the modern composer the buttons float with no title (`FloatingComposerButtons`, #854, #895, #972); the drafts
 // button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type; the buttons take the card tools' diameter,
@@ -29,10 +29,8 @@ struct ComposerHeader: View {
 
     /// The size of the bar's close, drafts and send buttons: the card tools' (#1126), one source for both rows, up to
     /// `maxScaleFactor`. `inCard` is the chrome's `controlsInCard`: the bar then agrees with the row it sits over.
-    static func buttonSize(
-        metrics: ComposerBarMetrics, inCard: Bool, style: ComposerToolStyle = .current
-    ) -> ComposerToolSize {
-        ComposerToolSize(metrics: metrics.capped(at: maxScaleFactor), inCard: inCard, style: style)
+    static func buttonSize(metrics: ComposerBarMetrics, inCard: Bool) -> ComposerToolSize {
+        ComposerToolSize(metrics: metrics.capped(at: maxScaleFactor), inCard: inCard)
     }
 
     /// What the bar's sides and the gaps between its buttons take: the floating row has the gap on each side, legacy's bar its
@@ -123,6 +121,10 @@ struct ComposerHeader: View {
                 // Room for the close and drafts buttons on each side, whatever the metrics make them (#1126).
                 .padding(.horizontal, 2 * toolSize.diameter + 28)
                 .accessibilityAddTraits(.isHeader)
+                // Drawn over the buttons' row (an overlay, so it never widens the bar): it takes no tap, so the edge of the drafts
+                // button under it at large text sizes keeps its own (#1137, review of #1129). No test covers it: a hit test on the
+                // overlay needs a device (#893).
+                .allowsHitTesting(false)
                 .composerProbe(.title)
         }
         .frame(minHeight: 44)

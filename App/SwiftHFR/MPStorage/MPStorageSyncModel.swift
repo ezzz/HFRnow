@@ -40,7 +40,7 @@ final class MPStorageSyncModel {
     }
 
     /// The legacy question (`MPStorage.m:91`), asked before the thread is created.
-    static let creationQuestion = "Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?"
+    static let creationQuestion = "Le MP de stockage n'a pas été trouvé. Veux-tu qu'il soit créé ?"
     /// How long a search that found no thread is trusted before `start()` searches again: the search walks the MP list.
     static let searchInterval: TimeInterval = 86_400
 
@@ -65,7 +65,12 @@ final class MPStorageSyncModel {
     /// LOT-132 read their section through `document(for:)`, which honours the function's switch.
     private(set) var document: MPStorageDocument?
 
+    /// The device copy cannot be read: « Repartir de zéro » is offered in Réglages (#1182).
+    private(set) var copyIsUnreadable = false
+
     @ObservationIgnored private let sync: MPStorageSync
+    /// Sets the unreadable device copies aside (`.corrupt`, never deleted); nil where there is no way out to offer.
+    @ObservationIgnored private let discardCopies: (@Sendable () async throws -> Void)?
     @ObservationIgnored private let states: MPStorageSyncStateStore
     @ObservationIgnored private let isLoggedIn: @Sendable () async -> Bool
     @ObservationIgnored private let clock: @Sendable () -> Date
@@ -76,10 +81,12 @@ final class MPStorageSyncModel {
     /// Creates the model; nothing is read or fetched before `start()`.
     init(
         account: String, sync: MPStorageSync, states: MPStorageSyncStateStore,
-        isLoggedIn: @escaping @Sendable () async -> Bool, clock: @escaping @Sendable () -> Date = { Date() }
+        isLoggedIn: @escaping @Sendable () async -> Bool, clock: @escaping @Sendable () -> Date = { Date() },
+        discardCopies: (@Sendable () async throws -> Void)? = nil
     ) {
         self.account = account
         self.sync = sync
+        self.discardCopies = discardCopies
         self.states = states
         self.isLoggedIn = isLoggedIn
         self.clock = clock
@@ -95,8 +102,25 @@ final class MPStorageSyncModel {
                 persistence: MPStorageCopyPersistence(store: MPStorageCopyPersistence.liveStore, account: account)
             ),
             states: MPStorageSyncStateStore(settings: settings),
-            isLoggedIn: { await session.isLoggedIn() }
+            isLoggedIn: { await session.isLoggedIn() },
+            discardCopies: { try await MPStorageCopyPersistence.liveStore.discardUnreadableData() }
         )
+    }
+
+    /// « Repartir de zéro », after the member confirmed (#1182): the device copies are set aside as `.corrupt` (never
+    /// deleted) and start empty; the next sync reads the forum's document again. Edits not yet sent are in the set-aside file.
+    func discardUnreadableCopy() async {
+        guard let discardCopies else { return }
+        do {
+            try await discardCopies()
+        } catch {
+            status = .failed(UnreadableDataRecovery.failure)
+            return
+        }
+        status = .idle
+        // The appearance that met the unreadable copy did nothing else: an `on` account syncs now, as at an appearance.
+        started = false
+        await start()
     }
 
     /// Whether sync runs for the account.
@@ -137,7 +161,7 @@ final class MPStorageSyncModel {
             return
         }
         guard await isLoggedIn() else {
-            status = .failed("Connectez-vous pour activer le stockage MP.")
+            status = .failed("Connecte-toi pour activer le stockage MP.")
             return
         }
         await run { [self] () async throws(MPStorageSyncError) in
@@ -294,10 +318,12 @@ final class MPStorageSyncModel {
     private func loadCopy() async -> MPStorageSyncCopy? {
         do {
             let copy = try await sync.copy()
+            copyIsUnreadable = false
             lastSync = copy.lastSync
             document = try? copy.currentText.map(MPStorageCodec.decode)
             return copy
         } catch {
+            if case .storage = error { copyIsUnreadable = discardCopies != nil }
             status = .failed(Self.message(for: error))
             return nil
         }
@@ -328,7 +354,7 @@ final class MPStorageSyncModel {
         case .posting(.unconfirmed), .notVerified:
             "Écriture non confirmée : elle sera vérifiée à la prochaine synchronisation."
         case .posting(.notLoggedIn), .list(.notAuthenticated):
-            "Connectez-vous pour synchroniser le stockage MP."
+            "Connecte-toi pour synchroniser le stockage MP."
         default:
             "La synchronisation du stockage MP a échoué."
         }

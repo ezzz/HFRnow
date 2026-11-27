@@ -35,6 +35,7 @@ struct PseudoListEditorView: View {
                         Group {
                             Text(unreadable).foregroundStyle(.secondary)
                             Button("Réessayer") { Task { await model.retry() } }
+                            UnreadableDataRecoveryButton(content: "les listes de pseudos") { await model.discardUnreadable() }
                         }.themedListRow()
                     }
                 } else {
@@ -61,7 +62,7 @@ struct PseudoListEditorView: View {
             ToolbarItem(placement: .topBarTrailing) { EditButton().disabled(model.pseudos.isEmpty) }
         }
         .task { await model.load() }
-        .alert("Erreur", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+        .alert(model.errorTitle, isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(model.errorMessage ?? "")

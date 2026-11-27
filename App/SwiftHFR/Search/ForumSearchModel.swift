@@ -88,9 +88,14 @@ final class ForumSearchModel {
     private let renderOptions: @Sendable () -> ReaderRenderOptions
     private let now: @Sendable () -> Date
     private let calendar: Calendar
+    private let haptics: HapticFeedback
     /// Pager path of the last page asked for, for a retry; nil when it was the first page.
     @ObservationIgnored private var requestedPath: String?
     @ObservationIgnored private var currentReader: (id: String, model: TopicReaderModel)?
+    /// A row menu's opening, taken by the next `reader(for:)` of that result (#1311).
+    @ObservationIgnored private var requestedOpening: (id: String, opening: TopicOpening)?
+    /// Bumped by every `open(_:at:)`, so the reader's view is rebuilt even when the result stays selected.
+    private(set) var readerGeneration = 0
 
     /// Creates the model over `source`.
     init(
@@ -99,8 +104,10 @@ final class ForumSearchModel {
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         store: (any SettingsStore)? = nil,
         now: @escaping @Sendable () -> Date = { Date() },
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        haptics: HapticFeedback = .live
     ) {
+        self.haptics = haptics
         self.store = store
         category = store?.value(for: SettingKey.searchCategory) ?? .forum(13)
         self.source = source
@@ -147,9 +154,14 @@ final class ForumSearchModel {
         loader.reset()
         let query = GlobalSearchQuery(text: words, category: searchedCategory, matchMode: matchMode, scope: scope, dateRange: dateRange())
         let source = source
-        await loader.load { () async throws(ListLoadError) -> SearchContent in
+        // The search starts with a POST that LOT-046 never sends twice: a cancellation nobody asked for is a failure at once
+        // ("Réessayer"), not a retry (#1191).
+        let arrived = await loader.load(retriesUnrequestedCancellation: false) { () async throws(ListLoadError) -> SearchContent in
             SearchContent(page: try await source.search(query))
         }
+        // Results arriving play a light impact, an empty answer too; a failure or a superseded search none
+        // (legacy `ForumSearchView.swift:92` @ 87fe0d1c).
+        if arrived { haptics.impact(.light) }
     }
 
     func goToNextPage() async { if canGoToNext, let path = loader.value?.nextPath { await load(path: path) } }
@@ -169,10 +181,26 @@ final class ForumSearchModel {
     /// The reader of `topic`, opened at the matching message; the same model while the result stays selected.
     func reader(for topic: TopicSummary) -> TopicReaderModel? {
         if let currentReader, currentReader.id == topic.id { return currentReader.model }
-        guard let target = Self.target(of: topic) else { return nil }
-        let model = TopicReaderModel(target: target, title: topic.title, source: topicPages, renderOptions: renderOptions)
+        let requested = requestedOpening?.id == topic.id ? requestedOpening?.opening : nil
+        requestedOpening = nil
+        guard let target = requested?.target ?? Self.target(of: topic) else { return nil }
+        let model = TopicReaderModel(
+            target: target, title: topic.title, source: topicPages, opensAtLastMessage: requested?.atLastMessage ?? false,
+            renderOptions: renderOptions
+        )
         currentReader = (topic.id, model)
         return model
+    }
+
+    /// Opens `topic` at `opening` (a row menu's "Dernière correspondance", "Première page"…, #1311): a new reader, even for the
+    /// result on screen.
+    func open(_ topic: TopicSummary, at opening: TopicOpening) {
+        requestedOpening = (topic.id, opening)
+        // The pushed readers go with it: a stack that only changes identity keeps what a link pushed on top (#1089).
+        currentReader?.model.closeLinkedReaders()
+        currentReader = nil
+        readerGeneration += 1
+        selected = topic
     }
 
     /// The matching message when the row names one, else what a topic row opens.
@@ -202,8 +230,9 @@ final class ForumSearchModel {
         requestedPath = path
         selected = nil
         let source = source
-        await loader.load { () async throws(ListLoadError) -> SearchContent in
+        let arrived = await loader.load { () async throws(ListLoadError) -> SearchContent in
             SearchContent(page: try await source.page(atPath: path))
         }
+        if arrived { haptics.impact(.light) }
     }
 }

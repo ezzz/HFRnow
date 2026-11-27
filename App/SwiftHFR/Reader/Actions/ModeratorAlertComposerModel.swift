@@ -21,7 +21,7 @@ final class ModeratorAlertComposerModel: Identifiable {
 
     /// Legacy's warning, above the reason (`MessagesView.swift:7427-7428` @ 87fe0d1c).
     static let warning =
-        "Attention : le message que vous écrivez ici sera envoyé directement aux modérateurs via message privé ou e-mail."
+        "Attention : le message que tu écris ici sera envoyé directement aux modérateurs via message privé ou e-mail."
 
     /// The reason typed by the user.
     var reason = ""
@@ -31,6 +31,11 @@ final class ModeratorAlertComposerModel: Identifiable {
     private(set) var isSending = false
     /// The sheet ended (sent, closed or unconfirmed): nothing more is sent from it, even by a late tap.
     private(set) var isFinished = false
+
+    /// A reason is typed that closing would throw away (#1169): « Annuler » asks and the swipe-down waits.
+    var hasUnsavedReason: Bool {
+        !isFinished && DiscardConfirmation.hasText(reason)
+    }
 
     private let alert: PreparedModeratorAlert
     private let finish: @MainActor (Outcome) -> Void

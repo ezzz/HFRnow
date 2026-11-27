@@ -27,7 +27,7 @@ Legacy `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional refere
 | GAP-088 | A search that failed (offline, HFR answer unreadable) says so with a reason and "Retour aux smileys"; legacy showed "Aucun smiley trouvé" (LESSONS 44: not found ≠ could not read) | b·needed |
 | GAP-088 | Results are listed once per code (HFR serves one twice, `R53c`); legacy's grid listed it twice | b·needed (the grid identifies cells by code) |
 | GAP-088 | While a search is in flight the catalogue and the chips give way to "Recherche…" (legacy kept them and spun the button) | b |
-| GAP-088 | Wiki keywords failing to load show the reason; the detail is a sheet (LOT-104), now also resizable to large | b |
+| GAP-088 | Wiki keywords failing to load show the reason; the detail is pushed inside the panel (LOT-104, #1177) | b |
 
 ## Behaviour
 

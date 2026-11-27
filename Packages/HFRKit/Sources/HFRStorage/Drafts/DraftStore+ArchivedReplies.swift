@@ -29,6 +29,7 @@ extension DraftStore {
         guard !normalized.isEmpty else { return nil }
         let now = clock()
         let key = AccountKey.make(account)
+        guard !key.isEmpty else { throw DraftError.emptyAccount }
         let id = UUID()
         try mutate { drafts in
             drafts.removeAll { draft in

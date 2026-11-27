@@ -12,6 +12,8 @@ struct RootNavigationView: View {
     /// This window's phase (read inside the scene, not in the `App`): only a window on screen opens a notification's target.
     @Environment(\.scenePhase) private var scenePhase
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    /// Optional: previews and tests build a root without the accounts.
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
     @State private var model: RootModel
     /// Taps on MP notifications, taken once the root is built (LOT-140).
     @State private var notificationRouter = MPNotificationRouter.shared
@@ -38,6 +40,11 @@ struct RootNavigationView: View {
     var body: some View {
         RootLayout(model: model, environment: environment)
         .task { await model.forums.loadIfNeeded() }
+        // A re-login in place keeps this root (same session object): the lists ask again whether the account is signed in (#1195).
+        .onChange(of: accounts?.currentSessionChanges) {
+            let expired = accounts?.current?.status == .expired
+            Task { await model.currentSessionChanged(expired: expired) }
+        }
         // The Plus badge: the AQ feed is read about 3 s after the root appears, logged out too (legacy `MainWindow.swift:1178-1192`).
         .task { await model.qualityAlerts.checkAtLaunch() }
         // EXPERIMENTAL(mpDarkTopic, #1014): the account's model reads the option from here.
@@ -150,25 +157,47 @@ struct RootLayout: View {
     @Environment(\.horizontalSizeClass) private var horizontal
     @Environment(\.verticalSizeClass) private var vertical
     @Environment(\.rootLayoutIdiom) private var idiomOverride
-    /// Kept here, not in the split root, so an unfold builds the split already knowing the orientation (legacy `isPortraitLayout`,
-    /// `MainWindow.swift:1361`, `:1672-1676` @ 87fe0d1c).
-    @State private var isPortrait = false
+    @Environment(\.rootLayoutModelIdentifier) private var modelOverride
+    /// Orientation and side inset, kept here, not in the split root, so an unfold builds the split already knowing the orientation
+    /// (legacy `isPortraitLayout` and `windowShape`, `MainWindow.swift:1361-1363`, `:1677-1684` @ 87fe0d1c), and a fold knows the
+    /// cover screen (GAP-713).
+    @State private var windowShape = WindowShape()
+    /// The split root was shown on a `.phone` since launch: only a foldable does that (`hasShownExpandedPhoneLayout`,
+    /// `MainWindow.swift:1365`, `:1685-1691` @ 87fe0d1c; memory only, see `PhoneDisplayPolicy.displayKind`).
+    @State private var hasShownExpandedPhoneLayout = false
+    private static let isFoldableModel = PhoneDisplayPolicy.isFoldableModel(PhoneDisplayPolicy.currentModelIdentifier)
 
     var body: some View {
         let idiom = idiomOverride ?? UIDevice.current.userInterfaceIdiom
         let usesSidebarRoot = RootNavigationView.usesSidebarRoot(idiom: idiom, horizontal: horizontal, vertical: vertical)
+        // Which iPhone Duo display the scene is on (`phoneDisplayKind`, `MainWindow.swift:1398-1408` @ 87fe0d1c).
+        let displayKind = PhoneDisplayPolicy.displayKind(
+            isPhone: idiom == .phone, usesSidebarRoot: usesSidebarRoot,
+            isFoldableModel: modelOverride.map(PhoneDisplayPolicy.isFoldableModel) ?? Self.isFoldableModel,
+            window: windowShape, hasShownExpandedLayoutThisLaunch: hasShownExpandedPhoneLayout
+        )
         Group {
             if usesSidebarRoot {
                 RootSidebarView(
                     model: model, environment: environment,
-                    detailOnlyTopic: DuoSplitColumns.prefersDetailOnlyTopic(idiom: idiom, isPortrait: isPortrait)
+                    detailOnlyTopic: DuoSplitColumns.prefersDetailOnlyTopic(idiom: idiom, isPortrait: windowShape.isPortrait)
                 )
             } else {
                 RootTabsView(model: model, environment: environment)
             }
         }
         .environment(\.rootHasTabBar, !usesSidebarRoot)
-        .onGeometryChange(for: Bool.self) { $0.size.height > $0.size.width } action: { isPortrait = $0 }
+        .environment(\.phoneDisplayKind, displayKind)
+        .onGeometryChange(for: WindowShape.self) { proxy in
+            WindowShape(
+                isPortrait: proxy.size.height > proxy.size.width,
+                horizontalSafeAreaInset: max(proxy.safeAreaInsets.leading, proxy.safeAreaInsets.trailing)
+            )
+        } action: { windowShape = $0 }
+        .onChange(of: usesSidebarRoot, initial: true) { _, isSidebarRoot in
+            // Remembered until the app quits, so the cover screen is recognised even if the other signals miss.
+            if isSidebarRoot, idiom == .phone { hasShownExpandedPhoneLayout = true }
+        }
         // A fold or an unfold of the iPhone Duo (or an iPad window crossing regular width) swaps the roots (legacy
         // `handleRootSwap`, `MainWindow.swift:1747-1749` @ 87fe0d1c).
         .onChange(of: usesSidebarRoot) { model.rootSwapped() }

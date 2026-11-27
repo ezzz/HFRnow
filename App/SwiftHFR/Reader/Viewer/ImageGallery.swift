@@ -39,7 +39,7 @@ enum ImageGallery {
     /// Nil when the tapped image itself is not allowed.
     static func build(
         sources: [String], selected: Int, consented: Set<String>, autoLoadsThirdParty: Bool,
-        hosts: ImageHostTable = .standard
+        linked: URL? = nil, hosts: ImageHostTable = .standard
     ) -> (images: [GalleryImage], index: Int)? {
         guard sources.indices.contains(selected) else { return nil }
         // A window of at most `maximumImages` around the tapped picture, so a picture late on a huge page still opens.
@@ -56,11 +56,37 @@ enum ImageGallery {
             case .thirdParty where !(autoLoadsThirdParty || consented.contains(text)): continue
             case .forum, .thirdParty: break
             }
+            var usable = fullSize(of: url, hosts: hosts)
+            // The link around the tapped picture, when it is an image the policy lets the viewer fetch (#912).
+            if isSelected, let linked,
+               let target = linkedFull(
+                   of: url, linked: linked, consented: consented, autoLoadsThirdParty: autoLoadsThirdParty, hosts: hosts) {
+                usable = target
+            }
             if isSelected { index = images.count }
             let allowsThirdParty = origin == .thirdParty || autoLoadsThirdParty
-            images.append(GalleryImage(shown: url, full: fullSize(of: url, hosts: hosts), allowsThirdParty: allowsThirdParty))
+            images.append(GalleryImage(shown: url, full: usable, allowsThirdParty: allowsThirdParty))
         }
         guard let index else { return nil }
         return (images, index)
+    }
+
+    /// The full-size address of the image that the link around a picture points to (#912), or nil when the viewer must not
+    /// fetch it: a blocked address, or a third-party address the user has not allowed. Consent is per address (`consented`
+    /// holds the pictures' own addresses), so a third-party link is fetched only when its own address is consented or the
+    /// "load third-party images" setting is on, whatever host the picture is on. The one exception is the picture's own full size
+    /// (the viewer fetches it for `shown` anyway). The host table's rewrite applies.
+    static func linkedFull(
+        of shown: URL, linked: URL, consented: Set<String> = [], autoLoadsThirdParty: Bool, hosts: ImageHostTable = .standard
+    ) -> URL? {
+        let candidate = hosts.fullSizeURL(for: linked)
+        switch ImagePolicy.classify(candidate) {
+        case .blocked: return nil
+        case .forum: return candidate
+        case .thirdParty:
+            let own = candidate == fullSize(of: shown, hosts: hosts)
+            let consent = consented.contains(linked.absoluteString) || consented.contains(candidate.absoluteString)
+            return autoLoadsThirdParty || own || consent ? candidate : nil
+        }
     }
 }

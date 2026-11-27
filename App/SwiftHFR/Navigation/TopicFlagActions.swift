@@ -112,13 +112,13 @@ struct TopicFlagActions: Sendable {
             // A login landed between the check and the write (#1200 P2): the same words as a check that saw it.
             session(.unconfirmed(.sessionChanged))
         case .missingToken:
-            "Session incomplète : rien n'a été envoyé. Actualisez la liste puis réessayez."
+            "Session incomplète : rien n'a été envoyé. Actualise la liste puis réessaie."
         case .notLoggedIn:
-            "HFR demande d'être connecté : reconnectez-vous puis réessayez."
+            "HFR demande d'être connecté : reconnecte-toi puis réessaie."
         case .rejected(let message):
             message.map { "HFR a refusé : \($0)" } ?? "HFR a refusé l'action."
         case .unconfirmed:
-            "HFR n'a pas confirmé l'action, qui a pu être faite. Actualisez pour vérifier avant de recommencer."
+            "HFR n'a pas confirmé l'action, qui a pu être faite. Actualise pour vérifier avant de recommencer."
         case .network:
             "Réseau indisponible : rien n'a été envoyé."
         }
@@ -129,17 +129,17 @@ struct TopicFlagActions: Sendable {
     static func session(_ health: SessionHealth) -> String {
         switch health {
         case .expired(.noIdentityCookie):
-            "Session expirée : rien n'a été envoyé. Reconnectez-vous puis réessayez."
+            "Session expirée : rien n'a été envoyé. Reconnecte-toi puis réessaie."
         case .expired(.credentialsRefused):
-            "HFR refuse les identifiants de ce compte : rien n'a été envoyé. Reconnectez-vous puis réessayez."
+            "HFR refuse les identifiants de ce compte : rien n'a été envoyé. Reconnecte-toi puis réessaie."
         case .unconfirmed(.sessionChanged):
-            "Le compte connecté a changé pendant la vérification : rien n'a été envoyé. Réessayez."
+            "Le compte connecté a changé pendant la vérification : rien n'a été envoyé. Réessaie."
         case .unconfirmed(.unrecognizedPage):
-            "Session non vérifiée (page de profil inattendue) : rien n'a été envoyé. Réessayez dans quelques instants."
+            "Session non vérifiée (page de profil inattendue) : rien n'a été envoyé. Réessaie dans quelques instants."
         case .unconfirmed(.identityNotConfirmed):
-            "Session non vérifiée (identité non confirmée par HFR) : rien n'a été envoyé. Réessayez dans quelques instants."
+            "Session non vérifiée (identité non confirmée par HFR) : rien n'a été envoyé. Réessaie dans quelques instants."
         case .valid:
-            "Session non vérifiée : rien n'a été envoyé. Réessayez dans quelques instants."
+            "Session non vérifiée : rien n'a été envoyé. Réessaie dans quelques instants."
         }
     }
 }

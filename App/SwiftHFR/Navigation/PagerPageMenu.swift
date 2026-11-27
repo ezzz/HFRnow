@@ -38,6 +38,14 @@ struct PagerPageMenu: Equatable {
         return page
     }
 
+    /// Whether « Aller » may be pressed for `text`: the same rule as `page(fromEntry:)`, so a refused entry never closes the alert.
+    func canSubmit(entry text: String) -> Bool { page(fromEntry: text) != nil }
+
+    /// The alert's message: the range the entry must be in (legacy `TopicPagePickerSheet`, `Common.swift:3130` @ 87fe0d1c).
+    var entryMessage: String {
+        isExact ? "Choisir une page entre 1 et \(total)" : "Choisir une page à partir de 1 (au moins \(total) pages)"
+    }
+
     /// « page x / y », « page x / y+ » when `total` is a lower bound.
     var label: String { "page \(current) / \(total)" + (isExact ? "" : "+") }
 }
@@ -57,6 +65,10 @@ struct PagerPageMenuPill: View {
     var isLoading = false
     /// Called with the menu entry chosen or the page typed; nil makes the pill a plain label.
     let onJump: (@MainActor (PagerJump) -> Void)?
+    /// Whether the pill draws its own glass capsule. False inside the system bottom bar, whose item group supplies the glass (#1155).
+    var drawsGlass = true
+    /// The hit region the HIG asks of a button (Buttons): the pill's laid-out frame is the region (#1155).
+    static let hitSize: CGFloat = 44
     @State private var isEntering = false
     @State private var entry = ""
 
@@ -83,6 +95,9 @@ struct PagerPageMenuPill: View {
                 TextField(menu.isExact ? "1 à \(menu.total)" : "Numéro", text: $entry).keyboardType(.numberPad)
                 Button("Annuler", role: .cancel) {}
                 Button("Aller") { if let page = menu.page(fromEntry: entry) { onJump(.page(page)) } }
+                    .disabled(!menu.canSubmit(entry: entry))
+            } message: {
+                Text(menu.entryMessage)
             }
         } else {
             pill(menu)
@@ -90,14 +105,37 @@ struct PagerPageMenuPill: View {
     }
 
     private func pill(_ menu: PagerPageMenu) -> some View {
+        PagerPillLabel(menu: menu, isLoading: isLoading, drawsGlass: drawsGlass)
+            // The hit region is the frame around the visible capsule, so the capsule keeps hugging its text (#1155).
+            .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
+            .contentShape(.rect)
+            .accessibilityLabel(
+                isLoading ? "Chargement"
+                    : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
+            )
+    }
+}
+
+/// What the pill shows: the text or spinner in a glass capsule that hugs it (no capsule when the system bar draws one).
+struct PagerPillLabel: View {
+    let menu: PagerPageMenu
+    var isLoading = false
+    var drawsGlass = true
+
+    var body: some View {
         Group {
             if isLoading { ProgressView().accessibilityLabel("Chargement") } else { Text(menu.label).monospacedDigit() }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
-        .glassEffect(.regular, in: .capsule)
-        .accessibilityLabel(
-            isLoading ? "Chargement"
-                : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
-        )
+        .modifier(PagerPillGlass(isOn: drawsGlass))
+    }
+}
+
+/// The pill's own glass capsule, or nothing when the system bar already draws one behind the item (#1155).
+private struct PagerPillGlass: ViewModifier {
+    let isOn: Bool
+
+    func body(content: Content) -> some View {
+        if isOn { content.glassEffect(.regular, in: .capsule) } else { content }
     }
 }

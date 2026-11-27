@@ -5,7 +5,7 @@ import HFRStorage
 import Testing
 
 /// The arrival sleigh (LOT-166, THEMES.md §5): on the first launch of the window it crosses, a quarter of the window high (at
-/// most 240 pt), in at most 3 s, facing its travel, and only then does the « Oh Oh Oh ! » alert come.
+/// most 240 pt), in at most 3 s, facing its travel, and only then does the arrival alert come.
 @MainActor
 struct NoelSleighArrivalTests {
     static let clear = SeasonalThemeModel.ScreenState()

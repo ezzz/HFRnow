@@ -12,6 +12,13 @@ enum TopicRowInfoLine {
         return "\(topic.pageCount) \(topic.pageCount > 1 ? "pages" : "page")\(pollSuffix)"
     }
 
+    /// Spoken form of `leading` (#1161): "Sondage, page 3 sur 12", or "3 pages, sondage"; the glyphs "⚑" and "≣" are not read.
+    static func spokenLeading(_ topic: TopicSummary, showsFlag: Bool = true) -> String {
+        if showsFlag, let footer = TopicRowCues.spokenPageFooter(topic) { return footer }
+        let pages = FrenchPlural.count(topic.pageCount, "page", "pages")
+        return topic.isPoll ? "\(pages), sondage" : pages
+    }
+
     /// Right side: "<last poster> - <date>", nil unless both are known (legacy `footerRight`, `MainWindow.swift:495-504` @ 87fe0d1c, from
     /// `aAuthorOfLastPost` and `aDateOfLastPost`). The starter is never shown in its place.
     static func trailing(_ topic: TopicSummary, now: Date = .now) -> String? {

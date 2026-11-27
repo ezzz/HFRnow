@@ -1,4 +1,5 @@
 import Foundation
+import HFRParsing
 import HFRStorage
 
 /// Which of the two pseudo lists an editor, a menu entry or a profile button works on.
@@ -58,8 +59,19 @@ struct PseudoListManager: Sendable {
         self.blocklistChanges = blocklistChanges
     }
 
-    /// Whether `pseudo` is the current account's own pseudo (never offered for the lists, as legacy's `isOwnMessage`).
-    func isOwn(_ pseudo: String) -> Bool { account.map { PseudoNormalizer.matches($0, pseudo) } ?? false }
+    /// Whether `pseudo` is the current account's own pseudo (never offered for the lists, as legacy's `isOwnMessage`). The
+    /// account key is the `md_user` value, URL-encoded (HFR-PROTOCOL §5, `W03`), while a page prints the pseudo: both the raw and
+    /// the percent-decoded key are compared, as `AccountBook.checkSessionCookie` does (LOT-159). How HFR encodes an accented
+    /// pseudo in `md_user` (UTF-8 or Latin-1) is not captured: a key that does not decode as UTF-8 is compared raw only.
+    func isOwn(_ pseudo: String) -> Bool {
+        guard let account else { return false }
+        return Self.keyForms(of: account).contains { PseudoNormalizer.matches($0, pseudo) }
+    }
+
+    /// `key` as stored and percent-decoded (`HFRText.accountKeyForms`; `+` is read as a space as a tolerance only).
+    static func keyForms(of key: String) -> [String] {
+        HFRText.accountKeyForms(of: key)
+    }
 
     /// Whether `kind` can be edited: the blocklist belongs to an account.
     func isAvailable(_ kind: PseudoListKind) -> Bool { kind == .allowlist || account != nil }
@@ -81,6 +93,9 @@ struct PseudoListManager: Sendable {
 
     /// Reads the stored lists again, after the user restored the file.
     func reload() async -> PseudoListError? { await store.reload() }
+
+    /// Sets the unreadable file aside (`.corrupt`) and starts from empty lists; only after the member confirmed (#1182).
+    func discardUnreadableData() async throws { try await store.discardUnreadableData() }
 
     /// Whether `pseudo` is in the list.
     func contains(_ pseudo: String, in kind: PseudoListKind) async -> Bool {

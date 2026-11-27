@@ -67,6 +67,42 @@ import Testing
     }
 }
 
+/// The per-account key #899 added: the last Messages switch position, seeded once from the retired `mp_list_display`.
+@Suite struct MPListSegmentStoreTests {
+    @Test func noAccountOrAnEmptyOneReadsAsAll() {
+        let store = MPListSegmentStore(settings: InMemorySettingsStore(["mp_list_display": .string("split")]))
+        #expect(store.segment(for: nil) == .all)
+        #expect(store.segment(for: "\u{200B}") == .all)
+    }
+
+    @Test(arguments: [("single", MPSegment.all), ("split", .oneToOne), ("two", .all)])
+    func absentSeedsFromTheOldSetting(old: String, expected: MPSegment) {
+        let store = MPListSegmentStore(settings: InMemorySettingsStore(["mp_list_display": .string(old)]))
+        #expect(store.segment(for: "Alice") == expected)
+    }
+
+    @Test func accountsKeepDifferentChoicesUnderTheirAccountKey() {
+        let settings = InMemorySettingsStore(["mp_list_display": .string("split")])
+        let store = MPListSegmentStore(settings: settings)
+        store.set(.group, for: "Alice")
+        #expect(settings.rawValue(forKey: "mp_list_segment.alice") == .string("group"))
+        #expect(store.segment(for: "ALICE") == .group)
+        // Bob has stored nothing: the retired setting seeds him, not Alice's choice.
+        #expect(store.segment(for: "Bob") == .oneToOne)
+        store.set(.all, for: "Bob")
+        #expect(store.segment(for: "Bob") == .all)
+        #expect(store.segment(for: "Alice") == .group)
+    }
+
+    @Test(arguments: [SettingRawValue.string(""), .string("everything"), .int(1), .bool(true)])
+    func anUnknownStoredValueReadsAsAll(raw: SettingRawValue) {
+        let store = MPListSegmentStore(settings: InMemorySettingsStore(
+            ["mp_list_display": .string("split"), "mp_list_segment.alice": raw]
+        ))
+        #expect(store.segment(for: "Alice") == .all)
+    }
+}
+
 /// The key LOT-086 added: legacy's raw values. The default is `forum` since #1016; only an absent key takes it.
 @Suite struct ReplyButtonBehaviorKeyTests {
     @Test func absentReadsAsForumAndRoundTripsLegacyValues() {

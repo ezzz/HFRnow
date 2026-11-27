@@ -32,13 +32,26 @@ enum TopicQuickActions {
     /// ("Drapeaux & Favoris", legacy context `.favorites`) opens the last page; the other lists the last post's link, else
     /// the last page.
     static func lastReply(of topic: TopicSummary, in source: TopicSource) -> TopicOpening? {
-        if source != .flagged, let path = topic.lastPost?.path,
+        lastReply(of: topic, usingLastPost: source != .flagged)
+    }
+
+    /// "Dernière réponse" of a list that is no topic list (search results: legacy `lastReplyURL`, last post first).
+    static func lastReply(of topic: TopicSummary, usingLastPost: Bool) -> TopicOpening? {
+        if usingLastPost, let path = topic.lastPost?.path,
            let target = ReaderTarget(link: path, fallbackTopic: topic.topicID) {
             return TopicOpening(target: target, atLastMessage: true)
         }
         guard var opening = lastPage(of: topic) else { return nil }
         opening.atLastMessage = true
         return opening
+    }
+
+    /// "Dernière correspondance" (search results): the page and message the search matched, at the match's anchor (legacy
+    /// `searchMatchURL`, `initialScroll: .top`). Nil when the row names no match.
+    static func searchMatch(of topic: TopicSummary) -> TopicOpening? {
+        guard let hit = topic.searchHit,
+              let target = ReaderTarget(link: hit.postPath, fallbackTopic: topic.topicID) else { return nil }
+        return TopicOpening(target: target)
     }
 
     /// The pages "Page numéro…" accepts (legacy `1...maxTopicPageValue`).
@@ -62,5 +75,40 @@ enum TopicQuickActions {
     static func link(of topic: TopicSummary) -> URL? {
         let candidates = [topic.firstPagePath, topic.path, topic.lastPagePath, topic.lastPost?.path]
         return candidates.lazy.compactMap { $0.flatMap(ReaderTarget.forumURL) }.first
+    }
+}
+
+/// One entry of a row menu that is not a topic list's: what it does when chosen.
+enum TopicRowMenuEntry: Hashable {
+    case searchMatch(TopicOpening)
+    case firstPage(TopicOpening)
+    case lastPage(TopicOpening)
+    case lastReply(TopicOpening)
+    /// Asks for a page number, then `TopicQuickActions.page(_:of:)`.
+    case pagePrompt
+    case copyLink(URL)
+}
+
+/// The lists whose rows carry the quick actions besides the topic lists (legacy `TopicOpenContext`).
+enum TopicRowMenuContext: Equatable {
+    /// Legacy `.privateMessages`: no "Dernière réponse" (`showOpenLastReply: false`, `Common.swift:2587-2625` @ 87fe0d1c).
+    case privateMessages
+    /// Legacy `.globalSearch`: "Dernière correspondance" first, then the five (`Common.swift:3558-3600` @ 87fe0d1c).
+    case globalSearch
+}
+
+extension TopicQuickActions {
+    /// The entries a `context` row offers, in legacy order. An entry that cannot run (no link to open, no match) is left out, not
+    /// dimmed (HIG, #1162); "Page numéro…" needs a page it can build (a topic number or a link).
+    /// Later entries of the MP menu (#676: "Marquer non lu", "Supprimer") follow these in the view, after a divider.
+    static func menu(of topic: TopicSummary, in context: TopicRowMenuContext) -> [TopicRowMenuEntry] {
+        var entries: [TopicRowMenuEntry] = []
+        if context == .globalSearch, let opening = searchMatch(of: topic) { entries.append(.searchMatch(opening)) }
+        if let opening = firstPage(of: topic) { entries.append(.firstPage(opening)) }
+        if let opening = lastPage(of: topic) { entries.append(.lastPage(opening)) }
+        if context == .globalSearch, let opening = lastReply(of: topic, usingLastPost: true) { entries.append(.lastReply(opening)) }
+        if page(suggestedPage(of: topic), of: topic) != nil { entries.append(.pagePrompt) }
+        if let link = link(of: topic) { entries.append(.copyLink(link)) }
+        return entries
     }
 }

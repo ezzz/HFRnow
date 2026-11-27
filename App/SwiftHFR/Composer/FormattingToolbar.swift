@@ -73,14 +73,14 @@ struct FormattingToolbar: View {
     private func button<Content: View>(
         _ label: String, action: @escaping () -> Void, @ViewBuilder content: () -> Content
     ) -> some View {
-        let cell = ComposerControlRow.cellSize(metrics.cellSize, inCard: inCard)
+        let cell = ComposerControlRow.hitCell(ComposerControlRow.cellSize(metrics.cellSize, inCard: inCard))
         return Button {
             action()
             refocus()
         } label: {
             content()
                 .font(.system(size: metrics.glyphSize))
-                // In the card, 44 pt cells at least, as the control row's (#895).
+                // 44 pt cells at least in both chromes, as the control row's (#895, #1156).
                 .frame(minWidth: cell, minHeight: cell).contentShape(.rect)
         }
         .buttonStyle(.plain)

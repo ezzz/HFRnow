@@ -6,8 +6,9 @@ import UIKit
 // (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: « page x / y »
 // (« y+ » while HFR's pager gives a lower bound, no « last » then; GAP-024, #980); the sub-forum menu and the filter are `ForumScopeBar`
 // (GAP-022, 023). LOT-185: the pager is the system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending
-// #545. #770: "+" is hidden, not greyed, when the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic
-// on refresh (`:382`; no haptics caller yet).
+// #545. #770: "+" is hidden, not greyed, when the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); the pull
+// plays a light impact when it fires (#1207; legacy's played on completion, `refreshCompleted`, `:99-100`, pull `:791-792`).
+// #1206: no refresh button in the top bar (legacy `:835-846`), the pull refreshes.
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
 // `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
 // Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
@@ -35,6 +36,7 @@ struct TopicListView: View {
     /// The account button after the back button of a pushed list (`MainWindow.swift:803-818` @ 87fe0d1c, #425); off on the Favoris root.
     var showsAccountMenu = false
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
     @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
@@ -71,18 +73,25 @@ struct TopicListView: View {
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
-            if let problem = model.favorites?.storeProblem {
-                Label(problem, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if let favorites = model.favorites, let problem = favorites.storeProblem {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(problem, systemImage: "exclamationmark.triangle")
+                    if favorites.canDiscardUnreadable {
+                        UnreadableDataRecoveryButton(content: "les sections repliées et les super-favoris") {
+                            await favorites.discardUnreadable()
+                        }
+                    }
+                }
+                .font(.footnote)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .safeAreaInset(edge: .top) {
             // Content-layer cards: they push the list down, so they stay materials in an inset (LOT-185).
             VStack(spacing: 8) {
                 if let confirmation = model.sentConfirmation {
-                    TopicSentBanner(text: confirmation, close: model.clearSentConfirmation)
+                    ConfirmationBanner(text: confirmation, close: model.clearSentConfirmation)
                 }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)
@@ -91,9 +100,9 @@ struct TopicListView: View {
         }
         .pagerBar(PageBar.isShown(for: loader.value, source: model.source) ? PageBar(model: model).pager : nil)
         .toolbar {
-            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
-            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
-            // so the refresh never moves to the bottom bar (`:849-851`).
+            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement(on: phoneDisplayKind)) { AccountMenuButton() } }
+            // Trailing group: "+" only. Legacy adds a refresh button after it (`MainWindow.swift:835-846` @ 87fe0d1c); here the list
+            // refreshes on a pull (`.pullToRefresh`, #1207), as the operator asked (#1206), on the Duo cover screen too (GAP-713).
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
                 if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
@@ -102,12 +111,11 @@ struct TopicListView: View {
                         Label("Nouveau sujet", systemImage: "plus")
                     }
                 }
-                Button { Task { await model.refresh() } } label: {
-                    Label { Text("Actualiser") } icon: { ToolbarRefreshIcon(isLoading: model.loader.isLoading) }
-                }
-                .disabled(!model.canRefresh)
             }
         }
+        // The cover screen: « Retour » at the bottom of the column on a pushed category's list (`MainWindow.swift:854` @ 87fe0d1c; the
+        // Favoris root is no push); no « Actualiser » to move there (#1206).
+        .coverScreenListActions()
         .sheet(item: $newTopic) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newTopicDidClose(reason) }
@@ -117,10 +125,11 @@ struct TopicListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .refreshable { await model.refresh() }
+        .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
-            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
+            AlertTitles.flagRemoveFailed,
+            isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
         ) {
             // The row is captured here: the alert clears the model's state before a button's action runs (LOT-087).
             if let topic = model.retryableRemoval {
@@ -132,32 +141,21 @@ struct TopicListView: View {
         } message: {
             Text(model.actionFailure ?? "")
         }
-        .alert(
-            "Page numéro", isPresented: Binding(get: { pagePrompt != nil }, set: { if !$0 { pagePrompt = nil } }),
-            presenting: pagePrompt
-        ) { topic in
-            TextField("Page", text: $pageText).keyboardType(.numberPad)
-            Button("Annuler", role: .cancel) {}
-            Button("Aller") {
-                let number = Int(pageText.trimmingCharacters(in: .whitespaces)) ?? 0
-                if let opening = TopicQuickActions.page(number, of: topic) { open?(topic, opening) }
-            }
-        } message: { topic in
-            Text("Entre 1 et \(topic.pageCount)")
-        }
+        .modifier(TopicPagePrompt(topic: $pagePrompt, text: $pageText) { topic, opening in open?(topic, opening) })
     }
 
     /// Whether a flagged row is a pill: not in Favoris and Drapeaux, legacy's one Favoris view (`Favorites.swift:1134` @ 87fe0d1c).
     static func flagPills(for source: TopicSource) -> Bool { !source.isFavoritesList }
 
-    /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
+    /// The tint of a row: the super favourite's orange or the flag's colour, nil when nothing is highlighted. The selected row keeps
+    /// its pill over the selection tint (#1073).
     /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
     /// @ 87fe0d1c); the default row shows no flag colour there.
     static func rowTint(
-        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, flagPills: Bool = true
+        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, flagPills: Bool = true
     ) -> RowTint? {
         let flag = showsFlag && flagPills ? topic.flag : nil
-        guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
+        guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite) else {
             return nil
         }
         return RowTint(tint: accent.color, weight: accent.weight)
@@ -174,7 +172,7 @@ struct TopicListView: View {
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(
-                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
+                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper,
                         flagPills: TopicListView.flagPills(for: model.source)
                     ),
                     isSuperFavorite: isSuper
@@ -209,7 +207,8 @@ struct TopicListView: View {
         .disabled(removing)
     }
 
-    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter.
+    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter. What cannot run
+    /// now is left out, not dimmed (HIG › Context menus, #1162).
     @ViewBuilder
     private func menu(_ topic: TopicSummary, isSuper: Bool) -> some View {
         if let open {
@@ -242,13 +241,12 @@ struct TopicListView: View {
                 Task { await favorites.toggleSuperFavorite(topic) }
             }
         }
-        if model.canRemoveFlag(topic) { removeButton(topic) }
-        if model.source == .favorites, let filtering, topic.topicID != nil {
+        if model.menuOffersRemove(topic) { removeButton(topic) }
+        if let filtering, model.menuOffersFilter(topic, filterIsBusy: filtering.isBusy) {
             Divider()
             Button { filtering.start(opening: topic) } label: {
                 Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
             }
-            .disabled(filtering.isBusy)
         }
     }
 
@@ -293,17 +291,15 @@ extension TopicListView {
     private func overlay(_ loader: ContentLoader<TopicListContent>) -> some View {
         if let content = loader.value {
             if content.isEmpty, let reason = content.emptyReason {
-                EmptyListView(reason: reason, refresh: model.refresh)
+                EmptyListView(reason: reason, prompt: model.signInPrompt(current:), refresh: model.refresh)
             } else if model.showsNoUnreadFavorites, let favorites = model.favorites {
                 // Nothing unread only when no row is: an unread row inside a folded section is hidden, not absent.
                 NoUnreadTopicsView(options: favorites)
             } else if model.allSectionsHidden, let favorites = model.favorites {
                 AllSectionsCollapsedView(options: favorites)
             }
-        } else if let error = loader.error {
-            LoadFailureView(error: error, retry: model.retry)
-        } else if loader.isLoading {
-            ProgressView("Chargement des sujets")
+        } else {
+            ScreenStateView(state: ScreenLoadState(error: loader.error, isLoading: loader.isLoading), retry: model.retry)
         }
     }
 }

@@ -43,7 +43,7 @@ struct LiveNotificationPermission: NotificationPermissionReading {
 
     func requestAuthorization() async {
         do {
-            // The options of the launch request (`MPNotificationCenter.prepare`).
+            // The options legacy asked for at launch (`HFRswiftApp.swift:27-29` @ 87fe0d1c); asked in context now (#1172).
             _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
         } catch {
             Self.log.error("Notification authorization failed")

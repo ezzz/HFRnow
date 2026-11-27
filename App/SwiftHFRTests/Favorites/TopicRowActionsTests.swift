@@ -208,7 +208,7 @@ struct TopicRowActionsTests {
         let (model, _) = await favoritesList([topic], writer: writer)
         await model.removeFlag(topic)
         #expect(writer.removed.count == 1)
-        #expect(model.actionFailure?.contains("Actualisez pour vérifier") == true)
+        #expect(model.actionFailure?.contains("Actualise pour vérifier") == true)
     }
 
     /// Issue #564: `removeFlag` marks the row on the main actor, then the request reaches the writer from another executor;
@@ -232,6 +232,35 @@ struct TopicRowActionsTests {
         await first.value
         #expect(!model.isRemovingFlag(topic))
         #expect(titles(model).isEmpty)
+    }
+
+    /// #1162: the context menu hides "Supprimer" while the removal runs (the swipe button keeps its disabled state) and shows it
+    /// again after; "Filtrer les posts" is hidden while a filter run is busy and absent off Favoris.
+    @Test(.timeLimit(.minutes(1))) func theContextMenuHidesWhatCannotRunInsteadOfDimmingIt() async {
+        let writer = FakeFlagWriter()
+        let gate = AsyncGate()
+        writer.removeHandler = { topic in
+            await gate.wait()
+            return confirmed(.removeFavoriteFromList, topic, "Drapeaux effacés avec succès")
+        }
+        let topic = flaggedTopic(1)
+        let (model, _) = await favoritesList([topic], writer: writer)
+        #expect(model.menuOffersRemove(topic))
+        let removal = Task { await model.removeFlag(topic) }
+        while writer.removed.isEmpty { await Task.yield() }
+        #expect(model.canRemoveFlag(topic), "the swipe button is still built, dimmed")
+        #expect(!model.menuOffersRemove(topic), "the menu entry is gone while it runs")
+        await gate.open()
+        await removal.value
+        #expect(!model.menuOffersFilter(flaggedTopic(2), filterIsBusy: false), "absent off Favoris (this list is Drapeaux)")
+    }
+
+    /// « Filtrer les posts » is offered on a Favoris row while no filter run is busy, and left out (not dimmed) while one is.
+    @Test func theFilterEntryIsOfferedOnFavorisWhileIdleAndHiddenWhileBusy() async {
+        let topic = flaggedTopic(2)
+        let (favorites, _) = await favoritesList([topic], source: .favorites)
+        #expect(favorites.menuOffersFilter(topic, filterIsBusy: false))
+        #expect(!favorites.menuOffersFilter(topic, filterIsBusy: true), "no dimmed « Filtrer les posts »")
     }
 
     @Test func theNextLoadShowsHFRsStateAgain() async {
@@ -268,10 +297,10 @@ extension TopicRowActionsTests {
         for health in expired + unconfirmed {
             #expect(TopicFlagActions.session(health).contains("rien n'a été envoyé"), "\(health)")
         }
-        for health in expired { #expect(TopicFlagActions.session(health).contains("Reconnectez-vous"), "\(health)") }
+        for health in expired { #expect(TopicFlagActions.session(health).contains("Reconnecte-toi"), "\(health)") }
         for health in unconfirmed {
-            #expect(!TopicFlagActions.session(health).contains("Reconnectez"), "\(health)")
-            #expect(TopicFlagActions.session(health).contains("Réessayez"), "\(health)")
+            #expect(!TopicFlagActions.session(health).contains("Reconnecte"), "\(health)")
+            #expect(TopicFlagActions.session(health).contains("Réessaie"), "\(health)")
         }
         // Each case reads differently, so a screenshot from a device names the check that failed.
         #expect(Set((expired + unconfirmed).map(TopicFlagActions.session)).count == expired.count + unconfirmed.count)
