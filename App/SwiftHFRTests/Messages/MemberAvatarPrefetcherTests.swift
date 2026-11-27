@@ -16,6 +16,7 @@ struct MemberAvatarPrefetcherTests {
         private var asked: [String] = []
         private var running = 0
         private var peak = 0
+        private var generation = 0
         private let answer: @Sendable (String) -> MemberAvatarLookupResult
 
         init(answer: @escaping @Sendable (String) -> MemberAvatarLookupResult = { _ in .avatar(MemberAvatarPrefetcherTests.avatar) }) {
@@ -24,6 +25,12 @@ struct MemberAvatarPrefetcherTests {
 
         var pseudos: [String] { lock.withLock { asked } }
         var maximumConcurrency: Int { lock.withLock { peak } }
+        /// Stands for a login installed in the session (a re-login moves the generation, #1195).
+        func logInAgain() { lock.withLock { generation += 1 } }
+
+        func loginState() async -> ProfileLoginState {
+            lock.withLock { ProfileLoginState(isLoggedIn: true, generation: generation) }
+        }
 
         func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult {
             lock.withLock {
@@ -255,6 +262,19 @@ extension MemberAvatarPrefetcherTests {
         #expect(await anonymous.requests.isEmpty)
     }
 
+    /// A re-login in place (same session, new login generation) lifts the suspension: the refused pseudo is looked up again.
+    @Test func aReLoginLiftsTheSuspension() async {
+        let refusals = Refusals(count: 1, then: .avatar(Self.avatar))
+        let lookup = ScriptedLookup { _ in refusals.next() }
+        let prefetcher = prefetcher(lookup)
+        await prefetcher.prefetch(pseudo: "user2")
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2"])
+        lookup.logInAgain()
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2", "user2"])
+    }
+
     /// One refusal suspends the prefetcher: no other pseudo, and not the same one after its retry delay, is looked up.
     @Test func aRefusalStopsEveryLookup() async throws {
         let lookup = ScriptedLookup { _ in .refused }
@@ -264,5 +284,23 @@ extension MemberAvatarPrefetcherTests {
         try await Task.sleep(for: .milliseconds(100))
         await prefetcher.prefetch(pseudo: "user2")
         #expect(lookup.pseudos == ["user2"])
+    }
+}
+
+/// Answers `.refused` `count` times, then `then`.
+private final class Refusals: @unchecked Sendable {
+    private let lock = NSLock()
+    private var left: Int
+    private let then: MemberAvatarLookupResult
+    init(count: Int, then: MemberAvatarLookupResult) {
+        left = count
+        self.then = then
+    }
+    func next() -> MemberAvatarLookupResult {
+        lock.withLock {
+            guard left > 0 else { return then }
+            left -= 1
+            return .refused
+        }
     }
 }

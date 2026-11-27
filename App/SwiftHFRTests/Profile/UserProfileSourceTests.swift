@@ -106,22 +106,50 @@ struct UserProfileSourceTests {
         await #expect(throws: ListLoadError.offline) { try await source.profile(memberID: 1) }
     }
 
-    /// The app's source is built from one session, which it checks and sends with: a logged-out `HFRSession` sends nothing, a
-    /// logged-in one reads as logged in (no request is sent here: it would reach the forum).
-    @Test func theSessionSourceChecksItsSessionsLogin() async {
-        let loggedOut = LiveUserProfileSource(session: HFRSession())
-        await #expect(throws: ListLoadError.profileLoginRequired) { try await loggedOut.profile(memberID: 1) }
-        #expect(await LiveUserProfileSource(session: HFRSession(cookies: Fake.cookies(user: "user1"))).isLoggedIn())
+    /// The app's source is built from one session, which it checks and sends with. The session is a recording double that
+    /// cannot reach the forum, so the test holds without the login check under test (LESSONS 56).
+    @Test func theSessionSourceChecksAndSendsWithItsSession() async {
+        let session = RecordingProfileSession(loggedIn: false)
+        let source = LiveUserProfileSource(session: session)
+        await #expect(throws: ListLoadError.profileLoginRequired) { try await source.profile(memberID: 1) }
+        #expect(await session.transport.requests.isEmpty)
+        await session.logIn()
+        // The scripted transport has no reply: reaching it is the point.
+        await #expect(throws: ListLoadError.other) { try await source.profile(memberID: 1) }
+        #expect(await session.transport.requests.map(\.url.absoluteString) == ["https://forum.hardware.fr/hfr/profil-1.htm"])
     }
 
-    /// `AppEnvironment` wires the reader's profiles to the environment's session: logged out, the sheet's load sends nothing.
+    /// `AppEnvironment` wires the reader's profiles and the MP avatar prefetcher to the environment's own session: both follow
+    /// its login generation. Nothing is sent: only the login state is read.
     @Test func theEnvironmentsProfilesFollowItsSession() async throws {
-        let loggedOut = AppEnvironment.make(session: HFRSession(), accountName: nil)
-        await #expect(throws: ListLoadError.profileLoginRequired) { try await loggedOut.reader.profiles.profile(memberID: 1) }
-        #expect(loggedOut.memberAvatars == nil)
+        #expect(AppEnvironment.make(session: HFRSession(), accountName: nil).memberAvatars == nil)
         let name = "ProfileWiringTest"
-        let loggedIn = AppEnvironment.make(session: HFRSession(cookies: Fake.cookies(user: name)), accountName: name)
-        let source = try #require(loggedIn.reader.profiles as? LiveUserProfileSource)
-        #expect(await source.isLoggedIn())
+        let session = HFRSession(cookies: Fake.cookies(user: name))
+        let environment = AppEnvironment.make(session: session, accountName: name)
+        let source = try #require(environment.reader.profiles as? LiveUserProfileSource)
+        let prefetcher = try #require(environment.memberAvatars)
+        #expect(await source.loginState() == ProfileLoginState(isLoggedIn: true, generation: 0))
+        #expect(await prefetcher.currentLoginState() == ProfileLoginState(isLoggedIn: true, generation: 0))
+        await session.advanceLoginGeneration()
+        #expect(await source.loginState().generation == 1)
+        #expect(await prefetcher.currentLoginState().generation == 1)
     }
+}
+
+/// A `ProfileSession` whose transport is a `MockTransport` with no reply: it records requests and never reaches the forum.
+actor RecordingProfileSession: ProfileSession {
+    let transport = MockTransport(replies: [])
+    private var loggedIn: Bool
+    private var generation = 0
+
+    init(loggedIn: Bool) { self.loggedIn = loggedIn }
+
+    func logIn() {
+        loggedIn = true
+        generation += 1
+    }
+
+    func profileLoginState() -> ProfileLoginState { ProfileLoginState(isLoggedIn: loggedIn, generation: generation) }
+
+    func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse { try await transport.perform(request) }
 }

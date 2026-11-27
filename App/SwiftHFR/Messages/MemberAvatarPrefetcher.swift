@@ -10,8 +10,8 @@ enum MemberAvatarLookupResult: Sendable, Equatable {
     case none
     /// The exchange failed (offline, timeout, a server error, an unreadable page): worth asking again later.
     case failed
-    /// Profiles are refused to this session: no login, or HFR's 401/403 (#1363). Asking again cannot help until the account
-    /// changes, which builds a new prefetcher (`AppEnvironment`).
+    /// Profiles are refused to this session: no login, or HFR's 401/403 (#1363). Asking again cannot help until a login is
+    /// installed in the session (a re-login keeps the same session object, #1195) or the account changes.
     case refused
 }
 
@@ -19,6 +19,8 @@ enum MemberAvatarLookupResult: Sendable, Equatable {
 protocol MemberAvatarLookup: Sendable {
     /// The avatar on `pseudo`'s public profile, `.none` when HFR says there is none, `.failed` when the exchange failed.
     func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult
+    /// The login the lookups depend on; a new `generation` lifts a refusal.
+    func loginState() async -> ProfileLoginState
 }
 
 /// The live lookup, two GETs: `profilebdd.php`'s `301`, cookie-less, gives the member id without being followed (`R716a`, the
@@ -28,6 +30,8 @@ protocol MemberAvatarLookup: Sendable {
 struct LiveMemberAvatarLookup: MemberAvatarLookup {
     let fetcher: PageFetcher
     let profiles: LiveUserProfileSource
+
+    func loginState() async -> ProfileLoginState { await profiles.loginState() }
 
     func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult {
         // The profile would be refused: the id lookup would leave for nothing.
@@ -59,7 +63,8 @@ struct LiveMemberAvatarLookup: MemberAvatarLookup {
 /// not looked up again in the prefetcher's life (one per session, `AppEnvironment`); a failed exchange, or an avatar the store
 /// did not keep, is retried only after `retryDelay`, so a list opened offline recovers without asking twice in a row. A row that
 /// leaves the screen before its turn gives the turn away untried, so only rows still shown are fetched. A refusal (no login, HFR's
-/// 401/403, #1363) stops every lookup for the prefetcher's life: each would be refused the same way.
+/// 401/403, #1363) stops every lookup, each would be refused the same way, until the session's login changes (a re-login keeps
+/// the same session and environment, #1195).
 actor MemberAvatarPrefetcher {
     /// The time between two lookups of the live prefetcher: each lookup is two page requests.
     static let liveSpacing = Duration.seconds(1)
@@ -77,8 +82,8 @@ actor MemberAvatarPrefetcher {
     private var isBusy = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var lastStart: ContinuousClock.Instant?
-    /// Set by a refused lookup: no lookup runs any more.
-    private var isSuspended = false
+    /// Set by a refused lookup to the login generation it ran under: no lookup runs until the generation moves.
+    private var suspendedGeneration: Int?
 
     /// A prefetcher that offers what `lookup` finds to `offer`, skipping pseudos for which `hasAvatar` is true.
     init(
@@ -112,6 +117,7 @@ actor MemberAvatarPrefetcher {
     func prefetch(pseudo: String) async {
         let name = pseudo.trimmingCharacters(in: .whitespacesAndNewlines)
         let key = name.lowercased()
+        if let suspended = suspendedGeneration, await lookup.loginState().generation != suspended { suspendedGeneration = nil }
         guard !name.isEmpty, isDue(key) else { return }
         await acquireTurn()
         defer { releaseTurn() }
@@ -126,6 +132,8 @@ actor MemberAvatarPrefetcher {
         let lookup = lookup
         let offer = offer
         let hasAvatar = hasAvatar
+        // Read before the lookup: a login installed while it runs must not be the one a refusal suspends.
+        let generation = await lookup.loginState().generation
         // Detached: once started, the lookup ends even if the row scrolls away, since the pseudo is not asked again at once.
         let outcome = await Task.detached(priority: .utility) { () -> LookupOutcome in
             await Self.outcome(of: lookup.avatar(forPseudo: name), for: name, offer: offer, hasAvatar: hasAvatar)
@@ -137,7 +145,8 @@ actor MemberAvatarPrefetcher {
             tried.remove(key)
             retryAt[key] = ContinuousClock.now.advanced(by: retryDelay)
         case .refused:
-            isSuspended = true
+            tried.remove(key)
+            suspendedGeneration = generation
         }
     }
 
@@ -164,9 +173,12 @@ actor MemberAvatarPrefetcher {
         }
     }
 
+    /// The lookup's login now (tests check the app wires the environment's session).
+    func currentLoginState() async -> ProfileLoginState { await lookup.loginState() }
+
     /// Whether `key` may be looked up now: not suspended, never answered for, and past its retry time after a failure.
     private func isDue(_ key: String) -> Bool {
-        guard !isSuspended, !tried.contains(key) else { return false }
+        guard suspendedGeneration == nil, !tried.contains(key) else { return false }
         guard let retry = retryAt[key] else { return true }
         return ContinuousClock.now >= retry
     }

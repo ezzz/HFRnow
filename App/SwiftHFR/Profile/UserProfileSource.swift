@@ -20,19 +20,23 @@ protocol UserProfileSource: Sendable {
 /// captures do not show, e.g. for a deleted member) is refused rather than read as a profile.
 struct LiveUserProfileSource: UserProfileSource {
     let fetcher: PageFetcher
-    /// Whether the fetcher's session holds a usable login; checked before every request.
-    let isLoggedIn: @Sendable () async -> Bool
+    /// The login of the fetcher's session; checked before every request.
+    let loginState: @Sendable () async -> ProfileLoginState
 
     /// A source whose login check is `isLoggedIn` (tests).
     init(fetcher: PageFetcher, isLoggedIn: @escaping @Sendable () async -> Bool) {
         self.fetcher = fetcher
-        self.isLoggedIn = isLoggedIn
+        self.loginState = { ProfileLoginState(isLoggedIn: await isLoggedIn(), generation: 0) }
     }
 
     /// The source of `session`: its login is checked and its requests leave through it, one value for both.
-    init(session: HFRSession) {
-        self.init(fetcher: PageFetcher(session: session), isLoggedIn: { await session.isLoggedIn() })
+    init(session: some ProfileSession) {
+        self.fetcher = PageFetcher(session: session)
+        self.loginState = { await session.profileLoginState() }
     }
+
+    /// Whether the session holds a usable login now.
+    func isLoggedIn() async -> Bool { await loginState().isLoggedIn }
 
     func profile(memberID: Int) async throws(ListLoadError) -> UserProfile {
         guard await isLoggedIn() else { throw .profileLoginRequired }
@@ -55,6 +59,26 @@ struct LiveUserProfileSource: UserProfileSource {
     static func isProfilePage(_ url: URL, memberID: Int) -> Bool {
         url.scheme?.lowercased() == "https" && url.host()?.lowercased() == "forum.hardware.fr" && url.port == nil
             && url.user == nil && url.path(percentEncoded: true) == "/hfr/profil-\(memberID).htm"
+    }
+}
+
+/// The login a profile request depends on: whether the session has one, and which one (`HFRSession.loginGeneration` moves on
+/// every login installed, a re-login of the same session included, #1195).
+struct ProfileLoginState: Equatable, Sendable {
+    let isLoggedIn: Bool
+    let generation: Int
+}
+
+/// The session a profile is fetched with: its transport and its login (#1363). `HFRSession` in the app; a recording double in
+/// tests, so no test relies on the login check under test to keep a request from the forum (LESSONS 56).
+protocol ProfileSession: HTTPTransport {
+    /// The session's login now.
+    func profileLoginState() async -> ProfileLoginState
+}
+
+extension HFRSession: ProfileSession {
+    func profileLoginState() -> ProfileLoginState {
+        ProfileLoginState(isLoggedIn: isLoggedIn(), generation: loginGeneration)
     }
 }
 
