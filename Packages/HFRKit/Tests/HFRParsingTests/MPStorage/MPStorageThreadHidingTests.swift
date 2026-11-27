@@ -17,6 +17,10 @@ struct MPStorageThreadHidingTests {
     /// The storage recipient as `R13u1` and `R333b` alias it.
     static let recipientInR13u1 = "user117"
     static let recipientInR333b = "user3"
+    static let recipientInR1203a = "user107"
+
+    /// The thread with the storage subject that user2 sent to the account (#1203, `R1203a` row 1).
+    static let foreignPost = 3_209_728
 
     private static func thread(
         _ title: String, post: Int? = nil, readState: TopicReadState, with interlocutors: [String] = ["user9"], group: Bool = false
@@ -72,6 +76,34 @@ struct MPStorageThreadHidingTests {
             #expect(shown.threads.map { $0.summary.topicID?.topic } == [99, 98])
             #expect(shown.unreadThreadCount == 2)
         }
+    }
+
+    @Test("#1203, R1203a: the captured row user2 sent with the storage subject stays visible, the account's own is hidden")
+    func keepsCapturedForeignStorageRowVisible() throws {
+        let page = try PrivateMessageListParser.parse(Fixture.capture("R1203a-mp-list-foreign-storage-row-unread"), pageURL: Self.listURL)
+        let storageRows = page.threads.filter { MPStoragePageParser.isStorageSubject($0.summary.title) }
+        #expect(storageRows.map { $0.summary.topicID?.topic } == [Self.foreignPost, Self.storagePost])
+        let foreign = try #require(storageRows.first)
+        // HFR prints the interlocutor with a U+200B (long pseudos, HFR-PROTOCOL "Printed pseudos").
+        #expect(!foreign.isGroup && foreign.interlocutors.map { $0.replacing("\u{200B}", with: "") } == ["user2"])
+        #expect(foreign.summary.readState == .unread)
+        for located in [Self.storagePost, nil] as [Int?] {
+            let shown = page.hidingStorageThread(post: located, recipient: Self.recipientInR1203a)
+            #expect(shown.threads == page.threads.filter { $0.summary.topicID?.topic != Self.storagePost })
+            #expect(shown.unreadThreadCount == page.unreadThreadCount)
+        }
+    }
+
+    @Test("#1203, R1203a → R1203c: the storage search's GET of the thread's first page alone marks it read for the account")
+    func searchGetMarksTheForeignThreadRead() throws {
+        let before = try PrivateMessageListParser.parse(Fixture.capture("R1203a-mp-list-foreign-storage-row-unread"), pageURL: Self.listURL)
+        let after = try PrivateMessageListParser.parse(
+            Fixture.capture("R1203c-mp-list-foreign-storage-row-after-get"), pageURL: Self.listURL
+        )
+        let row = { (page: PrivateMessageListPage) in page.threads.first { $0.summary.topicID?.topic == Self.foreignPost } }
+        #expect(try #require(row(before)).summary.readState == .unread)
+        #expect(try #require(row(after)).summary.readState == .read)
+        #expect(after.unreadThreadCount == before.unreadThreadCount - 1)
     }
 
     @Test("#1200 P1: the located thread is hidden whatever its row names")

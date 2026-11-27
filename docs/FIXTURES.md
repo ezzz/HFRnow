@@ -50,7 +50,10 @@ Public forum post content may stay when needed for the test; prefer neutral exce
   tag-stripped text, so rendered smileys or tags inside the document and its byte length are not preserved, and an alias
   is shorter than what it replaces: a fixture does not show a document near 64 KiB nor how HFR renders markup inside it;
   the `content_form` copy keeps the structure, and any such property is stated in the capture's MANIFEST row. A document
-  that is not JSON or repeats a key stops the anonymizer.
+  that is not JSON or repeats a key stops the anonymizer. A storage-subject thread whose first post holds no `{` at all is
+  not a storage document (another member's MP with the subject, `R1203b`): that post is replaced like any private body.
+- Dates and times of private pages (message toolbars, list rows, edit trailers) are kept: once pseudos, member ids and
+  bodies are aliased they carry no identity (operator decision, 2026-11-27, on #1367).
 - List rows (rows linking with `owntopic=1|2|3`, or showing a flag, in the `forum2.php` or the rewritten link form) are aliased **row by row** by position (topic and message ids, title and slug, categories, page numbers, counts, dates), so fixtures stay stable and carry no live data. `check` fails on any number of such a row that is not an alias ([kit README](../tooling/fixtures/README.md#list-rows)).
 - The personal smiley page (`uploadsmil.php`) goes through the same member aliasing, and each filled `keyword<N>` input becomes `Keywords removed.`; `check` fails otherwise, on any page ([kit README](../tooling/fixtures/README.md#what-is-replaced)).
 - REST flag buckets (logged-in `topics/{participated,read,favorites}` answers) are aliased by position and cut to a fixed size, like list rows; `check` fails on any key outside the exact set of its dict kind, and on any id, title, date, count, offset, size, type word, avatar or href of a bucket that is not exactly the alias of its position (also when the capture's request, not the body, says it is a bucket), and on a category of a bucket URL in a meta that is not an alias ([kit README](../tooling/fixtures/README.md#rest-flag-buckets)).

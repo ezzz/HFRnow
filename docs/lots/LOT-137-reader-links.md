@@ -84,8 +84,9 @@ Read-only, ezzz/HFRnow `origin/master` at `21173e77` (the default-browser settin
 ## Pending capture
 - A private message link naming a message (`forum2.php?…cat=prive&post=N&numreponse=M`): the corpus has none with a non-zero
   `numreponse` (MP list rows carry `numreponse=0`), and R25 is a public topic whose redirect target is a canonical path MPs do not
-  have. The reader follows the router's rule (no page, R25-shaped request); what HFR answers is not captured
-  ([#388](https://github.com/ezzz/HFRnow/issues/388)). A failure shows the reader's error, nothing is written.
+  have. The reader follows the router's rule (no page, R25-shaped request). HFR answers it in place, 200 with no
+  `Location`, with the page that holds `M` (`R388a` page 1, `R1315c` page 3, HFR-PROTOCOL §6c "#1315"), while the URL still
+  says `page=1`: the reader then takes page 1 as current ([#1368](https://github.com/ezzz/HFRnow/issues/1368)).
 
 ## Intentional differences from legacy
 - **Link long-press menu (#596, ledger gap-new, operator 2026-11-07; legacy returned nil for a plain link, i.e. WebKit's own menu with a preview, and built a menu for image links only, `MessagesView.swift:1241-1278` @ 2440d79; "Ouvrir l'image" and "Save to Photos" ported in #615 below).** For an `http(s)` link: Ouvrir (the tap routing above), Copier le lien, Ouvrir dans Safari (`UIApplication.open`; iOS may give a universal link to its app) and, for non-forum links, Ouvrir dans l'app (`.universalLinksOnly`, Safari when no app answers; named for YouTube, Vimeo, Streamable only). No preview provider, `allowsLinkPreview = true`, assumed necessary for WebKit to consult `contextMenuConfigurationForElement` (pending device verification, #596 Mac check; revert that line if the delegate is called without it); nothing is fetched by the menu itself, with or without the session.
