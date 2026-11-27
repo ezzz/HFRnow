@@ -130,7 +130,7 @@ public struct PostingFlow: Sendable {
         let seed = await session.hashCheckSeed()
         let response: HTTPResponse
         do {
-            response = try await session.send(.get(url))
+            response = try await session.send(.get(url, timeout: Self.formTimeout))
         } catch {
             throw .network(error)
         }
@@ -257,6 +257,11 @@ public struct PostingFlow: Sendable {
     /// Legacy writes had no timeout of their own, so URLSession's 60 s applied (audit D §2); a longer wait means fewer
     /// unconfirmed outcomes.
     static let postTimeout: Double = 60
+
+    /// Legacy fetched the composer, quote, edit and delete forms with a plain `URLRequest(url:)`, so URLSession's 60 s idle
+    /// limit applied there too (`HFRswift/Swift/ReplyService.swift:238-243, 804-809, 1046-1047` @ 87fe0d1c), not the 10 s
+    /// of the list loads: a forum slow to start the page must not fail a send that legacy completed (#1375).
+    static let formTimeout: Double = 60
 
     /// An `https` page of the forum host, default port, no user info: where the session's cookies and token may go.
     static func isForumPage(_ url: URL) -> Bool {
