@@ -59,11 +59,21 @@ final class LoginService {
         var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        // The same fields as the forum's own login form (login.php). With them, login_validation.php
+        // also sets `md_id`, which member profiles require (#1349).
         request.httpBody = formURLEncoded([
+            "hash_check": "",
             "pseudo": pseudo,
             "password": password,
-            "action": "send",
-            "login": "Se connecter"
+            "cat": "",
+            "page": "1",
+            "config": "hfr.inc",
+            "p": "1",
+            "sondage": "0",
+            "owntopic": "0",
+            "post": "",
+            "referer": "",
+            "Valider": "Valider"
         ])
         .data(using: .utf8)
 

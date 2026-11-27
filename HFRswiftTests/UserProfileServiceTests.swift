@@ -46,7 +46,22 @@ final class UserProfileServiceTests: XCTestCase {
         XCTAssertTrue(ProfileURLProtocolStub.handledRequests.isEmpty)
     }
 
-    func testForbiddenResponseIsReportedAsAccessDenied() async {
+    func testForbiddenResponseWithFullSessionIsReportedAsAccessDenied() async {
+        ProfileURLProtocolStub.requestHandler = { request in
+            (Self.response(for: request, statusCode: 403), Data(Self.forbiddenHTML.utf8))
+        }
+        let service = UserProfileService(
+            session: makeSession(),
+            sessionProvider: SessionProviderStub(cookies: [
+                Self.cookie("md_user", "testeur"),
+                Self.cookie("md_id", "12345")
+            ])
+        )
+
+        await assertFetch(service, throws: .accessDenied)
+    }
+
+    func testForbiddenResponseWithoutMemberIDAsksToLogInAgain() async {
         ProfileURLProtocolStub.requestHandler = { request in
             (Self.response(for: request, statusCode: 403), Data(Self.forbiddenHTML.utf8))
         }
@@ -55,7 +70,7 @@ final class UserProfileServiceTests: XCTestCase {
             sessionProvider: SessionProviderStub(cookies: [Self.cookie("md_user", "testeur")])
         )
 
-        await assertFetch(service, throws: .accessDenied)
+        await assertFetch(service, throws: .reloginRequired)
     }
 
     func testServerErrorIsReportedWithItsStatus() async {
@@ -78,17 +93,35 @@ final class UserProfileServiceTests: XCTestCase {
             Self.cookie("md_passs", "secret"),
             Self.cookie("other", "x", domain: "example.com")
         ]])
-        let provider = LegacyAccountProfileSessionProvider(accountsManager: accounts, fallbackCookies: { _ in [] })
+        let provider = LegacyAccountProfileSessionProvider(accountsManager: accounts, storedCookies: { _ in [] })
 
         let names = provider.sessionCookies(for: profileURL)?.map(\.name).sorted()
 
         XCTAssertEqual(names, ["md_passs", "md_user"])
     }
 
+    func testProviderAddsStoredCookiesTheAccountDoesNotHold() {
+        let accounts = AccountsManagerStub(main: ["PSEUDO": "testeur", "MAIN": NSNumber(value: true), "COOKIES": [
+            Self.cookie("md_user", "testeur"),
+            Self.cookie("md_passs", "secret")
+        ]])
+        let provider = LegacyAccountProfileSessionProvider(
+            accountsManager: accounts,
+            storedCookies: { _ in
+                [Self.cookie("md_user", "autre"), Self.cookie("md_id", "12345"), Self.cookie("p", "1")]
+            }
+        )
+
+        let cookies = provider.sessionCookies(for: profileURL) ?? []
+
+        XCTAssertEqual(cookies.map(\.name).sorted(), ["md_id", "md_passs", "md_user", "p"])
+        XCTAssertEqual(cookies.first { $0.name == "md_user" }?.value, "testeur", "the account's identity wins")
+    }
+
     func testProviderFallsBackToSharedStorageWhenAccountHasNoCookie() {
         let provider = LegacyAccountProfileSessionProvider(
             accountsManager: AccountsManagerStub(main: nil),
-            fallbackCookies: { _ in [Self.cookie("md_user", "testeur")] }
+            storedCookies: { _ in [Self.cookie("md_user", "testeur")] }
         )
 
         XCTAssertEqual(provider.sessionCookies(for: profileURL)?.map(\.name), ["md_user"])

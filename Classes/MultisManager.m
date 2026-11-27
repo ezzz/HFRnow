@@ -225,13 +225,37 @@
     }
 }
 
+/// `existing` updated with `received`: a received cookie replaces the existing one with the same name, domain and
+/// path; existing cookies the response did not mention are kept.
++ (NSArray *)cookies:(NSArray *)existing mergedWith:(NSArray *)received {
+    NSMutableArray *merged = [NSMutableArray array];
+    for (NSHTTPCookie *old in existing) {
+        if (![old isKindOfClass:[NSHTTPCookie class]]) continue;
+        BOOL replaced = NO;
+        for (NSHTTPCookie *new in received) {
+            if ([new.name isEqualToString:old.name] && [new.domain isEqualToString:old.domain] && [new.path isEqualToString:old.path]) {
+                replaced = YES;
+                break;
+            }
+        }
+        if (!replaced) {
+            [merged addObject:old];
+        }
+    }
+    [merged addObjectsFromArray:received];
+    return merged;
+}
+
 - (void)updateCookies:(NSArray *)cookies {
     NSArray *comptesArray = [self getComtpes];
     for (NSHTTPCookie *aCookie in cookies) {
         if([aCookie.name isEqualToString:@"md_user"] && ![aCookie.value isEqualToString:@"deleted"] ){
             for (NSMutableDictionary* compte in comptesArray) {
                 if([[compte objectForKey:PSEUDO_KEY] isEqualToString:aCookie.value]){
-                    [compte setValue:cookies forKey:COOKIES_KEY];
+                    // Merge rather than replace: the response only carries the cookies the page refreshed
+                    // (md_user, md_passs). Replacing the list dropped md_id, which the forum sets at login
+                    // only and requires for member profiles (#1349).
+                    [compte setValue:[MultisManager cookies:[compte objectForKey:COOKIES_KEY] mergedWith:cookies] forKey:COOKIES_KEY];
                 }
             }
         }

@@ -14,24 +14,28 @@ protocol UserProfileSessionProviding {
     func sessionCookies(for url: URL) -> [HTTPCookie]?
 }
 
-/// Reads the cookies of the main account kept by the legacy `MultisManager`.
+/// Builds the cookies of a profile request from the main account kept by the legacy `MultisManager` and from the
+/// cookies the forum set during the session (`HTTPCookieStorage.shared`).
 ///
-/// The cookies are read from the account itself rather than from `HTTPCookieStorage.shared`, whose content depends on
-/// whatever the rest of the app last did with it (logout, account switch, reply posting all wipe and refill it).
-/// When the account record holds no usable cookie, the shared storage is used as a fallback.
+/// `md_user` / `md_passs` alone are not enough: the forum also requires the `p` cookie it sets on every page view,
+/// which the account record does not hold (#1349). The account's cookies win for the names they define, so the
+/// identity is always the main account's; the stored cookies add everything else.
 struct LegacyAccountProfileSessionProvider: UserProfileSessionProviding {
     var accountsManager: any LegacyAccountsManaging = ObjCLegacyAccountsManager.shared
-    /// The cookies used when the account record holds none (defaults to `HTTPCookieStorage.shared`).
-    var fallbackCookies: (URL) -> [HTTPCookie] = { HTTPCookieStorage.shared.cookies(for: $0) ?? [] }
+    /// The cookies the forum set during the session (defaults to `HTTPCookieStorage.shared`).
+    var storedCookies: (URL) -> [HTTPCookie] = { HTTPCookieStorage.shared.cookies(for: $0) ?? [] }
     var now: () -> Date = { .now }
 
     func sessionCookies(for url: URL) -> [HTTPCookie]? {
         let date = now()
-        let accountCookies = (mainCompte()?[Self.cookiesKey] as? [HTTPCookie]) ?? []
-        if let cookies = Self.usableSessionCookies(accountCookies, for: url, at: date) {
-            return cookies
-        }
-        return Self.usableSessionCookies(fallbackCookies(url), for: url, at: date)
+        let accountCookies = Self.applicable((mainCompte()?[Self.cookiesKey] as? [HTTPCookie]) ?? [], to: url, at: date)
+        let accountNames = Set(accountCookies.map(\.name))
+        let stored = Self.applicable(storedCookies(url), to: url, at: date).filter { !accountNames.contains($0.name) }
+        return Self.usableSessionCookies(accountCookies + stored, for: url, at: date)
+    }
+
+    private static func applicable(_ cookies: [HTTPCookie], to url: URL, at date: Date) -> [HTTPCookie] {
+        cookies.filter { applies($0, to: url) && !isExpired($0, at: date) }
     }
 
     /// The cookies of `cookies` that apply to `url` at `date`, or `nil` when they hold no logged-in `md_user` cookie.

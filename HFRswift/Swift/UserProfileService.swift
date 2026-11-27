@@ -41,7 +41,10 @@ struct UserProfileService: UserProfileServicing {
             case 200..<300:
                 break
             case 401, 403:
-                throw UserProfileLoadingError.accessDenied
+                // The forum requires `md_id`, set at login only. An account added before it existed, or one
+                // whose cookies lost it, has to be logged in again (#1349).
+                let hasMemberID = cookies.contains { $0.name == Self.memberIDCookieName }
+                throw hasMemberID ? UserProfileLoadingError.accessDenied : UserProfileLoadingError.reloginRequired
             default:
                 throw UserProfileLoadingError.httpStatus(httpResponse.statusCode)
             }
@@ -50,6 +53,8 @@ struct UserProfileService: UserProfileServicing {
         let html = Self.decodeHTML(data)
         return try UserProfileHTMLParser.parse(html: html, sourceURL: url)
     }
+
+    static let memberIDCookieName = "md_id"
 
     private static func decodeHTML(_ data: Data) -> String {
         if let utf8 = String(data: data, encoding: .utf8) {

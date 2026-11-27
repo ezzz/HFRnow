@@ -23,6 +23,7 @@
 - (UIImage *)getAvatarForCompte:(NSDictionary *)compte;
 - (void)forceCookiesForCompte:(NSDictionary *)compte;
 - (void)setHashForCompte:(NSDictionary *)compteToUpdate andHash:(NSString *)hash;
++ (NSArray *)cookies:(NSArray *)existing mergedWith:(NSArray *)received;
 - (void)updateCookies:(NSArray *)cookies;
 - (void)updateAllAccounts;
 @end
