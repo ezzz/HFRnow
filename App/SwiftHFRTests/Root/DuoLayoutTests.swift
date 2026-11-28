@@ -103,6 +103,9 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         let host: UIViewController
         let root: RootModel
         let messages: FakePrivateMessages
+        /// Messages list loads run to their end: `ledgerSeen` is the last step of a page-1 load, after it kept or closed the
+        /// open conversation (`MessageListModel.load`, `recordReadState`).
+        let listLoadsEnded: ReaderCallCounter
         let environment: AppEnvironment
     }
 
@@ -122,6 +125,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         let pages = FakeTopicPages { target in Self.page(for: target) }
         let forums = ForumListModel(dataSource: data)
         let messages = FakePrivateMessages()
+        let listLoadsEnded = ReaderCallCounter()
         let root = RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
@@ -129,7 +133,9 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
                                        startupSource: TopicSource(mode: .flagsAndFavorites)),
             // Logged in, as Favoris: a logged-out list's load (each time the list appears, a fold included) closes the open
             // conversation (`MessageListModel.load`, `.signedOut`), which raced the reader's title (#1124).
-            messages: MessageListModel(source: messages, isLoggedIn: { true }, topicPages: pages),
+            messages: MessageListModel(
+                source: messages, isLoggedIn: { true }, topicPages: pages, ledgerSeen: { _ in _ = listLoadsEnded.next() }
+            ),
             store: InMemorySettingsStore(), initial: initial, mpStorage: mpStorage, haptics: haptics
         )
         let services = ReaderServices(
@@ -161,7 +167,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         unfold(window, host: host)
         window.isHidden = false
         window.layoutIfNeeded()
-        return Hosted(window: window, host: host, root: root, messages: messages, environment: environment)
+        return Hosted(window: window, host: host, root: root, messages: messages, listLoadsEnded: listLoadsEnded, environment: environment)
     }
 
     func unfold(_ window: UIWindow, host: UIViewController) {
@@ -301,21 +307,24 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         }
         #expect(await settle(window) { split(in: window) != nil && shows(title, in: window) }, "\(tab): \(stacks(in: window))")
 
+        let ended = hosted.listLoadsEnded
         if tab == .messages {
-            // The split's list load has ended, so the one counted after the fold is the cover screen's own.
-            #expect(await settle(window) { !hosted.messages.requests.isEmpty && !root.messages.loader.isLoading })
+            // The split's list load has run to its end, so the one counted after the fold is the cover screen's own.
+            let splitLoad = await settle(window) { ended.calls > 0 && !root.messages.loader.isLoading }
+            #expect(splitLoad, "the split's list load did not end: requests \(hosted.messages.requests), ended \(ended.calls)")
         }
-        let loads = hosted.messages.requests.count
+        let (loads, endedBefore) = (hosted.messages.requests.count, ended.calls)
         fold(window, host: hosted.host)
         let folded = await settle(window) { hasTabBar(window) && shows(title, in: window) }
         #expect(folded, "\(tab) folded: tab bar \(hasTabBar(window)), \(stacks(in: window))")
         guard tab == .messages else { return }
         // The cover screen's list loads again when it appears: the conversation outlives that load, not only the frames before it.
-        #expect(await settle(window) { hosted.messages.requests.count > loads && !root.messages.loader.isLoading })
-        // `isLoading` drops one main-actor hop before `load()` applies the answer: give it that hop and a layout pass.
-        try await Task.sleep(for: .milliseconds(500))
-        window.layoutIfNeeded()
+        // `isLoading` drops one main-actor hop before `load()` decides about the selection: a fixed delay only guessed that hop,
+        // so wait for the end of `load()` itself (#1201).
+        let coverLoad = await settle(window) { hosted.messages.requests.count > loads && ended.calls > endedBefore }
+        #expect(coverLoad, "the folded list's load did not end: requests \(hosted.messages.requests), ended \(ended.calls)")
         #expect(root.messages.selected?.id == messageThread(7).id, "the folded list's load closed the conversation")
+        window.layoutIfNeeded()
         #expect(shows(title, in: window), "after the folded list's load: \(stacks(in: window))")
     }
 
