@@ -9,12 +9,13 @@ enum TopicSource: Hashable, Sendable {
     case flagged
     case favorites
 
-    /// Name of the list: a forum's title, or the tab's list picker entry. The title bar is `navigationTitle`.
+    /// Name of the list: a forum's title, or the tab's list picker entry, named as legacy's two modes
+    /// (`AppSettingsView.swift:129-132` @ 87fe0d1c; #824). The title bar is `navigationTitle`.
     var title: String {
         switch self {
         case .forum(_, let title), .subforum(_, let title): title
-        case .flagged: "Drapeaux"
-        case .favorites: "Favoris"
+        case .flagged: "Drapeaux & Favoris"
+        case .favorites: "Favoris uniquement"
         }
     }
 
