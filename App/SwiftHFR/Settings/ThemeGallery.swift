@@ -51,8 +51,8 @@ struct ThemeGalleryRow: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(theme.name).foregroundStyle(.primary)
-                    if let author = theme.author {
-                        Text("par \(author)").scaledFont(.footnote).foregroundStyle(.secondary)
+                    if let credit = creditText {
+                        Text(credit).scaledFont(.footnote).foregroundStyle(.secondary)
                     }
                     if case .single? = theme.variants {
                         Text("clair = sombre").scaledFont(.footnote).foregroundStyle(.secondary)
@@ -71,9 +71,13 @@ struct ThemeGalleryRow: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private var accessibilityLabel: String {
+    /// The credit line the row shows and its label reads: `credit`, else « par <author> » (`ThemeDefinition.creditLine`).
+    var creditText: String? { theme.creditLine }
+
+    /// The VoiceOver label: name, credit line, « clair = sombre » (internal for the tests).
+    var accessibilityLabel: String {
         var parts = [theme.name]
-        if let author = theme.author { parts.append("par \(author)") }
+        if let credit = creditText { parts.append(credit) }
         if case .single? = theme.variants { parts.append("clair = sombre") }
         return parts.joined(separator: ", ")
     }

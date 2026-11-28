@@ -2,9 +2,10 @@
   "id": "og-clair",
   "name": "OG clair",
   "family": "OG Web",
-  "author": "le forum HFR (thème web)",
+  "credit": "d'après le forum HFR (thème web)",
   "fontDesign": "default",
   "decorations": null,
+  "listStyle": "ogTable",
   "variants": {
     "any": {
       "background": "#FFFFFF",

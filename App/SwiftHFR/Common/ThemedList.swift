@@ -25,6 +25,24 @@ struct ThemedListColors {
     let sectionHeader: UIColor
     /// The large title, drawn on `background` (`title`).
     let title: UIColor
+    /// The web forum's table look (`listStyle: ogTable`, LOT-193), or nil for every other theme.
+    var table: ThemedTableColors?
+}
+
+/// What `listStyle: ogTable` adds to a list (LOT-193): a section header drawn with `themedBandHeader()` is a band (`headerBand`,
+/// text `onHeaderBand`), the rows alternate `surface` and `alternateCell`, and a row's info line and counters are `meta` and
+/// `counter`, as the forum's tables do.
+struct ThemedTableColors {
+    /// The section header's band (`headerBand`).
+    let headerBand: UIColor
+    /// The text on the band (`onHeaderBand`).
+    let onHeaderBand: UIColor
+    /// Every other row (`alternateCell`).
+    let alternateCell: UIColor
+    /// The info line of a row (`meta`: last poster and date).
+    let meta: UIColor
+    /// The counters of a row (`counter`: the page count).
+    let counter: UIColor
 }
 
 extension ThemeAppearance {
@@ -34,10 +52,18 @@ extension ThemeAppearance {
               let separator = themeColor(\.separator),
               let text = themeColor(\.textPrimary), let secondaryText = themeColor(\.textSecondary),
               let sectionHeader = themeColor(\.sectionHeader), let title = themeColor(\.title) else { return nil }
-        return ThemedListColors(
+        var colors = ThemedListColors(
             screen: screen, row: row, selectedRow: selectedRow, separator: separator, text: text, secondaryText: secondaryText,
             sectionHeader: sectionHeader, title: title
         )
+        if themeListStyle == .ogTable, let band = themeColor(\.resolvedHeaderBand), let onBand = themeColor(\.resolvedOnHeaderBand),
+           let alternate = themeColor(\.resolvedAlternateCell), let meta = themeColor(\.resolvedMeta),
+           let counter = themeColor(\.resolvedCounter) {
+            colors.table = ThemedTableColors(
+                headerBand: band, onHeaderBand: onBand, alternateCell: alternate, meta: meta, counter: counter
+            )
+        }
+        return colors
     }
 }
 
@@ -49,7 +75,10 @@ extension View {
     /// row in both, since a row background replaces the system's own selection fill. A row's own `listRowBackground` set inside
     /// it wins (`listLookRows()`). `listLookRows()` and `listLookRow(isSelected:)` hand their rows to it under a theme. Legacy:
     /// nothing.
-    func themedListRow(isSelected: Bool = false) -> some View { modifier(ThemedListRow(isSelected: isSelected)) }
+    /// `isAlternate` marks every other row of a list: only the table look (`listStyle: ogTable`) draws it, in `alternateCell`.
+    func themedListRow(isSelected: Bool = false, isAlternate: Bool = false) -> some View {
+        modifier(ThemedListRow(isSelected: isSelected, isAlternate: isAlternate))
+    }
 
     /// A row's text under the theme (#842): `textPrimary` as the primary style and `textSecondary` as the secondary one, so
     /// `.primary` and `.secondary` text follow. For a row's own content (a topic, a conversation, a forum, a field), never
@@ -71,12 +100,24 @@ extension View {
     /// button (the role's red does not reach its glyph), an alert, a dialog, a swipe action or a toolbar. Legacy: nothing.
     func themedDestructive() -> some View { modifier(ThemedDestructive()) }
 
+    /// A section **header** (never a footer) of a list under the theme: `themedSectionHeader()`, and in the table look
+    /// (`listStyle: ogTable`, classic look) the forum's band, `headerBand` behind its text in `onHeaderBand` (#734). The band is
+    /// aligned with the card and its text inset; the dense look keeps the plain header. Legacy: nothing.
+    func themedBandHeader() -> some View { modifier(ThemedBandHeader()) }
+
+    /// The info line of a row (the last poster and date) in the table look's `meta`; unchanged otherwise (#734).
+    func themedMeta() -> some View { modifier(ThemedTableText(role: .meta)) }
+
+    /// The counters of a row (the page count) in the table look's `counter`; unchanged otherwise (#734).
+    func themedCounter() -> some View { modifier(ThemedTableText(role: .counter)) }
+
     /// A screen's large title under the theme (#842): `title`, which holds 4.5:1 on `background`. Legacy: nothing.
     func themedTitle() -> some View { modifier(ThemedListText(role: .title)) }
 }
 
-private struct ThemedListRow: ViewModifier {
+struct ThemedListRow: ViewModifier {
     let isSelected: Bool
+    var isAlternate = false
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.listLook) private var look
 
@@ -86,7 +127,7 @@ private struct ThemedListRow: ViewModifier {
         if let colors = appearance.listColors {
             let separator = Color(uiColor: colors.separator)
             content
-                .listRowBackground(Self.background(colors, isSelected: isSelected, look: look))
+                .listRowBackground(Self.background(colors, isSelected: isSelected, isAlternate: isAlternate, look: look))
                 .listRowSeparatorTint(separator)
                 .listSectionSeparatorTint(separator)
         } else {
@@ -94,9 +135,11 @@ private struct ThemedListRow: ViewModifier {
         }
     }
 
-    /// A themed row's background: `selection` when selected, else `surface` in the classic look and none in the dense one.
-    static func background(_ colors: ThemedListColors, isSelected: Bool, look: ListLook) -> Color {
+    /// A themed row's background: `selection` when selected, else `surface` in the classic look (`alternateCell` on every other
+    /// row of a table theme) and none in the dense one.
+    static func background(_ colors: ThemedListColors, isSelected: Bool, isAlternate: Bool = false, look: ListLook) -> Color {
         if isSelected { return Color(uiColor: colors.selectedRow) }
+        if isAlternate, look == .classic, let table = colors.table { return Color(uiColor: table.alternateCell) }
         return look == .dense ? DenseListLook.rowBackground : Color(uiColor: colors.row)
     }
 }
@@ -122,6 +165,42 @@ private struct ThemedListText: ViewModifier {
         case .rowText: (colors.text, colors.secondaryText)
         case .sectionHeader: (colors.sectionHeader, colors.sectionHeader)
         case .title: (colors.title, colors.title)
+        }
+    }
+}
+
+/// The header band of the table look (`themedBandHeader()`).
+private struct ThemedBandHeader: ViewModifier {
+    @Environment(\.themeAppearance) private var appearance
+    @Environment(\.listLook) private var look
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let table = appearance.listColors?.table, look == .classic {
+            content
+                .foregroundStyle(Color(uiColor: table.onHeaderBand))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(uiColor: table.headerBand))
+                // No extra inset: the band spans the card below it (the header's own inset is measured from the card's edge).
+                .listRowInsets(EdgeInsets())
+        } else {
+            content.themedSectionHeader()
+        }
+    }
+}
+
+/// A row's `meta` or `counter` text in the table look; the content as is for every other theme and Legacy.
+private struct ThemedTableText: ViewModifier {
+    enum Role { case meta, counter }
+    let role: Role
+    @Environment(\.themeAppearance) private var appearance
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let table = appearance.listColors?.table {
+            content.foregroundStyle(Color(uiColor: role == .meta ? table.meta : table.counter))
+        } else {
+            content
         }
     }
 }
@@ -174,7 +253,7 @@ struct ThemedSection<Content: View>: View {
         Section {
             Group { content }.themedListRow()
         } header: {
-            title.themedSectionHeader()
+            title.themedBandHeader()
         }
     }
 }

@@ -58,7 +58,7 @@ struct TopicListView: View {
                             Section {
                                 if !group.isCollapsed { rows(group.topics) }
                             } header: {
-                                header(group, title: title).themedSectionHeader()
+                                header(group, title: title).themedBandHeader()
                             }
                         } else {
                             rows(group.topics)
@@ -162,13 +162,13 @@ struct TopicListView: View {
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {
-        ForEach(topics) { topic in
+        ForEach(Array(topics.enumerated()), id: \.element.id) { index, topic in
             let isSuper = counting(.row(topic.id), model.isSuperFavorite(topic))
             TopicRowView(
                 topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
                 flagIsTinted: TopicListView.flagPills(for: model.source)
             )
-                .themedRowText().listLookRow(isSelected: selection == topic)
+                .themedRowText().listLookRow(isSelected: selection == topic, isAlternate: index.isMultiple(of: 2) == false)
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(

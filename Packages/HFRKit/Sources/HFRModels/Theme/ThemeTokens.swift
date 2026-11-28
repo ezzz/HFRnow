@@ -185,7 +185,10 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         ("accentText", "readerAlternate"),
         // Optional table tokens (LOT-193), on what they sit on.
         ("meta", "surface"), ("meta", "alternateCell"), ("counter", "surface"), ("counter", "alternateCell"),
-        ("textPrimary", "alternateCell"), ("link", "alternateCell"), ("onHeaderBand", "headerBand"), ("onPageBar", "pageBar")
+        ("textPrimary", "alternateCell"), ("link", "alternateCell"), ("onHeaderBand", "headerBand"), ("onPageBar", "pageBar"),
+        // The rows of a table theme alternate `surface` and `alternateCell` (`listStyle: ogTable`): the rest of a row's text too.
+        ("textSecondary", "alternateCell"), ("accentText", "alternateCell"), ("systemText", "alternateCell"),
+        ("errorText", "alternateCell"), ("badgeOutline", "alternateCell")
     ].map { ContrastRule(foreground: $0.0, background: $0.1, minimum: 4.5) }
 
     /// A rule the variant breaks, or a token of a rule that is not opaque.

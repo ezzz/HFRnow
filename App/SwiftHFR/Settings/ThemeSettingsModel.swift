@@ -154,7 +154,8 @@ final class ThemeSettingsModel {
         return ThemeAppearance(
             dayAccent: dayAccent, nightAccent: nightAccent, darkBrightness: darkBrightness, darkStyle: darkStyle,
             lightStyle: lightStyle,
-            themeVariants: selected.variants, themeFontDesign: selected.fontDesign, themeDecorations: selected.decorations
+            themeVariants: selected.variants, themeFontDesign: selected.fontDesign, themeDecorations: selected.decorations,
+            themeListStyle: selected.listStyle
         )
     }
 

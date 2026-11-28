@@ -45,7 +45,9 @@ The 14 July images (LOT-194, `App/SwiftHFR/Assets.xcassets/Fete/`): the bust of 
 
 Swift and Rétro 5250 (LOT-192, `App/SwiftHFR/Themes/swift/`, `App/SwiftHFR/Themes/retro-5250/`): colour tokens only, drawn from the operator's token draft of 2026-10-28 (`docs/assets/themes/tokens/themes.json`), adjusted where [THEMES.md](docs/THEMES.md) §3's contrast rules required. No code or asset copied from another app; « 5250 » only evokes the green-screen terminals, no trademark or logo is used. Made by Claude Code (Sonnet 5.5) for the operator, under this repository's licence.
 
-OG clair (LOT-193, `App/SwiftHFR/Themes/og-clair/`): colour tokens only, taken from the colours of the HFR forum's own stylesheet (captured as `R728a`, [HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) « LOT-193 — Styles »), adjusted where [THEMES.md](docs/THEMES.md) §3 required; credit « par le forum HFR (thème web) ». No logo bitmap, image or code of the forum is used. Made by Claude Code (Sonnet 5.5) for the operator, under this repository's licence.
+OG clair (LOT-193, `App/SwiftHFR/Themes/og-clair/`): colour tokens only, taken from the colours of the HFR forum's own stylesheet (captured as `R728a`, [HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) « LOT-193 — Styles »), adjusted where [THEMES.md](docs/THEMES.md) §3 required; credit « d'après le forum HFR (thème web) ». No logo bitmap, image or code of the forum is used. Made by Claude Code (Sonnet 5.5) for the operator, under this repository's licence.
+
+OG gris (LOT-193, `App/SwiftHFR/Themes/og-gris/`): colour tokens only, from the colours of the HFR forum's grey skin stylesheet (captured as `R728c`, [HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) « LOT-193 — Styles of OG gris »), with the page and rows lightened to an accessible light grey by the operator's decision of 2026-11-28 (#1436); credit « d'après le forum HFR (thème web) ». No logo bitmap, image or code of the forum is used. Made by Claude Code (Sonnet 5.5) for the operator, under this repository's licence.
 
 ## Contributors
 

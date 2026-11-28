@@ -10,6 +10,11 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
         case `default`, rounded, monospaced
     }
 
+    /// The look of the native lists: the app's own, or the web forum's table (LOT-193: header bands, alternating cells).
+    public enum ListStyle: String, Sendable, Hashable, Decodable {
+        case standard, ogTable
+    }
+
     /// The colour variants: one per appearance, or one for both.
     public enum Variants: Sendable, Hashable {
         /// A light and a dark variant, chosen by the appearance (LOT-121's picker or iOS).
@@ -40,8 +45,12 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
     public let name: String
     /// Gallery family (« Classiques », « Rétro », « OG Web », or a seasonal one).
     public let family: String
-    /// Author shown as « par <auteur> », or nil.
+    /// Author shown as « par <auteur> » (`creditLine`), or nil.
     public let author: String?
+    /// The whole credit line, shown instead of « par <auteur> » when set (« d'après le forum HFR (thème web) »); nil otherwise.
+    public let credit: String?
+    /// How the app's native lists are drawn under this theme (LOT-193).
+    public let listStyle: ListStyle
     /// The text design of the whole app.
     public let fontDesign: FontDesign
     /// Decorations id (THEMES.md §4, LOT-166), or nil.
@@ -51,23 +60,31 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
 
     /// Creates a theme; `variants` may be nil only for `legacyID`.
     public init(
-        id: String, name: String, family: String, author: String?, fontDesign: FontDesign = .default, decorations: String? = nil,
-        variants: Variants?
+        id: String, name: String, family: String, author: String?, credit: String? = nil, fontDesign: FontDesign = .default,
+        decorations: String? = nil, listStyle: ListStyle = .standard, variants: Variants?
     ) {
         self.id = id
         self.name = name
         self.family = family
         self.author = author
+        self.credit = credit
+        self.listStyle = listStyle
         self.fontDesign = fontDesign
         self.decorations = decorations
         self.variants = variants
+    }
+
+    /// The gallery's credit line (and its VoiceOver label): `credit` as it is, else « par <author> », else nil. The engine reads
+    /// no word of the credit: the theme file says what is printed.
+    public var creditLine: String? {
+        credit ?? author.map { "par \($0)" }
     }
 
     /// Whether this is the Legacy theme.
     public var isLegacy: Bool { id == Self.legacyID }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, family, author, fontDesign, decorations, variants
+        case id, name, family, author, credit, fontDesign, decorations, listStyle, variants
     }
 
     private enum VariantKeys: String, CodingKey {
@@ -77,7 +94,7 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let names = try decoder.container(keyedBy: ThemeFileKey.self)
-        let keys: Set = ["id", "name", "family", "author", "fontDesign", "decorations", "variants"]
+        let keys: Set = ["id", "name", "family", "author", "credit", "fontDesign", "decorations", "listStyle", "variants"]
         try ThemeFileKey.refuseUnknown(in: names, known: keys, what: "key")
         id = try container.decode(String.self, forKey: .id)
         guard id.range(of: #"^[a-z0-9]+(-[a-z0-9]+)*$"#, options: .regularExpression) != nil else {
@@ -86,6 +103,8 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
         name = try container.decode(String.self, forKey: .name)
         family = try container.decode(String.self, forKey: .family)
         author = try container.decodeIfPresent(String.self, forKey: .author)
+        credit = try container.decodeIfPresent(String.self, forKey: .credit)
+        listStyle = try container.decodeIfPresent(ListStyle.self, forKey: .listStyle) ?? .standard
         fontDesign = try container.decodeIfPresent(FontDesign.self, forKey: .fontDesign) ?? .default
         decorations = try container.decodeIfPresent(String.self, forKey: .decorations)
         guard container.contains(.variants), try !container.decodeNil(forKey: .variants) else {

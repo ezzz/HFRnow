@@ -93,14 +93,13 @@ import Testing
         #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro", "OG Web"])
     }
 
-    /// LOT-193: OG clair (family OG Web, one variant, credited « par le forum HFR (thème web) ») ships with the optional table
+    /// LOT-193: OG clair (family OG Web, one variant, credited « d'après le forum HFR (thème web) ») ships with the optional table
     /// tokens (header band, alternate cell, meta, page bar and the text on both bars).
     @Test func ogClairIsBundledWithItsTableTokens() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles())
         let theme = try #require(catalog.themes.first { $0.id == "og-clair" })
         #expect(theme.name == "OG clair" && theme.family == "OG Web" && theme.fontDesign == .default)
-        // The gallery prints « par <author> »: the author reads after it.
-        #expect(theme.author == "le forum HFR (thème web)")
+        #expect(theme.author == nil && theme.credit == "d'après le forum HFR (thème web)")
         guard case .single(let tokens)? = theme.variants else {
             Issue.record("OG clair is a single variant")
             return
@@ -108,7 +107,31 @@ import Testing
         #expect(tokens.resolvedHeaderBand == ThemeRGB(hex: "#001932"))
         #expect(tokens.alternateCell != nil && tokens.meta != nil && tokens.pageBar != nil)
         #expect(tokens.onHeaderBand != nil && tokens.onPageBar != nil)
-        #expect(catalog.galleryFamilies.first { $0.family == "OG Web" }?.themes.map(\.id) == ["og-clair"])
+        #expect(catalog.galleryFamilies.first { $0.family == "OG Web" }?.themes.map(\.id) == ["og-clair", "og-gris"])
+    }
+
+    /// LOT-193: OG gris is the accessible light grey (not the forum's mid-grey, whose error and badge colours fail §3), one
+    /// variant that reads as light, with the forum's own text colours where they pass.
+    @Test func ogGrisIsTheAccessibleLightGrey() throws {
+        let catalog = ThemeCatalog(files: try Self.bundledFiles())
+        let theme = try #require(catalog.themes.first { $0.id == "og-gris" })
+        #expect(theme.name == "OG gris" && theme.family == "OG Web" && theme.credit == "d'après le forum HFR (thème web)")
+        guard case .single(let tokens)? = theme.variants else {
+            Issue.record("OG gris is a single variant")
+            return
+        }
+        #expect(tokens.background == ThemeRGB(hex: "#D5D5D5") && tokens.surface == ThemeRGB(hex: "#DCDCDC"))
+        #expect(tokens.resolvedAlternateCell == ThemeRGB(hex: "#E8E8E8") && tokens.isLight)
+        #expect(tokens.title == ThemeRGB(hex: "#202530") && tokens.sectionHeader == ThemeRGB(hex: "#202530"))
+        // The forum's captured values (R728c l.26 `.cFondu`, l.9 `.cCatTopicVIP`) pass on these rows, so they are kept.
+        #expect(tokens.resolvedMeta == ThemeRGB(hex: "#4F5258") && tokens.resolvedCounter == ThemeRGB(hex: "#0000FF"))
+    }
+
+    /// Rows of a table theme sit on `alternateCell`: every text a row draws is checked on it (it falls back to `surface`).
+    @Test func everyTextOfARowIsCheckedOnTheAlternateCell() {
+        let rules = Set(ThemeTokens.contrastRules.filter { $0.background == "alternateCell" }.map(\.foreground))
+        #expect(rules.isSuperset(of: ["textPrimary", "textSecondary", "link", "meta", "counter", "accentText", "systemText",
+                                      "errorText", "badgeOutline"]), "\(rules.sorted())")
     }
 
     /// The text of a band falls back to `textPrimary`, and the rule follows it.
