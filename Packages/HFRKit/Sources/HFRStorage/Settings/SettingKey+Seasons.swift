@@ -13,6 +13,12 @@ extension SettingKey {
     /// `season.noel.<year>.packingShown`: the packing of that season ran.
     public static func noelPackingShown(year: Int) -> Setting<Bool> { .bool(noelKey(year, "packingShown"), default: false) }
 
+    /// `event.fete-nationale.<year>` (LOT-194, new): the 14 July overlay of that year was played, or skipped for lack of animation
+    /// (THEMES.md §5). Device-only, one key per year, outside the static catalogue like the Noël keys.
+    public static func feteNationaleShown(year: Int) -> Setting<Bool> {
+        .bool("event.fete-nationale.\(year)", default: false)
+    }
+
     /// The Noël keys of one season. They stay out of `all`, which lists fixed keys; all are device-only (ADR 0013 matrix E).
     public static func noelSeason(year: Int) -> [any CatalogueSetting] {
         [
