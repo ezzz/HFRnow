@@ -72,11 +72,13 @@ struct TopicRowInfoLineTests {
 }
 
 struct TopicSourceTitleTests {
-    @Test("The Favoris tab's screen is titled Favoris whichever list it shows; the picker keeps the lists' names (#975)")
-    func favorisTabTitle() {
+    @Test("The Favoris tab's screen is titled Favoris whichever list it shows; the picker names legacy's two modes (#975, #824)")
+    @MainActor func favorisTabTitle() {
         #expect(TopicSource.flagged.navigationTitle == "Favoris")
         #expect(TopicSource.favorites.navigationTitle == "Favoris")
-        #expect(TopicSource.flagged.title == "Drapeaux")
+        #expect(TopicSource.flagged.title == "Drapeaux & Favoris")
+        #expect(TopicSource.favorites.title == "Favoris uniquement")
+        #expect(RootModel.favoritesSources.map(\.title) == ["Drapeaux & Favoris", "Favoris uniquement"], "the menu's order, as Réglages")
         #expect(TopicSource.forum(CategoryID.privateMessages, title: "Jeux Video").navigationTitle == "Jeux Video")
     }
 }
