@@ -28,6 +28,8 @@ struct ThemeAppearance: Equatable, Sendable {
     /// The theme's decorations id (`decorations` of its file), drawn behind every screen; nil for none. Only Noël abusé's
     /// `noel-full` is drawn (LOT-166 PR 4).
     var themeDecorations: String?
+    /// The theme's list look (LOT-193): `ogTable` draws the web forum's table in the native lists; `.standard` for Legacy.
+    var themeListStyle = ThemeDefinition.ListStyle.standard
 
     /// Legacy default accent hue, 190° (`AppSettingsView.swift:16`).
     static let defaultHue = 190.0 / 360.0

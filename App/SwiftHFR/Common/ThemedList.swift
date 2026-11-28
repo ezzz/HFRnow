@@ -25,6 +25,19 @@ struct ThemedListColors {
     let sectionHeader: UIColor
     /// The large title, drawn on `background` (`title`).
     let title: UIColor
+    /// The web forum's table look (`listStyle: ogTable`, LOT-193), or nil for every other theme.
+    var table: ThemedTableColors?
+}
+
+/// What `listStyle: ogTable` adds to a list (LOT-193): a section header is a band (`headerBand`, text `onHeaderBand`) and the
+/// rows alternate `surface` and `alternateCell`, as the forum's tables do.
+struct ThemedTableColors {
+    /// The section header's band (`headerBand`).
+    let headerBand: UIColor
+    /// The text on the band (`onHeaderBand`).
+    let onHeaderBand: UIColor
+    /// Every other row (`alternateCell`).
+    let alternateCell: UIColor
 }
 
 extension ThemeAppearance {
@@ -34,10 +47,15 @@ extension ThemeAppearance {
               let separator = themeColor(\.separator),
               let text = themeColor(\.textPrimary), let secondaryText = themeColor(\.textSecondary),
               let sectionHeader = themeColor(\.sectionHeader), let title = themeColor(\.title) else { return nil }
-        return ThemedListColors(
+        var colors = ThemedListColors(
             screen: screen, row: row, selectedRow: selectedRow, separator: separator, text: text, secondaryText: secondaryText,
             sectionHeader: sectionHeader, title: title
         )
+        if themeListStyle == .ogTable, let band = themeColor(\.resolvedHeaderBand), let onBand = themeColor(\.resolvedOnHeaderBand),
+           let alternate = themeColor(\.resolvedAlternateCell) {
+            colors.table = ThemedTableColors(headerBand: band, onHeaderBand: onBand, alternateCell: alternate)
+        }
+        return colors
     }
 }
 
@@ -49,7 +67,10 @@ extension View {
     /// row in both, since a row background replaces the system's own selection fill. A row's own `listRowBackground` set inside
     /// it wins (`listLookRows()`). `listLookRows()` and `listLookRow(isSelected:)` hand their rows to it under a theme. Legacy:
     /// nothing.
-    func themedListRow(isSelected: Bool = false) -> some View { modifier(ThemedListRow(isSelected: isSelected)) }
+    /// `isAlternate` marks every other row of a list: only the table look (`listStyle: ogTable`) draws it, in `alternateCell`.
+    func themedListRow(isSelected: Bool = false, isAlternate: Bool = false) -> some View {
+        modifier(ThemedListRow(isSelected: isSelected, isAlternate: isAlternate))
+    }
 
     /// A row's text under the theme (#842): `textPrimary` as the primary style and `textSecondary` as the secondary one, so
     /// `.primary` and `.secondary` text follow. For a row's own content (a topic, a conversation, a forum, a field), never
@@ -75,8 +96,9 @@ extension View {
     func themedTitle() -> some View { modifier(ThemedListText(role: .title)) }
 }
 
-private struct ThemedListRow: ViewModifier {
+struct ThemedListRow: ViewModifier {
     let isSelected: Bool
+    var isAlternate = false
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.listLook) private var look
 
@@ -86,7 +108,7 @@ private struct ThemedListRow: ViewModifier {
         if let colors = appearance.listColors {
             let separator = Color(uiColor: colors.separator)
             content
-                .listRowBackground(Self.background(colors, isSelected: isSelected, look: look))
+                .listRowBackground(Self.background(colors, isSelected: isSelected, isAlternate: isAlternate, look: look))
                 .listRowSeparatorTint(separator)
                 .listSectionSeparatorTint(separator)
         } else {
@@ -94,9 +116,11 @@ private struct ThemedListRow: ViewModifier {
         }
     }
 
-    /// A themed row's background: `selection` when selected, else `surface` in the classic look and none in the dense one.
-    static func background(_ colors: ThemedListColors, isSelected: Bool, look: ListLook) -> Color {
+    /// A themed row's background: `selection` when selected, else `surface` in the classic look (`alternateCell` on every other
+    /// row of a table theme) and none in the dense one.
+    static func background(_ colors: ThemedListColors, isSelected: Bool, isAlternate: Bool = false, look: ListLook) -> Color {
         if isSelected { return Color(uiColor: colors.selectedRow) }
+        if isAlternate, look == .classic, let table = colors.table { return Color(uiColor: table.alternateCell) }
         return look == .dense ? DenseListLook.rowBackground : Color(uiColor: colors.row)
     }
 }
@@ -109,7 +133,15 @@ private struct ThemedListText: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if let colors = appearance.listColors {
             let (primary, secondary) = Self.colors(role, colors)
-            content.foregroundStyle(Color(uiColor: primary), Color(uiColor: secondary))
+            if role == .sectionHeader, let table = colors.table {
+                // The table look: the header is the forum's band, its text on it (the rule `onHeaderBand`/`headerBand`).
+                content.foregroundStyle(Color(uiColor: table.onHeaderBand))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 4)
+                    .background(Color(uiColor: table.headerBand))
+            } else {
+                content.foregroundStyle(Color(uiColor: primary), Color(uiColor: secondary))
+            }
         } else {
             content
         }

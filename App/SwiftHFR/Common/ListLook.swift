@@ -98,6 +98,7 @@ private struct ListLookRows: ViewModifier {
 /// row would hide the list's selection, and the classic look's system fill is solid.
 private struct ListLookRow: ViewModifier {
     let isSelected: Bool
+    var isAlternate = false
     @Environment(\.listLook) private var look
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.colorScheme) private var scheme
@@ -107,7 +108,7 @@ private struct ListLookRow: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if appearance.listColors != nil {
             // #842: a gallery theme's row and selection, in this look (`themedListRow`).
-            content.themedListRow(isSelected: isSelected)
+            content.themedListRow(isSelected: isSelected, isAlternate: isAlternate)
         } else {
             // EXPERIMENTAL(denseRows, #1107): the dense look's clear or selected row replaces the card's background.
             // #1073: the classic look no longer leaves the system's solid accent fill on the selected row (iPad split).
@@ -131,6 +132,8 @@ extension View {
     func listLookRows() -> some View { modifier(ListLookRows()) }
 
     /// The background of a row of a list with a selection (Catégories, the topic lists, Messages): the selected row keeps a
-    /// highlight in the dense look (#1107, iPad columns).
-    func listLookRow(isSelected: Bool) -> some View { modifier(ListLookRow(isSelected: isSelected)) }
+    /// highlight in the dense look (#1107, iPad columns). `isAlternate` marks every other row for the table look (LOT-193).
+    func listLookRow(isSelected: Bool, isAlternate: Bool = false) -> some View {
+        modifier(ListLookRow(isSelected: isSelected, isAlternate: isAlternate))
+    }
 }
