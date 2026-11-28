@@ -12,7 +12,7 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
         func message(_ number: Int, quoted: Int?) -> ReaderMessage {
             ReaderMessage(
                 numreponse: number, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
-                dateText: "27-10-2026 10:00:00", editNote: "édité par auteur le 27-10-2026 à 10:05:00", quotedByCount: quoted,
+                dateText: "27-10-2026 10:00:00", editNote: "auteur le 27-10-2026 à 10:05:00", quotedByCount: quoted,
                 content: MessageContent(
                     html: """
                         <div class="container"><table class="oldcitation"><tr class="none">
@@ -157,44 +157,51 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
     }
 
     /// #1468: legacy's `editedhfrlink` is 0.7em italic, right-aligned (`LinkItem.m:241`, `style-liste-light.css:465-473` @ 87fe0d1c).
-    /// The note is never above the signature's size, never under the floor (or the signature's size when that is smaller), sits
-    /// at the right of the footer, and reads at 4.5:1 or more in light and dark.
-    private func trailerProbe() -> String {
+    /// The note is 0.7 of the message text, never under the floor and never above the signature, sits at the right of the
+    /// footer next to the bubble, and reads at 4.5:1 or more in light and dark.
+    private func trailerProbe(rootPixels: Int?) -> String {
         """
-        const t = document.querySelector('.message .trailer p'), s = document.querySelector('.message .signature');
-        const st = getComputedStyle(t), bg = getComputedStyle(document.body).backgroundColor;
+        \(rootPixels.map { "document.documentElement.style.fontSize = '\($0)px';" } ?? "")
+        const note = document.querySelector('.message .trailer p'), signature = document.querySelector('.message .signature');
+        const style = getComputedStyle(note), background = getComputedStyle(document.body).backgroundColor;
         const lum = (c) => { const v = c.match(/[\\d.]+/g).slice(0, 3).map(Number).map(x => { x /= 255;
             return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
             return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
-        const a = lum(st.color), b = lum(bg);
+        const a = lum(style.color), b = lum(background);
         const footer = document.querySelector('.message .trailer').getBoundingClientRect();
         const bubble = document.querySelector('.message .quoted-bubble').getBoundingClientRect();
-        return JSON.stringify([parseFloat(st.fontSize), parseFloat(getComputedStyle(s).fontSize), st.textAlign === 'right' || st.textAlign === 'end' ? 1 : 0,
-            st.fontStyle === 'italic' ? 1 : 0, (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05),
-            t.getBoundingClientRect().right <= bubble.left + 0.5 ? 1 : 0, Math.abs(footer.right - bubble.right)]);
+        return JSON.stringify([
+            parseFloat(style.fontSize), parseFloat(getComputedStyle(signature).fontSize),
+            style.textAlign === 'right' || style.textAlign === 'end' ? 1 : 0, style.fontStyle === 'italic' ? 1 : 0,
+            (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), note.getBoundingClientRect().right <= bubble.left + 0.5 ? 1 : 0,
+            Math.abs(footer.right - bubble.right), parseFloat(getComputedStyle(document.documentElement).fontSize)]);
         """
     }
 
     @Test func editedNoteIsSmallRightAlignedAndReadable() async {
         var token = 60
         for dark in [false, true] {
-            for percent in [70, 100, 200] {
-                token += 1
-                let (controller, recorder) = makeController(transport: imageTransport())
-                recorder.window?.overrideUserInterfaceStyle = dark ? .dark : .light
-                controller.textScale = TextScale(percent: percent)
-                controller.show(floorDocument(token: token))
-                guard await until({ recorder.ready == [token] }) else { Issue.record("not ready"); continue }
-                let json = (try? await evaluate(trailerProbe(), in: controller)) as? String ?? "[]"
-                let v = (try? JSONDecoder().decode([Double].self, from: Data(json.utf8))) ?? []
-                guard v.count == 7 else { Issue.record("seen: \(json)"); continue }
-                let label = "dark \(dark), \(percent) %: \(v)"
-                #expect(v[0] <= v[1] + 0.01, "\(label): larger than the signature")
-                #expect(v[0] >= min(11, v[1]) - 0.01, "\(label): under the floor")
-                #expect(v[2] == 1, "\(label): not right-aligned")
-                #expect(v[3] == 1, "\(label): not italic")
-                #expect(v[4] >= 4.5, "\(label): contrast")
-                #expect(v[5] == 1, "\(label): overlaps the bubble")
+            for root in roots {
+                for percent in [70, 100, 130, 200] {
+                    token += 1
+                    let (controller, recorder) = makeController(transport: imageTransport())
+                    recorder.window?.overrideUserInterfaceStyle = dark ? .dark : .light
+                    controller.textScale = TextScale(percent: percent)
+                    controller.show(floorDocument(token: token))
+                    guard await until({ recorder.ready == [token] }) else { Issue.record("not ready"); continue }
+                    let json = (try? await evaluate(trailerProbe(rootPixels: root), in: controller)) as? String ?? "[]"
+                    let seen = (try? JSONDecoder().decode([Double].self, from: Data(json.utf8))) ?? []
+                    guard seen.count == 8 else { Issue.record("seen: \(json)"); continue }
+                    let label = "dark \(dark), root \(seen[7]), \(percent) %: \(seen)"
+                    let expected = min(seen[1], max(0.7 * Double(percent) / 100 * 15 / 17 * seen[7], 11))
+                    #expect(abs(seen[0] - expected) < 0.05, "\(label): expected \(expected) px")
+                    #expect(seen[0] <= seen[1] + 0.01, "\(label): larger than the signature")
+                    #expect(seen[2] == 1, "\(label): not right-aligned")
+                    #expect(seen[3] == 1, "\(label): not italic")
+                    #expect(seen[4] >= 4.5, "\(label): contrast")
+                    #expect(seen[5] == 1, "\(label): overlaps the bubble")
+                    #expect(seen[6] < 0.5, "\(label): the bubble left the right edge of the footer")
+                }
             }
         }
     }

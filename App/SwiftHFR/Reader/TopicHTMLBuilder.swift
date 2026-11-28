@@ -244,8 +244,8 @@ enum TopicHTMLBuilder {
         return html + "</div>\n"
     }
 
-    // Port of HFRswift/Wrapped/LinkItem.m:241, SuperHFRplus/Assets/HTML/style-liste-light.css:465-473 @ 87fe0d1c. Differences: the note is never
-    // under the reader floor nor above the signature (#1468).
+    // Port of HFRswift/Wrapped/LinkItem.m:241, SuperHFRplus/Assets/HTML/style-liste-light.css:465-473 @ 87fe0d1c.
+    // Differences: the note is never under the reader floor nor above the signature (#1468).
     private static func trailer(of message: ReaderMessage) -> String {
         var lines: [String] = []
         if let note = message.editNote, !note.isEmpty { lines.append("édité par \(HTMLEscaping.text(note))") }
