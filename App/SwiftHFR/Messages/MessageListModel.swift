@@ -67,8 +67,8 @@ final class MessageListModel {
     /// Threads HFR confirmed unread: the page on screen predates the write, so the row shows unread until a load answers. The
     /// reload that follows the confirmation supersedes any older load, so the next load applied started after it (LESSONS 57).
     private var markedUnread: Set<String> = []
-    /// Loads started so far; tells a load that is still the newest from one that was superseded.
-    private var loadCount = 0
+    /// Loads started so far; tells a load that is still the newest from one that was superseded (not private: `suspendLoad`).
+    var loadCount = 0
     /// The reader of the selected conversation, created once per selection so a view update never refetches the page (E25).
     @ObservationIgnored private var currentReader: (id: String, model: TopicReaderModel)?
     /// A row menu's opening, taken by the next `reader(for:)` of that conversation (#1311).

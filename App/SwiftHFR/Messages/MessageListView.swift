@@ -98,7 +98,7 @@ struct MessageListView: View {
             if let thread = loader.value?.threads.first(where: { $0.summary.id == topic.id }) { model.open(thread, at: opening) }
         })
         .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
-        .task { await model.onAppear() }
+        .sceneAwareListLoad(model, id: 0)
         // Separate from the list's load, which never waits for MPStorage (LOT-130): the flags appear when the copy is read.
         .task { await model.mpStorage?.start() }
         .alert(

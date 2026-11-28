@@ -4,7 +4,9 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView.usesSidebarRoot) @ 87fe0d1c (`:1380-1388`, the same at 2fe43da3
 // `:1357-1365`), and its tab root on a landscape Pro Max (`compactTabRoot`, #431) @ 87fe0d1c. Differences: none in the
-// condition (GAP-210, GAP-215, LOT-147); the fold handoff is the shared `RootModel` (GAP-217, see `RootModel.rootSwapped`).
+// condition (GAP-210, GAP-215, LOT-147); the fold handoff is the shared `RootModel` (GAP-217, see `RootModel.rootSwapped`); while
+// the window is away (#1404) the root built is kept and the condition is applied on return, where legacy swaps at once
+// (`.onChange(of: usesSidebarRoot)`, `MainWindow.swift:1747-1749` @ 87fe0d1c), also for the app-switcher snapshots.
 /// The root navigation: the legacy bottom tab bar, or the legacy sidebar on a regular-width iPad and on a phone regular in both
 /// dimensions (the iPhone Duo unfolded). A compact-width iPad (Slide Over, Split View), the Duo's cover screen and a
 /// landscape Pro Max get the tab bar, as legacy.
@@ -39,6 +41,8 @@ struct RootNavigationView: View {
 
     var body: some View {
         RootLayout(model: model, environment: environment)
+        // Above the root, so the root and its lists know when the window is away (#1404).
+        .tracksSceneAway()
         .task { await model.forums.loadIfNeeded() }
         // A re-login in place keeps this root (same session object): the lists ask again whether the account is signed in (#1195).
         .onChange(of: accounts?.currentSessionChanges) {
@@ -165,11 +169,19 @@ struct RootLayout: View {
     /// The split root was shown on a `.phone` since launch: only a foldable does that (`hasShownExpandedPhoneLayout`,
     /// `MainWindow.swift:1365`, `:1685-1691` @ 87fe0d1c; memory only, see `PhoneDisplayPolicy.displayKind`).
     @State private var hasShownExpandedPhoneLayout = false
+    /// The window is away (#1404, `SceneAwayTracking`): iOS lays it out in other size classes for the app-switcher snapshots,
+    /// which must not swap the roots (a swap rebuilds the lists, whose appearance loads them).
+    @Environment(\.sceneIsAway) private var isAway
+    /// The root last built, kept while away; a root first built while away follows the size classes until one is built.
+    @State private var builtSidebarRoot = false
+    @State private var hasBuiltRoot = false
     private static let isFoldableModel = PhoneDisplayPolicy.isFoldableModel(PhoneDisplayPolicy.currentModelIdentifier)
 
     var body: some View {
         let idiom = idiomOverride ?? UIDevice.current.userInterfaceIdiom
-        let usesSidebarRoot = RootNavigationView.usesSidebarRoot(idiom: idiom, horizontal: horizontal, vertical: vertical)
+        let sizeClassesWant = RootNavigationView.usesSidebarRoot(idiom: idiom, horizontal: horizontal, vertical: vertical)
+        // Away, the root built stays; back on screen the size classes decide again, so a fold made meanwhile swaps then.
+        let usesSidebarRoot = isAway && hasBuiltRoot ? builtSidebarRoot : sizeClassesWant
         // Which iPhone Duo display the scene is on (`phoneDisplayKind`, `MainWindow.swift:1398-1408` @ 87fe0d1c).
         let displayKind = PhoneDisplayPolicy.displayKind(
             isPhone: idiom == .phone, usesSidebarRoot: usesSidebarRoot,
@@ -195,6 +207,8 @@ struct RootLayout: View {
             )
         } action: { windowShape = $0 }
         .onChange(of: usesSidebarRoot, initial: true) { _, isSidebarRoot in
+            builtSidebarRoot = isSidebarRoot
+            hasBuiltRoot = true
             // Remembered until the app quits, so the cover screen is recognised even if the other signals miss.
             if isSidebarRoot, idiom == .phone { hasShownExpandedPhoneLayout = true }
         }

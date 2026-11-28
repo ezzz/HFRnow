@@ -126,7 +126,7 @@ struct TopicListView: View {
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
         .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
-        .task(id: model.wantedFilter) { await model.onAppear() }
+        .sceneAwareListLoad(model, id: model.wantedFilter)
         .alert(
             AlertTitles.flagRemoveFailed,
             isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
