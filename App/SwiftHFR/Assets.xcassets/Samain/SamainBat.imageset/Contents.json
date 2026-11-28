@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "samain_bat.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

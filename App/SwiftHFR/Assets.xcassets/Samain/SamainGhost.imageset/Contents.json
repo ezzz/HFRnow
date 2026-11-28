@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "samain_ghost.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

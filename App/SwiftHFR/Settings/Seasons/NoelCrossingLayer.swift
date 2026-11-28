@@ -1,7 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// The arrival sleigh and the objects crossing Noël soft, in the band between the bars of one scene (THEMES.md §4 rules 4–9).
+/// The arrival item and the objects crossing Noël soft or Spooktober soft, in the band between the bars of one scene (THEMES.md §4
+/// rules 4–9).
 /// It asks `NoelCrossingModel` now and then (every 15 s, every half second while the sleigh waits: never per frame), draws the
 /// crossing only while it runs, and stops it as soon as the keyboard, a sheet, an alert or the lock comes up.
 struct NoelCrossingLayer: View {
@@ -75,9 +76,10 @@ struct NoelCrossingLayer: View {
     private func watch(area: CGSize) async {
         while !Task.isCancelled {
             let windowHeight = window.window?.bounds.height ?? area.height
+            let items = seasonal.activeTheme?.crossingItems ?? NoelCrossingItem.crossing
             if let crossing = crossings.crossing(
-                for: scene, on: .init(area: area, windowHeight: windowHeight), screen: screen,
-                animationsAllowed: seasonal.animationsAllowed, crossingsOn: seasonal.activeTheme == .noelSoft
+                for: scene, on: .init(area: area, windowHeight: windowHeight, items: items), screen: screen,
+                animationsAllowed: seasonal.animationsAllowed, crossingsOn: seasonal.activeTheme?.hasCrossings == true
             ) {
                 // Real time on screen: the model's clock schedules, it does not animate.
                 let end = Date().addingTimeInterval(crossing.path.duration)
@@ -107,14 +109,32 @@ private struct CrossingSprite: View {
     var body: some View {
         TimelineView(.animation) { timeline in
             let elapsed = timeline.date.timeIntervalSince(begin)
+            if crossing.item == .lightning {
+                lightning(at: elapsed)
+            } else {
+                art(at: elapsed)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// The bolt, only while one of the five flashes is on (THEMES.md §4 rule 4).
+    @ViewBuilder private func lightning(at elapsed: TimeInterval) -> some View {
+        if let flash = LightningStrike.visibleFlash(at: elapsed, in: crossing.flashes) {
             Image(crossing.item.assetName)
                 .resizable()
                 .frame(width: crossing.size.width, height: crossing.size.height)
-                // One image holds the sleigh and its reindeer: the mirror turns them as a whole (THEMES.md §6 rule 3).
-                .scaleEffect(x: crossing.path.mirrored ? -1 : 1, y: 1)
-                .rotationEffect(.radians(crossing.path.rotation))
-                .position(crossing.path.point(at: elapsed / crossing.path.duration))
+                .position(flash.center)
         }
-        .allowsHitTesting(false)
+    }
+
+    private func art(at elapsed: TimeInterval) -> some View {
+        Image(crossing.item.assetName)
+            .resizable()
+            .frame(width: crossing.size.width, height: crossing.size.height)
+            // One image holds the sleigh and its reindeer: the mirror turns them as a whole (THEMES.md §6 rule 3).
+            .scaleEffect(x: crossing.path.mirrored ? -1 : 1, y: 1)
+            .rotationEffect(.radians(crossing.path.rotation))
+            .position(crossing.path.point(at: elapsed / crossing.path.duration))
     }
 }

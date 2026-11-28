@@ -43,8 +43,8 @@ struct ThemeSettingsView: View {
                 }.themedListRow()
             } footer: {
                 Group {
-                    if seasonal.drawnTheme == .noelAbuse {
-                        Text("Noël abusé est affiché jusqu’à la fin de la saison : ces réglages s’appliqueront ensuite.")
+                    if let drawn = seasonal.drawnTheme, drawn.isEngineTheme {
+                        Text("\(drawn.title) est affiché jusqu’à la fin de la saison : ces réglages s’appliqueront ensuite.")
                     } else if theme.theme.isLegacy {
                         Text(Self.footer(for: theme.mode))
                     } else if theme.appearance.forcedColorScheme != nil {

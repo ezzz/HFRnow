@@ -17,8 +17,12 @@ struct NoelPackingLayer: View {
     var body: some View {
         GeometryReader { proxy in
             if packing.isPlaying(in: scene) {
-                NoelElves(area: proxy.size, windowHeight: window.window?.bounds.height ?? proxy.size.height) {
-                    packing.finish()
+                let windowHeight = window.window?.bounds.height ?? proxy.size.height
+                // Noël's elves, or Samain's witch sweeping the decorations away (LOT-191).
+                if packing.current?.theme.family == .samain {
+                    WitchSweep(area: proxy.size, windowHeight: windowHeight) { packing.finish() }
+                } else {
+                    NoelElves(area: proxy.size, windowHeight: windowHeight) { packing.finish() }
                 }
             }
         }

@@ -1,0 +1,32 @@
+{
+  "id": "spooktober-abuse",
+  "name": "Spooktober abusé",
+  "family": "Samain",
+  "fontDesign": "rounded",
+  "decorations": "samain-full",
+  "variants": {
+    "any": {
+      "background": "#140A1F",
+      "surface": "#24123A",
+      "surfaceRaised": "#0B0612",
+      "title": "#FFEBD9",
+      "textPrimary": "#FFEBD9",
+      "textSecondary": "#CDB3E6",
+      "sectionHeader": "#FF8A1F",
+      "accent": "#FF7A00",
+      "accentText": "#FF9A3D",
+      "onAccent": "#140A1F",
+      "separator": "#3B2257",
+      "link": "#FF9A3D",
+      "quoteBackground": "#2E1849",
+      "quoteBorder": "#FF7A00",
+      "codeBackground": "#0B0612",
+      "codeText": "#B8F28C",
+      "unread": "#FF7A00",
+      "onUnread": "#140A1F",
+      "spoilerBackground": "#3B2257",
+      "spoilerText": "#FFEBD9",
+      "selection": "#3B2257"
+    }
+  }
+}

@@ -226,6 +226,11 @@ public enum SettingKey {
     public static let noelActiveYear = Setting<Int?>(
         key: "season.noel.activeYear", defaultValue: nil, decode: { SettingCoercion.int($0) }, encode: { $0.map { .int($0) } }
     )
+    /// `season.samain.activeYear` (LOT-191, new): the season whose Spooktober theme is on, so a theme left on any number of years
+    /// ago is restored. Device-only.
+    public static let samainActiveYear = Setting<Int?>(
+        key: "season.samain.activeYear", defaultValue: nil, decode: { SettingCoercion.int($0) }, encode: { $0.map { .int($0) } }
+    )
 
     // MARK: Experimental (#903)
 
@@ -269,7 +274,7 @@ public enum SettingKey {
         nightSuperFavoriteColor, nightBrightness, darkStyle, lightStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, aqLastCheck, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
-        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
+        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, samainActiveYear, experimentalModernComposer, experimentalSearchTab,
         experimentalMPDarkTopic, experimentalDenseRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]
 
