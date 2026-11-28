@@ -10,7 +10,8 @@ extension TopicListModel {
     /// The row has a flag the user can act on: every row of flags and favourites, a forum row with a flag colour or a flag
     /// link (legacy `topicHasFlag`, `MainWindow.swift:444-449` @ 2440d79), until its flag is removed.
     func hasFlag(_ topic: TopicSummary) -> Bool {
-        (source.isFavoritesList || loadedFilter != .all || topic.flag != nil || topic.flagPath != nil) && removedFlags[topic.id] == nil
+        if let change = confirmedFlagChange(topic) { return change == .favoriteAdded }
+        return source.isFavoritesList || loadedFilter != .all || topic.flag != nil || topic.flagPath != nil
     }
 
     /// The user marked the row "Lu" since the last load.
@@ -60,16 +61,25 @@ extension TopicListModel {
             rowActionSerial += 1
             removedFlags[topic.id] = rowActionSerial
         case .failed(let reason):
-            actionFailure = reason
+            fail(.flagRemoval, reason)
         case .retryable(let reason):
+            fail(.flagRemoval, reason)
             retryableRemoval = topic
-            actionFailure = reason
         }
+    }
+
+    /// Shows `reason` as the failure of `kind`; the « Réessayer » of another action is dropped (#869 review).
+    func fail(_ kind: RowActionFailure, _ reason: String) {
+        if kind != .flagRemoval { retryableRemoval = nil }
+        retryableAddition = nil
+        actionFailureKind = kind
+        actionFailure = reason
     }
 
     /// Hides the failure once read.
     func clearActionFailure() {
         actionFailure = nil
         retryableRemoval = nil
+        retryableAddition = nil
     }
 }

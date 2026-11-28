@@ -2,8 +2,8 @@ import HFRNetwork
 
 /// Why a flag write or a read mark did not end with HFR's confirmation.
 ///
-/// `invalidLink`, `invalidTopic`, `sessionNotConfirmed`, `sessionChanged`, `missingToken` and `network` mean the write was
-/// not sent.
+/// `invalidLink`, `invalidTopic`, `sessionNotConfirmed`, `sessionChanged`, `missingToken`, `favoriteLinkMissing` and
+/// `network` mean the write was not sent.
 /// `notLoggedIn` and `rejected` mean HFR answered with a refusal by LOT-037's shape rule (no `addflag` or `delflag`
 /// refusal is captured), so the user may try again. `unconfirmed` means the request may have reached HFR: the app reloads
 /// the list or the topic to see the state instead of resending on its own.
@@ -23,6 +23,9 @@ public enum TopicFlagError: Error, Sendable, Equatable {
     case sessionChanged
     /// The session holds no `hash_check` for the list removal; nothing was sent. Record the favourites page's token first.
     case missingToken
+    /// A favourite added from a list (#869): the topic page read for it shows no `addflag.php` link of this topic on its
+    /// last message (another page, a message without the link, a page that could not be read); the write was not sent.
+    case favoriteLinkMissing
     /// HFR refused the write with its "vous devez être enregistré" sentence (`W17c`).
     case notLoggedIn
     /// HFR refused the write (a `.hop` with a link or a button, a bad token) with this sentence.

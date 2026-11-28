@@ -279,7 +279,7 @@ extension TopicRowActionsTests {
     @Test func everyFailureSaysWhetherAnythingLeft() {
         let notSent: [TopicFlagError] = [
             .invalidLink, .invalidTopic, .sessionNotConfirmed(.expired(.noIdentityCookie)), .sessionChanged, .missingToken,
-            .network(.offline)
+            .favoriteLinkMissing, .network(.offline)
         ]
         for error in notSent { #expect(TopicFlagActions.reason(for: error).contains("rien n'a été envoyé")) }
         #expect(TopicFlagActions.reason(for: .unconfirmed(.transport(.timedOut))).contains("a pu être faite"))

@@ -120,12 +120,21 @@ final class TopicListModel {
     var removedFlags: [TopicSummary.ID: Int] = [:]
     /// Counts the row marks, so a load knows which ones its page already holds (one that left before a mark does not).
     var rowActionSerial = 0
+    /// Rows HFR confirmed added to the favourites from the list (#869), with the `rowActionSerial` of the confirmation; the
+    /// later of this and `removedFlags` is the row's state until a load that starts after both.
+    var addedFavorites: [TopicSummary.ID: Int] = [:]
     /// Rows whose flag removal is in flight: offered once, never twice.
     var removingFlags: Set<TopicSummary.ID> = []
+    /// Rows whose favourite addition is in flight (#869): offered once, never twice.
+    var addingFavorites: Set<TopicSummary.ID> = []
     /// Why the last row action did not end as asked, in French; the row stays as it was.
     var actionFailure: String?
+    /// Which row action `actionFailure` is about: its alert's title and « Réessayer » follow it.
+    var actionFailureKind = RowActionFailure.flagRemoval
     /// The row whose removal failed with nothing sent and may work if sent again: the failure offers « Réessayer » (#1056).
     var retryableRemoval: TopicSummary?
+    /// The row whose favourite addition failed with nothing sent and may work if sent again (#869).
+    var retryableAddition: TopicSummary?
 
     /// The Tous / Favoris / Suivis / Lus choice shared by the lists that offer it; nil where there is none.
     let topicFilter: TopicFilterModel?
@@ -166,7 +175,8 @@ final class TopicListModel {
         guard source.isFavoritesList, !removedFlags.isEmpty else { return groups }
         return groups.map { group in
             var group = group
-            group.topics.removeAll { removedFlags[$0.id] != nil }
+            // The later of a removal and an addition HFR confirmed decides (#869): a row added back stays.
+            group.topics.removeAll { confirmedFlagChange($0) == .flagRemoved }
             if group.topics.isEmpty { group.isCollapsible = false }
             return group
         }
@@ -181,7 +191,9 @@ final class TopicListModel {
     /// A row of the favourites page shows unread pages and still has its flag (#1058): « Non lus » can have something to show.
     var hasUnreadFavoriteRows: Bool {
         guard let page = loader.value?.favoritesPage else { return false }
-        return page.sections.contains { $0.topics.contains { FavoritesPresentation.isUnread($0) && removedFlags[$0.id] == nil } }
+        return page.sections.contains { section in
+            section.topics.contains { FavoritesPresentation.isUnread($0) && confirmedFlagChange($0) != .flagRemoved }
+        }
     }
 
     /// « Non lus » is on, the page has favourites and none is unread (#1058): the screen says so instead of listing nothing or
@@ -375,6 +387,7 @@ final class TopicListModel {
         // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.
         markedRead = markedRead.filter { $0.value > startedAfter }
         removedFlags = removedFlags.filter { $0.value > startedAfter }
+        addedFavorites = addedFavorites.filter { $0.value > startedAfter }
         if let page = loader.value?.favoritesPage {
             await favorites?.prune(to: page)
             await favorites?.placePendingSuperFavorites(from: page)

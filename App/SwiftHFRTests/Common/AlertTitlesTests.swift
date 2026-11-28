@@ -8,7 +8,8 @@ struct AlertTitlesTests {
         AlertTitles.iconChangeFailed, AlertTitles.accountSwitchFailed, AlertTitles.accountRemoveFailed,
         AlertTitles.markUnreadFailed, AlertTitles.flagRemoveFailed, AlertTitles.blocklistSyncQuestion, AlertTitles.mpStorageQuestion,
         AlertTitles.imageHostQuestion, AlertTitles.gifServiceQuestion, AlertTitles.qualityNoticeQuestion,
-        AlertTitles.qualityAdditionQuestion, AlertTitles.mpStorageRefusalQuestion, AlertTitles.superFavoriteSaveFailed
+        AlertTitles.qualityAdditionQuestion, AlertTitles.mpStorageRefusalQuestion, AlertTitles.superFavoriteSaveFailed,
+        AlertTitles.favoriteAddFailed
     ]
 
     @Test func noTitleIsTheGenericOneTheIssueNames() {
