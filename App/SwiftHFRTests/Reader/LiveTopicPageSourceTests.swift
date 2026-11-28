@@ -86,6 +86,27 @@ struct LiveTopicPageSourceTests {
         #expect(await anonymous.requests.isEmpty)
     }
 
+    /// #1394: a target that carries the page HFR served asks for the other page at that canonical path, through the account
+    /// session; the same target naming a message still asks `forum2.php` (R25: HFR picks the page).
+    @Test func aTargetWithItsServedPageAsksTheCanonicalPath() async throws {
+        let body = try Self.capture("R20-topic-p1-anon.html")
+        let session = MockTransport { _ in
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: url(Self.canonical), body: body)
+        }
+        let anonymous = MockTransport(replies: [])
+        let source = LiveTopicPageSource(
+            fetcher: PageFetcher(session: session, anonymous: anonymous), session: session, normalizer: MarkingNormalizer()
+        )
+        let served = url(Self.canonical)
+        _ = try await source.page(for: ReaderTarget(source: .topic(readerTopic), page: 2, servedPage: served))
+        _ = try await source.page(for: ReaderTarget(source: .topic(readerTopic), numreponse: 7, servedPage: served))
+        #expect(await session.requests.map(\.url.absoluteString) == [
+            "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_2.htm",
+            "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=1&numreponse=7"
+        ])
+        #expect(await anonymous.requests.isEmpty)
+    }
+
     /// LOT-137: a canonical link is read by the router; the session asks for the topic page itself (`forum2.php` with
     /// the catalogue's category), never for the path and query the link's author wrote.
     @Test func aCanonicalLinkIsFetchedAsItsTopicNeverAsWritten() async throws {

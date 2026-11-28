@@ -46,7 +46,9 @@ struct LiveTopicPageSource: TopicPageSource {
                     if Task.isCancelled { throw .cancelled }
                     return RawPage(response: try await session.send(try Self.messageRequest(topic: topic, numreponse: numreponse)))
                 }
-                return try await fetcher.topicPage(topic: topic, page: target.page, as: .authenticated).page
+                return try await fetcher.topicPage(
+                    topic: topic, page: target.page, servedAt: target.servedPage, as: .authenticated
+                ).page
             case .quotingMessages(let link):
                 // `R126a`: the posts quoting one message, through the account session like the page the user is reading.
                 if Task.isCancelled { throw .cancelled }

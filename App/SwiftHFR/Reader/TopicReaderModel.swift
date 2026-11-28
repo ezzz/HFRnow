@@ -219,7 +219,7 @@ final class TopicReaderModel {
             await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
             return
         }
-        await load(ReaderTarget(source: shown.source, page: shown.page), keepsScrollPosition: true)
+        await load(shown.atPage(shown.page), keepsScrollPosition: true)
     }
 
     /// Asks again for the page that failed; a conversation's latest page still follows its pager (`showLatestPost`).
@@ -623,7 +623,8 @@ final class TopicReaderModel {
                 loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
             }
             // HFR may serve another page than the one asked (past the end): the target follows the page served.
-            shown = ReaderTarget(source: source).atPage(loaded.currentPage)
+            // Its served URL comes along: the next page of the topic is asked for at its canonical path (#1394).
+            shown = ReaderTarget(source: source, page: loaded.currentPage, servedPage: loaded.pageURL)
             page = loaded
             heldPoll?.pageDidReload(loaded.poll)
             // The topic is open: a draft legacy kept for its number becomes its reply draft (LOT-067 D1).

@@ -23,13 +23,18 @@ struct ReaderTarget: Hashable, Sendable {
     /// The message of a `numreponse=M` link (bookmarks, AQ, permalinks): HFR picks the page that holds it and redirects
     /// there (`R25`), so the link's `page=` is not that page and `page` is only a placeholder (issue #106).
     var numreponse: Int?
+    /// The URL HFR served the shown page of this topic at (`ReaderPage.pageURL`): another page is asked for at its canonical path
+    /// rather than through `forum2.php` and its redirects (#1394; the engine checks it, `HFREndpoint.topicPage(topic:page:servedAt:)`).
+    /// Only a served page sets it, never a link.
+    var servedPage: URL?
 
     /// Creates a target; pages below 1 become 1.
-    init(source: Source, page: Int = 1, anchor: Int? = nil, numreponse: Int? = nil) {
+    init(source: Source, page: Int = 1, anchor: Int? = nil, numreponse: Int? = nil, servedPage: URL? = nil) {
         self.source = source
         self.page = max(1, page)
         self.anchor = anchor
         self.numreponse = numreponse
+        self.servedPage = servedPage
     }
 
     /// The page a topic row opens: the flag link (last read position, with its anchor) when the row has one, else the
@@ -74,9 +79,9 @@ struct ReaderTarget: Hashable, Sendable {
         }
     }
 
-    /// The same topic at another page, anchor dropped.
+    /// The same topic at another page, anchor dropped; the served page is kept, so the page is one request (#1394).
     func atPage(_ page: Int) -> ReaderTarget {
-        ReaderTarget(source: source, page: page)
+        ReaderTarget(source: source, page: page, servedPage: servedPage)
     }
 
     /// `link` as an `https` URL of the forum host on the default port; nil for anything else (another host, an explicit
