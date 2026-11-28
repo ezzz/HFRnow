@@ -114,7 +114,7 @@ struct ThemeEngineTests {
     }
 
     /// LOT-193: OG clair and OG gris are bundled in the OG Web family; each one is a single variant that shows in the appearance
-    /// its background reads as, whatever the picker says (light for OG clair, dark for OG gris: white contrasts more with #666666).
+    /// its background reads as, whatever the picker says (both light: black text contrasts more with #FFFFFF and #D5D5D5).
     @Test func ogClairAndOgGrisAreInTheBundledGallery() throws {
         let catalog = ThemeCatalog.bundled
         let clair = try #require(catalog.themes.first { $0.id == "og-clair" })
@@ -123,9 +123,9 @@ struct ThemeEngineTests {
         model.mode = .dark
         model.select(clair)
         #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
-        model.mode = .light
+        model.mode = .dark
         model.select(gris)
-        #expect(model.appearance.forcedColorScheme == .dark && model.preferredColorScheme == .dark)
+        #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
     }
 
     @Test func aSingleVariantThemeImposesItsAppearance() throws {
