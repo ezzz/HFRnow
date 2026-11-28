@@ -169,8 +169,10 @@ a { color: var(--action); }
 .style-modern .message.me, .style-modern .message.whitelist { --text-inset: calc(var(--indent) + 0.5 * var(--content-em) + 2px); }
 .continuation { opacity: 0.75; }
 .continuation-note, .deleted-note { color: var(--secondary); font-size: var(--fs-85); }
-.trailer { color: var(--secondary); font-size: var(--fs-85); }
-.trailer p { margin: 0.25em 0 0; }
+/* The "édité par …" note (#1468; legacy `p.editedhfrlink`, `LinkItem.m:241`, `style-liste-light.css:465-473` @ 87fe0d1c: 0.7em italic,
+   right-aligned): 0.7 of the message text, but never under the floor and never above the signature's size. */
+.trailer { color: var(--secondary); font-size: min(var(--fs-85-content), max(calc(0.7 * var(--content-em)), var(--floor))); }
+.trailer p { margin: 0.25em 0.5em 0 0; flex: 1 1 auto; text-align: right; font-style: italic; }
 /* The "Message cité N fois" count (#1039): legacy's speech bubble at the right of the footer (`.quotedhfrlink`, `style-liste.css:419-431`
    @ 87fe0d1c), drawn in CSS instead of the `08-chat.png` image so it follows every theme. Raised by 0.2em (about 3 px at the default
    text size; operator, 2026-11-18: it sat slightly too low): `top` moves it without changing the footer's height. With a link it

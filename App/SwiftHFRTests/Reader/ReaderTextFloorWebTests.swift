@@ -12,7 +12,7 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
         func message(_ number: Int, quoted: Int?) -> ReaderMessage {
             ReaderMessage(
                 numreponse: number, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
-                dateText: "27-10-2026 10:00:00", editNote: "Message édité", quotedByCount: quoted,
+                dateText: "27-10-2026 10:00:00", editNote: "édité par auteur le 27-10-2026 à 10:05:00", quotedByCount: quoted,
                 content: MessageContent(
                     html: """
                         <div class="container"><table class="oldcitation"><tr class="none">
@@ -67,7 +67,6 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
         ProbedElement("bubble", ".quoted-bubble", 0.765),
         ProbedElement("badge", ".separator1::after", 0.7),
         ProbedElement("signature", ".signature", 0.85 * 15 / 17),
-        ProbedElement("trailer", ".trailer", 0.85),
         ProbedElement("video button", ".videos button.video", 0.85),
         ProbedElement("video card", ".videolinks .video-pill", 0.85),
         ProbedElement("code header", "table.code b.s1", 0.85 * 0.85 * 15 / 17),
@@ -153,6 +152,49 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
                     let expected = element.ratio * rootSize * scale
                     #expect(abs(size - expected) < 0.05, "\(element.name) at \(percent) %, root \(rootSize): \(size), expected \(expected)")
                 }
+            }
+        }
+    }
+
+    /// #1468: legacy's `editedhfrlink` is 0.7em italic, right-aligned (`LinkItem.m:241`, `style-liste-light.css:465-473` @ 87fe0d1c).
+    /// The note is never above the signature's size, never under the floor (or the signature's size when that is smaller), sits
+    /// at the right of the footer, and reads at 4.5:1 or more in light and dark.
+    private func trailerProbe() -> String {
+        """
+        const t = document.querySelector('.message .trailer p'), s = document.querySelector('.message .signature');
+        const st = getComputedStyle(t), bg = getComputedStyle(document.body).backgroundColor;
+        const lum = (c) => { const v = c.match(/[\\d.]+/g).slice(0, 3).map(Number).map(x => { x /= 255;
+            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+            return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+        const a = lum(st.color), b = lum(bg);
+        const footer = document.querySelector('.message .trailer').getBoundingClientRect();
+        const bubble = document.querySelector('.message .quoted-bubble').getBoundingClientRect();
+        return JSON.stringify([parseFloat(st.fontSize), parseFloat(getComputedStyle(s).fontSize), st.textAlign === 'right' || st.textAlign === 'end' ? 1 : 0,
+            st.fontStyle === 'italic' ? 1 : 0, (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05),
+            t.getBoundingClientRect().right <= bubble.left + 0.5 ? 1 : 0, Math.abs(footer.right - bubble.right)]);
+        """
+    }
+
+    @Test func editedNoteIsSmallRightAlignedAndReadable() async {
+        var token = 60
+        for dark in [false, true] {
+            for percent in [70, 100, 200] {
+                token += 1
+                let (controller, recorder) = makeController(transport: imageTransport())
+                recorder.window?.overrideUserInterfaceStyle = dark ? .dark : .light
+                controller.textScale = TextScale(percent: percent)
+                controller.show(floorDocument(token: token))
+                guard await until({ recorder.ready == [token] }) else { Issue.record("not ready"); continue }
+                let json = (try? await evaluate(trailerProbe(), in: controller)) as? String ?? "[]"
+                let v = (try? JSONDecoder().decode([Double].self, from: Data(json.utf8))) ?? []
+                guard v.count == 7 else { Issue.record("seen: \(json)"); continue }
+                let label = "dark \(dark), \(percent) %: \(v)"
+                #expect(v[0] <= v[1] + 0.01, "\(label): larger than the signature")
+                #expect(v[0] >= min(11, v[1]) - 0.01, "\(label): under the floor")
+                #expect(v[2] == 1, "\(label): not right-aligned")
+                #expect(v[3] == 1, "\(label): not italic")
+                #expect(v[4] >= 4.5, "\(label): contrast")
+                #expect(v[5] == 1, "\(label): overlaps the bubble")
             }
         }
     }
