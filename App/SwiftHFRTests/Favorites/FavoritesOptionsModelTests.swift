@@ -46,6 +46,27 @@ struct FavoritesOptionsModelTests {
         #expect(!options.showsEmptySections)
     }
 
+    @Test func categoriesOnDemandAreMemoryOnlyAndResetWhenTheSortChanges() {
+        let store = InMemorySettingsStore()
+        let options = FavoritesOptionsModel(settings: store)
+        options.groupedByCategory = false
+        #expect(!options.layout.groupedByCategory)
+        options.toggleCategoriesOnDemand()
+        #expect(options.showsCategoriesOnDemand && options.layout.groupedByCategory && options.layout.showsCollapsedSections)
+        #expect(store.rawValue(forKey: "sujets_avec_cat") == .bool(false))
+        #expect(store.rawValue(forKey: "FavoritesShowCollapsedSections") == nil)
+        options.groupedByCategory = true
+        #expect(!options.showsCategoriesOnDemand)
+        options.groupedByCategory = false
+        options.toggleCategoriesOnDemand()
+        options.toggleCategoriesOnDemand()
+        #expect(!options.layout.groupedByCategory)
+    }
+
+    @Test func aNewModelStartsWithoutTheOnDemandView() {
+        #expect(!FavoritesOptionsModel(settings: InMemorySettingsStore()).showsCategoriesOnDemand)
+    }
+
     @Test func settingsChangedElsewhereAreReadAgain() {
         let store = InMemorySettingsStore()
         let options = FavoritesOptionsModel(settings: store)
