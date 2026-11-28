@@ -45,6 +45,35 @@ import Testing
         #expect(try deviceB.reconcile(at: 150).itemWritten == false)
     }
 
+    /// The same login, its cookies expiring at `base` (seconds after the reference date); `md_id` only when asked.
+    private static func login(_ pseudo: String, expiresAt base: TimeInterval, memberID: Bool) -> Account {
+        var account = fakeAccount(pseudo)
+        account.cookies = account.cookies.map { cookie in
+            var cookie = cookie
+            cookie.expiresDate = moment(base)
+            return cookie
+        }
+        if memberID { account.cookies.append(Self.memberID(expires: moment(base))) }
+        return account
+    }
+
+    /// Beyond #1390's 7-day renewal margin each side takes the other's account: the carry is then the only protection. The
+    /// device ahead (10 days, no `md_id`) takes over the copy and leaves the holder's `md_id` in it; the holder, now lagging,
+    /// adopts that copy and keeps its `md_id`.
+    @Test func beyondTheRenewalMarginMemberIDStaysInTheCopyAndOnTheLaggingHolder() throws {
+        let tenDays: TimeInterval = 10 * 24 * 3_600
+        let deviceA = try SyncDevice(item: item, accounts: [Self.login("user-a", expiresAt: 1_000_000, memberID: true)])
+        try deviceA.switchOn(at: 100)
+        let deviceB = try SyncDevice(item: item, accounts: [Self.login("user-a", expiresAt: 1_000_000 + tenDays, memberID: false)])
+        try deviceB.switchOn(at: 110)
+        #expect(try sharedMemberIDs("user-a") == ["900001"])
+        #expect(Self.memberIDs(deviceB, "user-a") == ["900001"])
+        try deviceA.reconcile(at: 120)
+        let adopted = try #require(try deviceA.accounts.load().account(matching: "user-a"))
+        #expect(AccountSyncMerge.loginExpiry(of: adopted) == moment(1_000_000 + tenDays))
+        #expect(Self.memberIDs(deviceA, "user-a") == ["900001"])
+    }
+
     /// A re-login on the other device (another `md_passs`) is another login: its copy wins as it is.
     @Test func anotherLoginsCopyIsTakenAsItIs() throws {
         let deviceA = try SyncDevice(item: item, accounts: [Self.withMemberID("user-a")])

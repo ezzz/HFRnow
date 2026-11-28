@@ -3,7 +3,8 @@ import HFRModels
 
 /// The per-account merge of the device-only accounts and the synchronizable copy (LOT-173 spec, "Merge"): newest
 /// credentials per account key, a removal marker beats every copy whose last explicit login is not later than it, the
-/// device keeps its own main account; a winning copy of the same login without `md_id` keeps this device's (#1420). Pure.
+/// device keeps its own main account; for one login held on both sides, each side keeps its own account within the renewal
+/// margin (#1390); the copy and the device's account never lose a live `md_id` the other side holds for that login (#1420). Pure.
 struct AccountSyncMerge {
     /// The merged accounts, local order first, main flag of this device.
     var book: AccountBook
@@ -18,8 +19,8 @@ struct AccountSyncMerge {
     /// Pseudos this device stored and no longer does.
     var dropped: Set<String>
 
-    /// Merges `local` (with this device's `stamps` and `localRemoved`) and the copy's `remote` accounts and markers; `now` dates
-    /// the `md_id` kept from `local` (#1420).
+    /// Merges `local` (with this device's `stamps` and `localRemoved`) and the copy's `remote` accounts and markers; `now` decides
+    /// which `md_id` is live (#1420).
     init(
         local: AccountBook, stamps localStamps: [String: AccountStamp], localRemoved: [String: Date],
         remote: [SyncedAccount], remoteRemoved: [String: Date], now: Date = Date()
@@ -101,21 +102,21 @@ struct AccountSyncMerge {
         }
     }
 
-    /// `winner` with `local`'s live `md_id` when `winner` holds none and both are the same login (same `md_user` and
-    /// `md_passs`, #1385's identity): only a login sets `md_id` and HFR refuses profiles without it (`R1420c`), so a newer copy
-    /// from a device that lacks it (a legacy import, a login past 30 days) must not take it from this one (#1420). The merged
-    /// entry carries it, so every device converges on the copy with it; another login's copy is taken as it is.
-    static func cookies(_ winner: [StoredCookie], keepingMemberIDOf local: [StoredCookie], now: Date) -> [StoredCookie] {
-        guard !winner.contains(where: { $0.isLiveMemberID(at: now) }) else { return winner }
-        let kept = local.filter { $0.isLiveMemberID(at: now) }
+    /// `cookies` (the copy's or the device's, whichever the merge keeps) with `other`'s live `md_id` when they hold none and
+    /// both are the same login (same `md_user` and `md_passs`, #1385's identity): only a login sets `md_id` and HFR refuses
+    /// profiles without it (`R1420c`), so an account from a device that lacks it (a legacy import, a login past 30 days) never
+    /// takes it from another (#1420). Once the item holds it, the devices converge; another login's cookies are left as they are.
+    static func cookies(_ cookies: [StoredCookie], keepingMemberIDOf other: [StoredCookie], now: Date) -> [StoredCookie] {
+        guard !cookies.contains(where: { $0.isLiveMemberID(at: now) }) else { return cookies }
+        let kept = other.filter { $0.isLiveMemberID(at: now) }
         let identity = { (cookies: [StoredCookie]) in
             Set(cookies.filter { ["md_user", "md_passs"].contains($0.name) }.map { "\($0.name)=\($0.value)" })
         }
-        let login = identity(local)
+        let login = identity(other)
         guard !kept.isEmpty, login.contains(where: { $0.hasPrefix("md_user=") }), !login.contains("md_user=deleted"),
-            login == identity(winner)
-        else { return winner }
-        return winner.filter { $0.name != StoredCookie.memberIDName } + kept
+            login == identity(cookies)
+        else { return cookies }
+        return cookies.filter { $0.name != StoredCookie.memberIDName } + kept
     }
 
     /// The cookies that make a login (HFR-PROTOCOL §5, `W03`); HFR re-sends `md_user` and `md_passs` with a new expiry on
