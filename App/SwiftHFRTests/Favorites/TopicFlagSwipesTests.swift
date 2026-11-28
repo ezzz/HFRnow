@@ -179,6 +179,30 @@ struct TopicFlagSwipesTests {
     }
 }
 
+extension TopicFlagSwipesTests {
+    /// A refused super-favourite save that lands over a retryable removal's alert takes its « Réessayer » away: that button
+    /// would resend the flag removal under the super favourite's title.
+    @Test func aSuperFavouriteFailureNeverOffersTheRemovalsRetry() async {
+        let writer = FakeFlagWriter()
+        writer.removeHandler = { (_: TopicID) async throws(TopicFlagError) -> TopicFlagResult in throw .sessionChanged }
+        let options = FavoritesOptionsModel(
+            settings: InMemorySettingsStore(),
+            stores: FavoritesStores(
+                layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()),
+                superFavorites: SuperFavoritesStore(persistence: RefusingSuperFavoritesPersistence()), account: "user1"
+            )
+        )
+        let favourite = flaggedTopic(1, flag: .yellow)
+        let model = await list(.forum, [favourite], options: options, writer: writer)
+        await model.removeFlag(favourite)
+        #expect(model.retryableRemoval == favourite)
+        await model.toggleSuperFavorite(favourite)
+        #expect(model.retryableRemoval == nil)
+        #expect(model.actionFailureTitle == AlertTitles.superFavoriteSaveFailed)
+        #expect(writer.removed.count == 1)
+    }
+}
+
 /// A super-favourites persistence whose writes are refused.
 private struct RefusingSuperFavoritesPersistence: SmallStorePersistence {
     struct Refused: Error {}

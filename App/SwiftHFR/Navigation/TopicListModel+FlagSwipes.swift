@@ -48,6 +48,8 @@ extension TopicListModel {
     func toggleSuperFavorite(_ topic: TopicSummary) async {
         guard let superFavoriteOptions, canToggleSuperFavorite(topic) else { return }
         if await !superFavoriteOptions.toggleSuperFavorite(topic), favorites == nil {
+            // The alert now says this failure: its « Réessayer » must not resend an earlier flag removal (#869 review).
+            retryableRemoval = nil
             actionFailure = FavoritesOptionsModel.superWriteFailure
         }
     }
