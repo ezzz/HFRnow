@@ -33,6 +33,8 @@ private struct SeasonalDecorationsModifier: ViewModifier {
             // The sleigh crosses on any theme (25–26/12, automatic themes off); the small objects in Noël soft only.
             .overlay { NoelBand { NoelCrossingLayer(seasonal: model, isCovered: isCovered) } }
             .overlay { NoelBand { NoelPackingLayer(seasonal: model, isCovered: isCovered) } }
+            // 14 July, on any theme (LOT-194).
+            .overlay { NoelBand { FeteNationaleLayer(seasonal: model, isCovered: isCovered) } }
     }
 }
 

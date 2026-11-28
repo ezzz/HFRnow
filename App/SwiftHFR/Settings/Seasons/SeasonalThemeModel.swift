@@ -78,6 +78,8 @@ final class SeasonalThemeModel {
     @ObservationIgnored let crossings: NoelCrossingModel
     /// The elves of the packing (PR 3).
     @ObservationIgnored let packing: NoelPackingModel
+    /// The 14 July overlay (LOT-194).
+    @ObservationIgnored let fete: FeteNationaleModel
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let now: @MainActor () -> Date
     @ObservationIgnored private let timeZone: @MainActor () -> TimeZone
@@ -92,10 +94,12 @@ final class SeasonalThemeModel {
         timeZone: @escaping @MainActor () -> TimeZone = { .autoupdatingCurrent },
         reduceMotion: @escaping @MainActor () -> Bool = { UIAccessibility.isReduceMotionEnabled },
         crossings: NoelCrossingModel? = nil,
-        packing: NoelPackingModel? = nil
+        packing: NoelPackingModel? = nil,
+        fete: FeteNationaleModel? = nil
     ) {
         self.crossings = crossings ?? NoelCrossingModel(now: now, random: SystemSeasonalRandom())
         self.packing = packing ?? NoelPackingModel(now: now)
+        self.fete = fete ?? FeteNationaleModel(store: store, now: now, timeZone: timeZone)
         self.store = store
         self.now = now
         self.timeZone = timeZone
@@ -138,6 +142,7 @@ final class SeasonalThemeModel {
         default:
             break
         }
+        fete.sceneDidBecomeActive(animationsAllowed: animationsAllowed)
         refresh()
         return events
     }
