@@ -72,8 +72,20 @@ struct SamainDecorationTests {
         #expect(alpha != CGImageAlphaInfo.none && alpha != .noneSkipLast && alpha != .noneSkipFirst)
     }
 
-    /// The mean colour of the opaque pixels of `name`, as the colour a viewer sees the art in.
-    private func meanColour(of name: String) throws -> ThemeRGB {
+    /// Every image of Samain's art: the backdrop's, the crossings' and the packing witch's (a literal list so the argument of the
+    /// test below needs no actor; `everyListedImageIsAnAssetOfTheArt` ties it to the types).
+    nonisolated private static let everyImage = [
+        "SamainWeb", "SamainCandelabra", "SamainBat", "SamainMoon", "SamainPumpkin", "SamainPumpkinPlain",
+        "SamainWitch", "SamainGhost", "SamainVampire", "SamainLightning", "SamainWitchSweep"
+    ]
+
+    @Test func everyListedImageIsAnAssetOfTheArt() {
+        let typed = Set(SamainLayout.Art.allCases.map(\.rawValue) + NoelCrossingItem.allCases.filter(\.isSamain).map(\.assetName))
+        #expect(typed.union(["SamainWitchSweep"]) == Set(Self.everyImage))
+    }
+
+    /// The visible pixels of `name` that touch transparency (its silhouette), as colours.
+    private func edgeColours(of name: String) throws -> [ThemeRGB] {
         let image = try #require(UIImage(named: name)?.cgImage)
         let width = image.width
         let height = image.height
@@ -84,24 +96,56 @@ struct SamainDecorationTests {
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ))
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        var sums = [0, 0, 0]
-        var opaque = 0
-        for index in stride(from: 0, to: pixels.count, by: 4) where pixels[index + 3] > 230 {
-            for channel in 0..<3 { sums[channel] += Int(pixels[index + channel]) }
-            opaque += 1
+        func alpha(_ column: Int, _ row: Int) -> UInt8 {
+            guard column >= 0, row >= 0, column < width, row < height else { return 0 }
+            return pixels[(row * width + column) * 4 + 3]
         }
-        try #require(opaque > 0)
-        return ThemeRGB(red: sums[0] / opaque, green: sums[1] / opaque, blue: sums[2] / opaque)
+        var edges: [ThemeRGB] = []
+        for row in 0..<height {
+            for column in 0..<width where alpha(column, row) > 8 {
+                let touches = [(1, 0), (-1, 0), (0, 1), (0, -1)].contains { alpha(column + $0.0, row + $0.1) <= 8 }
+                guard touches else { continue }
+                let index = (row * width + column) * 4
+                // The context holds premultiplied colours: undo it, so a faint edge pixel keeps the colour it was drawn in.
+                let opacity = Int(pixels[index + 3])
+                edges.append(ThemeRGB(
+                    red: Int(pixels[index]) * 255 / opacity, green: Int(pixels[index + 1]) * 255 / opacity,
+                    blue: Int(pixels[index + 2]) * 255 / opacity
+                ))
+            }
+        }
+        return edges
     }
 
-    /// WCAG 1.4.11 (the lot's acceptance criterion): the bat and every decoration of the soft theme's dark variant keep 3:1
-    /// against its background, at the full opacity the soft theme draws them in.
-    @Test(arguments: [SamainLayout.Art.bat, .web, .candelabra])
-    func theSoftArtKeepsThreeToOneOnTheDarkBackground(art: SamainLayout.Art) throws {
-        let tokens = try theme(.spooktoberSoft).variants?.dark
-        let background = try #require(tokens?.background)
-        let colour = try meanColour(of: art.rawValue)
-        #expect(colour.contrast(with: background) >= 3, "\(art) \(colour) on \(background)")
+    /// WCAG 1.4.11 (the lot's acceptance criterion, rule 7): every decoration on the soft theme's dark variant keeps its
+    /// silhouette ≥ 3:1. The purple witch and vampire do not against the background (2.3:1), so on a dark scheme the art gets a
+    /// light rim (`SamainRim`): every edge pixel of every image reads ≥ 3:1 against the background or against the rim, whose colour
+    /// is the background under the halo's opacity of white.
+    @Test(arguments: SamainDecorationTests.everyImage)
+    func everyImageKeepsItsSilhouetteThreeToOneOnTheDarkBackgroundWithItsRim(name: String) throws {
+        let background = try #require(try theme(.spooktoberSoft).variants?.dark.background)
+        let rim = background.mixed(with: ThemeRGB(red: 255, green: 255, blue: 255), amount: SamainRim.opacity)
+        #expect(rim.contrast(with: background) >= 3, "the rim \(rim) on \(background)")
+        let edges = try edgeColours(of: name)
+        try #require(!edges.isEmpty)
+        let readable = edges.filter { $0.contrast(with: background) >= 3 || $0.contrast(with: rim) >= 3 }
+        #expect(Double(readable.count) / Double(edges.count) >= 0.99, "\(name): \(readable.count) of \(edges.count) edge pixels")
+    }
+
+    /// The rim is real: the dark-scheme halo exists and the light scheme has none. (The witch's own purple, 2.3:1 on the
+    /// background, is why: the test above fails without it.)
+    @Test func theRimIsAWhiteHaloOnTheDarkSchemeOnly() {
+        #expect(SamainRim.opacity >= 0.5 && SamainRim.radius >= 1)
+    }
+
+    /// The soft bat is drawn in the operator's colour for the scheme: ≥ 3:1 on the dark background (7.13:1 in the draft) and on
+    /// the light one.
+    @Test func theSoftBatIsDrawnInTheDraftsColourOnBothVariants() throws {
+        let variants = try #require(try theme(.spooktoberSoft).variants)
+        let light = variants.light
+        let dark = variants.dark
+        #expect(SamainLayout.batOnDark.contrast(with: dark.background) >= 7)
+        #expect(SamainLayout.batOnLight.contrast(with: light.background) >= 3)
         #expect(SamainLayout.Kind.soft.opacity == 1)
     }
 
@@ -148,15 +192,23 @@ struct SamainDecorationTests {
         }
     }
 
-    @Test func theSoftThemeHasAWebInTheTopTrailingCornerACandelabraAndABat() throws {
+    /// Rules 7 and 9: no art behind the status bar, the toolbar buttons (the navigation bar's own row) or the large title's text
+    /// column; the candelabra and the bat stand on the home indicator's inset, below the tab bar.
+    @Test func theSoftArtStaysOutOfTheChromeAndOfTheText() throws {
         let size = CGSize(width: 402, height: 874)
         let pieces = SamainLayout.pieces(.soft, in: size, topInset: 59, bottomInset: 34)
         #expect(pieces.map(\.art) == [.web, .candelabra, .bat])
         let web = try #require(pieces.first)
-        #expect(web.mirrored && web.frame.maxX == size.width && web.frame.minY == 0)
-        // Nothing sits on the list: all of it is above the first row of a screen with a large title.
-        #expect(pieces.allSatisfy { $0.frame.maxY <= 59 + 40 + 52 + 1 })
+        #expect(web.mirrored && web.frame.maxX == size.width && web.frame.minY >= 59 + SamainLayout.navigationRow)
+        for piece in pieces.dropFirst() { #expect(piece.frame.minY >= size.height - 34 && piece.frame.maxY <= size.height) }
         #expect(!pieces[1].frame.intersects(pieces[2].frame))
+        // The web hangs in the trailing corner only; a leading column of title text is never under it.
+        #expect(web.frame.width <= size.width * 0.2 + 1e-9)
+    }
+
+    @Test func aScreenWithoutAHomeIndicatorInsetHasTheWebAlone() {
+        let pieces = SamainLayout.pieces(.soft, in: CGSize(width: 375, height: 667), topInset: 20, bottomInset: 0)
+        #expect(pieces.map(\.art) == [.web])
     }
 
     @Test func theAbuseThemeHasMoreArtAndItsPumpkinsStandOnTheHomeIndicatorInset() throws {
@@ -214,5 +266,17 @@ struct SamainDecorationTests {
     @Test func theWitchImageIsBundledWithTheLayoutsRatio() throws {
         let image = try #require(UIImage(named: "SamainWitchSweep"))
         #expect(abs(image.size.width / image.size.height - SamainSweepLayout.aspectRatio) < 0.02)
+    }
+
+    // MARK: Packing overlay
+
+    /// Samain's packing is the witch, never Noël's elves; Noël's (and no theme at all) stays the elves.
+    @Test(arguments: [
+        (SeasonalTheme.spooktoberSoft, PackingOverlay.witch), (.spooktoberAbuse, .witch),
+        (.noelSoft, .elves), (.noelAbuse, .elves)
+    ])
+    func samainPackingIsTheWitchAndNoelsTheElves(theme: SeasonalTheme, overlay: PackingOverlay) {
+        #expect(PackingOverlay(theme: theme) == overlay)
+        #expect(PackingOverlay(theme: nil) == .elves)
     }
 }

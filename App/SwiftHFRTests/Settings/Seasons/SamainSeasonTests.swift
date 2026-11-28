@@ -33,10 +33,10 @@ struct SamainSeasonTests {
     /// The title names the situation and is true when nothing is switched on, as Noël's since #1174.
     @Test func theAlertSaysTheOperatorsSentenceWhetherOrNotAThemeWasSwitchedOn() {
         let clock = SeasonTestClock(12, 10, 2027)
-        let on = clock.model(store: InMemorySettingsStore())
-        on.sceneDidBecomeActive()
-        let alert = on.pendingAlert
-        #expect(alert.map(on.title(for:)) == "Spooktober est là !")
+        let engaged = clock.model(store: InMemorySettingsStore())
+        engaged.sceneDidBecomeActive()
+        let alert = engaged.pendingAlert
+        #expect(alert.map(engaged.title(for:)) == "Spooktober est là !")
         #expect(alert?.message == "Thème disponible dans les réglages")
         let off = InMemorySettingsStore()
         off.set(false, for: SettingKey.seasonalThemesAutomatic)

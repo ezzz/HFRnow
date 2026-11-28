@@ -75,6 +75,7 @@ struct NoelCrossingLayer: View {
     /// Asks for a crossing until one comes, plays it to its end (or until the screen is no longer clear), and asks again.
     private func watch(area: CGSize) async {
         while !Task.isCancelled {
+            seasonal.dropOverlaysOutOfSeason()
             let windowHeight = window.window?.bounds.height ?? area.height
             let items = seasonal.activeTheme?.crossingItems ?? NoelCrossingItem.crossing
             if let crossing = crossings.crossing(
@@ -105,6 +106,7 @@ struct NoelCrossingLayer: View {
 private struct CrossingSprite: View {
     let crossing: NoelCrossingModel.Crossing
     @State private var begin = Date()
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -124,6 +126,7 @@ private struct CrossingSprite: View {
             Image(crossing.item.assetName)
                 .resizable()
                 .frame(width: crossing.size.width, height: crossing.size.height)
+                .samainRim(scheme)
                 .position(flash.center)
         }
     }
@@ -132,6 +135,7 @@ private struct CrossingSprite: View {
         Image(crossing.item.assetName)
             .resizable()
             .frame(width: crossing.size.width, height: crossing.size.height)
+            .samainRim(scheme, enabled: crossing.item.isSamain)
             // One image holds the sleigh and its reindeer: the mirror turns them as a whole (THEMES.md §6 rule 3).
             .scaleEffect(x: crossing.path.mirrored ? -1 : 1, y: 1)
             .rotationEffect(.radians(crossing.path.rotation))

@@ -31,6 +31,16 @@ nonisolated enum SamainSweepLayout {
     }
 }
 
+/// What plays a packing: Noël's elves, or Samain's witch (THEMES.md §5). Pure, so « Samain shows Noël's elves » is tested.
+nonisolated enum PackingOverlay: Equatable {
+    case elves
+    case witch
+
+    init(theme: SeasonalTheme?) {
+        self = theme?.family == .samain ? .witch : .elves
+    }
+}
+
 /// The witch of the packing crossing the band with « Allez on remballe » above her; redrawn every frame only while she plays (one
 /// view per packing). A tap anywhere in the band ends her (THEMES.md §4 rule 3); hidden from VoiceOver, which hears the words as
 /// an announcement.
@@ -39,6 +49,7 @@ struct WitchSweep: View {
     let windowHeight: CGFloat
     let close: () -> Void
     @State private var begin = Date()
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         ZStack {
@@ -49,6 +60,7 @@ struct WitchSweep: View {
                         Image("SamainWitchSweep")
                             .resizable()
                             .frame(width: frame.width, height: frame.height)
+                            .samainRim(scheme)
                             .position(x: frame.midX, y: frame.midY)
                     }
                     Text("Allez on remballe")

@@ -155,6 +155,22 @@ final class SeasonalThemeModel {
         return events
     }
 
+    /// Samain overlays still waiting for a clear screen when their window closes with the app in the foreground (midnight on 07/11
+    /// behind the keyboard, or on 31/10 behind a sheet): the witch and the arrival are dropped, with the alert that would name
+    /// « Spooktober est là ! » a day late. The layers ask before they start one. Noël's own is #1440's follow-up, not changed here.
+    func dropOverlaysOutOfSeason() {
+        let family = SeasonFamily.samain
+        let date = now()
+        let phase = family.phase(of: date, in: calendar)
+        if phase != .packing, packing.current?.theme.family == family, !packing.isPlaying { packing.finish() }
+        guard !phase.isSelectable else { return }
+        let pending = family.arrivalPending(year: family.seasonYear(of: date, in: calendar))
+        guard store.value(for: pending) else { return }
+        store.reset(pending)
+        crossings.dropArrival(ifItems: family.arrivalItems)
+        refresh()
+    }
+
     /// What the first activation of `phase` does for `family`'s season `year`, if anything.
     private func event(for phase: NoelCalendar.Phase, of family: SeasonFamily, year: Int) -> Event? {
         switch phase {

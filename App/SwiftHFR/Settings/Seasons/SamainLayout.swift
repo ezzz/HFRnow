@@ -1,11 +1,13 @@
 import CoreGraphics
 import Foundation
+import HFRModels
 
 // No legacy counterpart @ 87fe0d1c (legacy has no Halloween theme; GAP row of LOT-191).
 /// Where the Samain themes put their art on a screen's background, behind the content (THEMES.md §2, §4 rule 7, §6; board
-/// `theme-samain.jpg`). Spooktober soft keeps to the corners and the strip beside the large title, at full opacity, so the bat and
-/// the rest keep their contrast on the dark variant (§4 rule 7); Spooktober abusé covers more of the screen and is drawn at
-/// `fullOpacity`, so the text native screens draw on its background stays readable. Each column of a split view lays out its own.
+/// `theme-samain.jpg`). Spooktober soft keeps to the top trailing corner under the navigation row and the home indicator's
+/// inset, at full opacity, so the bat and the rest keep their contrast on the dark variant (§4 rule 7); Spooktober abusé covers
+/// more of the screen and is drawn at `fullOpacity`, so the text native screens draw on its background stays readable. Each
+/// column of a split view lays out its own.
 /// Pure, so the limits are tested. Coordinates are the screen's, origin top leading, insets included.
 nonisolated enum SamainLayout {
     /// What a decoration is: the asset and its aspect ratio (the trimmed render, `tooling/art/noel-crossings/derive.swift samain`).
@@ -48,6 +50,12 @@ nonisolated enum SamainLayout {
 
     static let fullOpacity = 0.14
 
+    /// The soft theme's bat is drawn as a silhouette in the operator's draft colours (`docs/assets/themes/tokens/themes.json`,
+    /// `decorationColors.bat`, 2026-10-28): near black on the light variant, the grey-violet `textSecondary` on the dark one
+    /// (7.13:1 on its background; black was 1.11:1).
+    static let batOnLight = ThemeRGB(red: 0x14, green: 0x0A, blue: 0x1F)
+    static let batOnDark = ThemeRGB(red: 0xA9, green: 0x9A, blue: 0xAD)
+
     /// A screen narrower or shorter than this carries no art: the pieces would sit on the text.
     static let minimumWidth: CGFloat = 240
     static let minimumHeight: CGFloat = 320
@@ -57,25 +65,34 @@ nonisolated enum SamainLayout {
         guard size.width >= minimumWidth, size.height >= minimumHeight else { return [] }
         let screen = CGRect(origin: .zero, size: size)
         let all = switch kind {
-        case .soft: soft(in: size, topInset: topInset)
+        case .soft: soft(in: size, topInset: topInset, bottomInset: bottomInset)
         case .full: full(in: size, topInset: topInset, bottomInset: bottomInset)
         }
         // A piece that would leave the screen (a narrow column) is dropped, never squeezed.
         return all.filter { screen.contains($0.frame) }
     }
 
-    /// A web in the top trailing corner, the candelabra and a small bat on the strip beside the large title (board: under the
-    /// web, after « HFR »).
-    private static func soft(in size: CGSize, topInset: CGFloat) -> [Piece] {
-        let web = min(96, size.width * 0.28)
-        let candelabra = frame(.candelabra, height: 52, trailing: size.width - 16, top: topInset + 40)
-        let bat = frame(.bat, height: 14, trailing: candelabra.minX - 8, top: topInset + 52)
-        return [
-            Piece(art: .web, frame: CGRect(x: size.width - web, y: 0, width: web, height: web), mirrored: true),
-            Piece(art: .candelabra, frame: candelabra),
-            Piece(art: .bat, frame: bat)
+    /// The soft theme keeps its art out of the chrome and of the text (THEMES.md §4 rules 7 and 9): a web in the top trailing
+    /// corner just under the navigation bar's own row (clear of the status bar and of the toolbar buttons), and a candelabra with
+    /// a small bat standing on the home indicator's inset, below the tab bar. A screen without that inset has no candelabra.
+    private static func soft(in size: CGSize, topInset: CGFloat, bottomInset: CGFloat) -> [Piece] {
+        let web = min(72, size.width * 0.2)
+        var pieces = [
+            Piece(art: .web, frame: CGRect(x: size.width - web, y: topInset + navigationRow, width: web, height: web), mirrored: true)
         ]
+        guard bottomInset >= minimumInset else { return pieces }
+        let height = min(bottomInset, 34)
+        let floor = size.height
+        let candelabra = frame(.candelabra, height: height, trailing: size.width - 16, bottom: floor)
+        pieces.append(Piece(art: .candelabra, frame: candelabra))
+        pieces.append(Piece(art: .bat, frame: frame(.bat, height: 12, trailing: candelabra.minX - 8, bottom: floor - (height - 12) / 2)))
+        return pieces
     }
+
+    /// The height of a navigation bar's own row, under which the soft web hangs, and the smallest home indicator inset that can
+    /// hold the candelabra.
+    static let navigationRow: CGFloat = 44
+    static let minimumInset: CGFloat = 24
 
     /// Webs in both top corners, the moon behind the title with two bats, pumpkins and the candelabra standing on the home
     /// indicator's inset.

@@ -101,6 +101,12 @@ final class NoelCrossingModel {
         arrivalFirstStart = nil
     }
 
+    /// A queued arrival whose season window closed while it waited (midnight behind a keyboard or a sheet) is dropped; only when
+    /// it is the one `items` queued, so another family's arrival is never lost.
+    func dropArrival(ifItems items: [NoelCrossingItem]) {
+        if arrivalPending, arrivalItems == items { arrivalPending = false }
+    }
+
     /// How long after its first start a cut arrival sleigh is played again: a bound in time, not a count, so the many sizes of
     /// one split-view divider drag or Stage Manager resize cannot use it up at once (#840 round 3), and constant resizes still
     /// cannot hold the alert back for ever.

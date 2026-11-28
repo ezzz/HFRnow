@@ -230,4 +230,15 @@ struct SamainCrossingTests {
             #expect((path.facing.dx * travel.dx + path.facing.dy * travel.dy) / hypot(travel.dx, travel.dy) > 0.99)
         }
     }
+
+    /// WCAG 2.3.1: no more than three flashes in any one second, for every random draw (the five flashes sit in slots of 0.6 s).
+    @Test func noOneSecondHoldsMoreThanThreeFlashStarts() {
+        for seed in 1...200 {
+            let flashes = LightningStrike.flashes(in: Self.area, size: CGSize(width: 57, height: 120), random: SeededRandom(UInt64(seed)))
+            for flash in flashes {
+                let starts = flashes.filter { $0.start >= flash.start && $0.start < flash.start + 1 }
+                #expect(starts.count <= 3, "seed \(seed)")
+            }
+        }
+    }
 }

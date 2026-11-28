@@ -61,6 +61,9 @@ enum NoelCrossingItem: String, CaseIterable, Sendable {
         }
     }
 
+    /// Samain's art: it gets the light rim on a dark scheme (`SamainRim`).
+    var isSamain: Bool { [.witch, .ghost, .bat, .vampire, .lightning].contains(self) }
+
     /// The art has a front: it faces its travel, mirrored as a whole when it goes the other way (THEMES.md §6 rule 3). The
     /// others (a star, a gift, an ornament, a flake, a ghost, a bat, a vampire, a flash) have none and stay upright.
     var isDirectional: Bool { self == .sleigh || self == .witch }
