@@ -40,21 +40,25 @@ struct ReaderThemeTests: ReaderWebTesting {
     @Test func theDarkVariantGetsTheNightAccentAndTheScaledSurfacesThenFollowsAChangeLive() async {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = .dark
-        controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 0)
+        let first = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 0)
+        controller.theme = first
         controller.show(document(token: 1))
         #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
         // The dark surfaces scale (at 0 % they are black; the standard grey is 0x2E2F33) but the default quote has no fill (#819).
-        let expected = "rgb(0, 0, 255)|\(none)"
-        let first = await until(async: { await colours(in: controller) == expected })
+        // A link is the accent moved until it reads (#1374): the night accent's derived link colour, not the accent itself.
+        let expected = "\(first.linkColor(dark: true).cssRGB)|\(none)"
+        let firstSeen = await until(async: { await colours(in: controller) == expected })
         let seen = await colours(in: controller)
-        #expect(first, "colours: \(seen)")
+        #expect(firstSeen, "colours: \(seen)")
         // 0x35363B at 0 %: black.
         let scaled = await until(async: { await placeholder(in: controller) == "rgb(0, 0, 0)" })
         let seenPlaceholder = await placeholder(in: controller)
         #expect(scaled, "placeholder: \(seenPlaceholder)")
 
-        controller.theme = ThemeAppearance(dayAccent: blue, nightAccent: red, darkBrightness: 1)
-        let live = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|\(none)" })
+        let changed = ThemeAppearance(dayAccent: blue, nightAccent: red, darkBrightness: 1)
+        controller.theme = changed
+        let liveColours = "\(changed.linkColor(dark: true).cssRGB)|\(none)"
+        let live = await until(async: { await colours(in: controller) == liveColours })
         let seenLive = await colours(in: controller)
         #expect(live, "colours: \(seenLive)")
         let scaledLive = await until(async: { await placeholder(in: controller) == "rgb(53, 54, 59)" })
@@ -87,14 +91,16 @@ struct ReaderThemeTests: ReaderWebTesting {
         #expect(recorder.ready == [5])
     }
 
-    @Test func theLightVariantGetsTheDayAccent() async {
+    @Test func theLightVariantGetsTheDayAccentsLink() async {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = .light
-        controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 0)
+        let appearance = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 0)
+        controller.theme = appearance
         controller.show(document(token: 2))
         #expect(await until { recorder.ready == [2] }, "ready: \(recorder.ready)")
         // Light surfaces keep their light colour whatever the dark brightness.
-        let light = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|\(none)" })
+        let expected = "\(appearance.linkColor(dark: false).cssRGB)|\(none)"
+        let light = await until(async: { await colours(in: controller) == expected })
         let seen = await colours(in: controller)
         #expect(light, "colours: \(seen)")
     }
@@ -172,7 +178,7 @@ struct ReaderThemeTests: ReaderWebTesting {
         #expect(linkAndQuote == "rgb(140, 200, 255)|rgb(34, 44, 56)", "link and quote: \(linkAndQuote)")
 
         controller.theme = .standard
-        let legacy = "\(ThemeAppearance.standard.nightAccent.cssRGB)|\(none)"
+        let legacy = "\(ThemeAppearance.standard.linkColor(dark: true).cssRGB)|\(none)"
         let restored = await until(async: { await colours(in: controller) == legacy })
         let seenLegacy = await colours(in: controller)
         #expect(restored, "legacy: \(seenLegacy)")

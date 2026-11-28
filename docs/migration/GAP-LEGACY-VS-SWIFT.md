@@ -110,6 +110,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-1039 | « Message cité N fois » | Speech bubble with the count at the right of the footer, a link to the `quote_only=1` page. | LinkItem.m:237-238 @ 87fe0d1c | Count bubble drawn in CSS, a link opened in a reader of its own (`HFRQuotingLink`, R126a; public topics only, #1271); 44 pt tap area, button for VoiceOver (« Voir les N messages qui citent celui-ci »). | #1039 | ported with changes | capture R126a | a |
 | GAP-912 | Image dans un lien | Un clic ouvre la visionneuse sur le lien seulement pour une miniature img3.super-h.fr de 200 px ou moins (attribut `longdesc`) ; sinon le lien est suivi sans avertissement | `MessagesView.swift:1150-1235`; `Common.swift:2243-2256` @ `87fe0d1c` | Un lien vers une image s'ouvre dans la visionneuse (repli sur la taille réelle de la table, puis l'aperçu) ; tout autre lien demande confirmation avec le domaine ; lien du forum sans avertissement ; une image tierce non autorisée (son adresse n'a pas été acceptée et le réglage est coupé) est traitée comme une page : avertissement « page externe », Ouvrir la charge dans le navigateur ; la page de visualisation img3 d'une miniature garde la visionneuse sur la taille réelle ; liens reho.st = pages sauf une miniature `reho.st/thumb/…` avec un lien du même hôte, qui garde la visionneuse (capture #1280) | #912 | UX change | operator (#912) | b |
 | GAP-1297 | Blocking logged out | Blacklist is offered with no account check; logged out it says "BIM! … ajouté à la liste noire" and keeps nothing (the add goes to the throwaway array `getBlackListForActiveCompte` returns without a current pseudo). | `MessagesView.swift:213-216, 4470-4484`; `BlackList.m:37-47, 92-94` @ `87fe0d1c` | « Connectez-vous pour bloquer » in the author menus (reader, filtered posts) and on the profile sheet, opening the login; Blacklist is hidden logged out (legacy bug fixed on purpose), Whitelist (global, LOT-118) and « Alerter » unchanged. After the login the pending block is not applied. | LOT-159, #1297 | UX change | new UX: operator decision D3 (2026-11-24) | b·operator |
+| GAP-1374 | Couleur des liens du message | Accent du thème (`--color-action`), 1,5:1 en clair à la teinte par défaut | `style-liste-light.css:339-341, 631-633` @ `87fe0d1c` | Accent éclairci ou assombri jusqu'à 4,5:1 sur toutes les surfaces ; l'accent reste pour les remplissages | #1374 | UX change | new UX: spec | b |
 
 ## Composer
 
@@ -312,11 +313,11 @@ Gap issues: #1309 state views (needs a decision), #1310 haptics, #1311 row menus
 | same | 31 |
 | ported with changes | 67 |
 | ported with changes (engine only) | 1 |
-| UX change | 62 |
+| UX change | 63 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 2 |
-| **Total** | **195** |
+| **Total** | **196** |
 
 ## Convergence notes
 
@@ -346,7 +347,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (158)
+### GAP rows of type `ported with changes`, `UX change` or `new` (159)
 
 | H.1 | Rows | Count |
 |---|---|---|
@@ -354,7 +355,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | a·master | 002, 093, 117, 150, 152, 210, 217, 219, 682, 713 | 10 |
 | b·needed | 024, 036, 056, 058, 070, 089, 133, 181, 192 | 9 |
 | b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297, 1347 | 46 |
-| b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 912, 1073, 1074, 1107 | 41 |
+| b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 912, 1073, 1074, 1107, 1374 | 42 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
 

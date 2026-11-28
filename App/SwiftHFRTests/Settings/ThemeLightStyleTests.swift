@@ -27,7 +27,7 @@ struct ThemeLightStyleTests {
         #expect(blanc.lightScreenBackground == nil)
         #expect(blanc.screenFill == .system)
         #expect(variables(blanc).keys.allSatisfy { !$0.hasPrefix("--app-light-") })
-        #expect(variables(blanc).count == 6)
+        #expect(variables(blanc).count == 8)
     }
 
     // MARK: Doux
@@ -41,7 +41,7 @@ struct ThemeLightStyleTests {
         #expect(sent["--app-light-placeholder"] == "rgb(233, 231, 222)")
         #expect(sent["--app-light-separator"] == "rgb(214, 211, 200)")
         #expect(sent["--app-light-secondary"] == "rgb(99, 99, 102)")
-        #expect(sent.count == 10)
+        #expect(sent.count == 12)
     }
 
     /// Text (#1C1C1E) and the secondary text of Doux keep 4.5:1 on every Doux surface that carries text, and on the tints the

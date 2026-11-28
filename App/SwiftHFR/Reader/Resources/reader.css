@@ -9,6 +9,9 @@
   --quote-border: #8e8e93;
   --quote-background: #f2f2f7;
   --action: var(--app-action-light, #007aff);
+  /* Body links (#1374): the accent moved toward black until it holds 4.5:1 on every surface a link sits on (the app computes it,
+     ThemeAppearance+LinkColor); a gallery theme sets its own `--link` below. */
+  --link: var(--app-link-light, var(--action));
   /* The `--app-light-*` are « Doux »'s (#1213, set by the app only for that light style); without them the page is today's white. */
   --placeholder: var(--app-light-placeholder, #e5e5ea);
   /* Visibility (LOT-117): legacy defaults of the "love" colour, `theme_day_color_love` hsb(0.9, 0.1, 1) and
@@ -63,6 +66,7 @@
     --separator: var(--app-dark-separator, #4a4b50);
     --quote-border: #636366;
     --action: var(--app-action-dark, #0a84ff);
+    --link: var(--app-link-dark, var(--action));
     --placeholder: var(--app-dark-placeholder, #35363b);
     --love: #4d0831;
     --modo: #4a2e3c;
@@ -95,7 +99,7 @@ body {
   font-size: var(--fs-body);
   margin: 0; padding: 0 0 var(--floating-gap, 8px); color: var(--text); background: var(--background); overflow-wrap: anywhere;
 }
-a { color: var(--action); }
+a { color: var(--link); }
 /* Full Keyboard Access and switch users (LOT-163): the page had no focus ring. Shown for keyboard focus only. */
 :focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
 /* Reduce Motion (LOT-163): the reader animates nothing today; this keeps it so. */
@@ -242,8 +246,9 @@ table.code *, table.fixed * { font-family: ui-monospace, Menlo, monospace; }
 table.code td, table.fixed td { overflow-x: auto; }
 .signature table.code, .signature table.fixed { font-size: var(--fs-7225-content); }
 ol.olcode { margin: 0; padding-left: 2.5em; white-space: pre; }
-/* Legacy turned the olcode keyword colour "blue" into the action colour (LinkItem.m:265, kept as served by LOT-034). */
-ol.olcode span[style="color:blue"] { color: var(--action) !important; }
+/* Legacy turned the olcode keyword colour "blue" into the action colour (LinkItem.m:265, kept as served by LOT-034); here it is `--link`, the
+   accent-derived text colour that holds 4.5:1 like a body link (#1374). */
+ol.olcode span[style="color:blue"] { color: var(--link) !important; }
 
 /* Spoilers: hidden until tapped (reader.js toggles .open). */
 table.spoiler { width: 100%; cursor: pointer; border: 1px dashed var(--quote-border); margin: 0.5em 0; }

@@ -23,7 +23,7 @@ public struct SmileyLookupFlow: Sendable {
     public init(session: HFRSession? = nil) {
         self.account = session
         self.makeProbe = nil
-        self.anonymous = AnonymousTransport()
+        self.anonymous = AnonymousTransport.shared
     }
 
     /// Creates a flow with another probe factory and cookie-less transport (tests).
