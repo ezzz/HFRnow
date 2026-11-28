@@ -37,6 +37,11 @@ extension TopicListModel {
         isMarkedSuperFavorite(topic) ? "Retirer des super favoris" : "Ajouter aux super favoris"
     }
 
+    /// The title of the row-action alert: what failed, the flag removal or the super-favourite save (HIG › Alerts, #1175).
+    var actionFailureTitle: String {
+        actionFailure == FavoritesOptionsModel.superWriteFailure ? AlertTitles.superFavoriteSaveFailed : AlertTitles.flagRemoveFailed
+    }
+
     /// Adds or removes the row's super-favourite (`SuperFavoritesStore`, local, nothing sent to HFR; the store's add and remove are
     /// idempotent). A refused write leaves the row as it was; a forum list says why in its alert (the favourites lists show
     /// `storeProblem` above the rows already).

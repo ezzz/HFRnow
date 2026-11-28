@@ -1,6 +1,7 @@
 import Foundation
 import HFRClient
 import HFRModels
+import HFRNetwork
 import HFRStorage
 @testable import SwiftHFR
 import Testing
@@ -57,7 +58,6 @@ struct TopicFlagSwipesTests {
         let stored = InMemorySettingsStore([SettingKey.topicListFlag.key: .int(TopicListFlag.favorites.rawValue)])
         let filter = TopicFilterModel(settings: stored)
         let model = await list(.forum, [row], topicFilter: filter)
-        await model.onAppear() // the first load predates the sign-in it reads; this one asks for the Favoris filter
         #expect(model.loadedFilter == .favorites)
         #expect(model.removeFlagTitle(row) == "Retirer des favoris")
     }
@@ -86,6 +86,7 @@ struct TopicFlagSwipesTests {
         #expect(writer.removed.count == 1)
         #expect(model.isFavorite(favourite) && model.removeFlagTitle(favourite) == "Retirer des favoris")
         #expect(model.actionFailure == TopicFlagActions.reason(for: .notLoggedIn))
+        #expect(model.actionFailureTitle == AlertTitles.flagRemoveFailed)
     }
 
     // MARK: - Super favourite
@@ -134,6 +135,15 @@ struct TopicFlagSwipesTests {
         #expect(favoris.superFavoriteOptions === options)
     }
 
+    /// The app's own wiring: both tabs' lists share the root's options, the Catégories tab included (its `favorites` stays nil).
+    @Test func theRootGivesBothTabsTheSameSuperFavourites() throws {
+        let root = RootModel(environment: AppEnvironment.make(session: HFRSession(), accountName: nil), store: InMemorySettingsStore())
+        let options = try #require(root.favoriteOptions)
+        let category = root.categories.topicList(for: Kind.forum.source)
+        #expect(category.favorites == nil && category.superFavoriteOptions === options)
+        #expect(root.favorites.topicList(for: .favorites).superFavoriteOptions === options)
+    }
+
     @Test(arguments: Kind.allCases)
     func noSuperFavouriteLoggedOutNorWithoutATopicNumber(kind: Kind) async {
         var numberless = flaggedTopic(2, flag: nil)
@@ -165,6 +175,7 @@ struct TopicFlagSwipesTests {
         #expect(!model.isMarkedSuperFavorite(row))
         #expect(options.storeProblem == FavoritesOptionsModel.superWriteFailure)
         #expect(model.actionFailure == (kind == .forum ? FavoritesOptionsModel.superWriteFailure : nil))
+        if kind == .forum { #expect(model.actionFailureTitle == AlertTitles.superFavoriteSaveFailed) }
     }
 }
 

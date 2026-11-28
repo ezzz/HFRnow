@@ -128,7 +128,7 @@ struct TopicListView: View {
         .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .sceneAwareListLoad(model, id: model.wantedFilter)
         .alert(
-            AlertTitles.flagRemoveFailed,
+            model.actionFailureTitle,
             isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
         ) {
             // The row is captured here: the alert clears the model's state before a button's action runs (LOT-087).
@@ -205,6 +205,7 @@ struct TopicListView: View {
     /// disabled while the removal is in flight.
     private func removeButton(_ topic: TopicSummary) -> some View {
         let removing = model.isRemovingFlag(topic)
+        // Not the super favourite's `star.circle`: this one is an HFR write the list cannot undo (#869 review).
         let icon = model.isFavorite(topic) ? "star.slash" : "trash"
         return Button(role: .destructive) {
             Task { await model.removeFlag(topic) }
@@ -220,7 +221,7 @@ struct TopicListView: View {
         Button {
             Task { await model.toggleSuperFavorite(topic) }
         } label: {
-            Label(model.superFavoriteTitle(topic), systemImage: model.isMarkedSuperFavorite(topic) ? "star.slash" : "star.circle")
+            Label(model.superFavoriteTitle(topic), systemImage: "star.circle")
         }
         .tint(.orange)
     }
