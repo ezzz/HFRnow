@@ -17,7 +17,7 @@ struct MPNotificationSettingsSection: View {
 
     var body: some View {
         Section {
-            Group {
+            ThemedRows {
                 Toggle("Notifications", isOn: $model.notificationsEnabled)
                     .onChange(of: model.notificationsEnabled) { _, isOn in
                         if isOn { Task { await model.notificationsTurnedOn() } }
@@ -37,7 +37,7 @@ struct MPNotificationSettingsSection: View {
                 Button("Réglages des notifications", systemImage: "bell.badge") {
                     if let url = Self.notificationSettingsURL { openURL(url) }
                 }
-            }.themedListRow()
+            }
         } header: {
             Text("Notifications MP").themedSectionHeader()
         } footer: {

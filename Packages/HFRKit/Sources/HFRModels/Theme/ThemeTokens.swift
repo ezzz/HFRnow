@@ -137,9 +137,9 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     public var resolvedGroupOutline: ThemeRGB { groupOutline ?? separator }
 
     /// The contrast of `surface` against `background` under which a grouped section's card does not stand out from the page
-    /// (#1456): below it the list draws `resolvedGroupOutline` around the group. OG clair's white on light blue is 1.07:1 and
-    /// Swift's 1.11:1, Rétro's 1.0:1: below 1.05 a fill is not told from the page (WCAG's ratio has a 0.05 floor), so only a
-    /// truly flat theme is outlined.
+    /// (#1456): below it the list draws `resolvedGroupOutline` around the group. Measured: Rétro 1.0:1, OG clair
+    /// (#F7F7F7 on #FFFFFF) 1.07:1, Swift 1.11:1. The value is a choice (operator's call, #1462), not a perceptibility standard:
+    /// at 1.05 only a truly flat theme is outlined, and a faint card such as OG clair's is left as it is.
     public static let groupOutlineThreshold = 1.05
     /// The WCAG 1.4.11 minimum for a UI component boundary: the outline against `background` when it is drawn.
     public static let groupOutlineMinimumContrast = 3.0

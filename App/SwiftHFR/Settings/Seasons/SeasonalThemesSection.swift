@@ -10,7 +10,7 @@ struct SeasonalThemesSection: View {
 
     var body: some View {
         Section {
-            Group {
+            ThemedRows {
                 Picker("Thème de saison", selection: Binding(get: { model.activeTheme }, set: { model.select($0) })) {
                     Text("Thème habituel").tag(SeasonalTheme?.none)
                     ForEach(SeasonalTheme.allCases) { Text($0.title).tag(SeasonalTheme?.some($0)) }
@@ -19,7 +19,7 @@ struct SeasonalThemesSection: View {
                 .labelsHidden()
                 Toggle("Thèmes de saison automatiques", isOn: $model.isAutomatic)
                 Toggle("Animations de saison", isOn: $model.animationsEnabled)
-            }.themedListRow()
+            }
         } header: {
             Text("Thèmes de saison").themedSectionHeader()
         } footer: {

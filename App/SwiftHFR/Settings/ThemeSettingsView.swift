@@ -35,12 +35,12 @@ struct ThemeSettingsView: View {
         @Bindable var theme = theme
         Form {
             Section {
-                Group {
+                ThemedRows {
                     ThemeModeTiles(appearance: previewAppearance, mode: $theme.mode)
                     if theme.theme.isLegacy {
                         legacyColors
                     }
-                }.themedListRow()
+                }
             } footer: {
                 Group {
                     if seasonal.drawnTheme == .noelAbuse {

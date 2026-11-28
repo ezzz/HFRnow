@@ -138,6 +138,33 @@ import Testing
         #expect(ThemeTokens.optionalNames.contains("groupOutline"))
     }
 
+    /// #1456 (review): on a flat card the outline must reach 3:1 on the page: a dim one, a translucent one and a missing one whose
+    /// `separator` fallback is too dim are each refused; a card that stands out is not checked.
+    @Test func aFlatCardNeedsAnOutlineOf3To1() throws {
+        func dark(_ edit: (inout [String: Any]) -> Void) throws -> ThemeTokens {
+            var json = try #require(try JSONSerialization.jsonObject(with: Self.fixture("test-theme")) as? [String: Any])
+            var variants = try #require(json["variants"] as? [String: Any])
+            var variant = try #require(variants["dark"] as? [String: Any])
+            variant["background"] = "#000000"
+            variant["surface"] = "#000000"
+            edit(&variant)
+            variants["dark"] = variant
+            json["variants"] = variants
+            let theme = try JSONDecoder().decode(ThemeDefinition.self, from: JSONSerialization.data(withJSONObject: json))
+            return try #require(theme.variants?.dark)
+        }
+        func outlineRefusals(_ tokens: ThemeTokens) -> [String] {
+            tokens.contrastViolations(inLight: false).filter { $0.rule.foreground == "groupOutline" }.map(\.description)
+        }
+        // A 3.6:1 outline passes; a 2:1 one, a translucent one and a dim `separator` fallback (the fixture's #3A4656) are refused.
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = "#177517" }).isEmpty)
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = "#0D5A0D" }).count == 1)
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = "#17751780" }).count == 1)
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = nil }).count == 1)
+        // A card that stands out needs no outline: a dim one is not checked.
+        #expect(outlineRefusals(try dark { $0["surface"] = "#3A4A60"; $0["groupOutline"] = "#0D5A0D" }).isEmpty)
+    }
+
     /// The contrast test fails on a broken bundled theme: the same check, given the broken fixture among the bundled files.
     @Test func theBundledCheckFailsWhenABrokenThemeIsAdded() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles() + [("broken-theme.theme.json", Self.fixture("broken-theme"))])

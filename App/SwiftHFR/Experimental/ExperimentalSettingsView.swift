@@ -25,7 +25,7 @@ struct ExperimentalSettingsSection: View {
         let groups = ExperimentalPageLayout.groups()
         if !groups.isEmpty {
             Section {
-                Group {
+                ThemedRows {
                     NavigationLink {
                         ExperimentalPageView(groups: groups, settings: settings).appScreenBackground()
                     } label: {
@@ -38,7 +38,7 @@ struct ExperimentalSettingsSection: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                }.themedListRow()
+                }
             }
         }
     }
@@ -54,7 +54,7 @@ struct ExperimentalPageView: View {
         Form {
             ForEach(groups, id: \.theme) { group in
                 Section {
-                    Group {
+                    ThemedRows {
                         ForEach(group.features) { feature in
                             // EXPERIMENTAL(mpDarkTopic, #1014): a description under the switch, no ⓘ and no popover.
                             if feature.showsExplanationUnderSwitch {
@@ -67,7 +67,7 @@ struct ExperimentalPageView: View {
                                 ImageLoadingChoicePicker(store: settings.store)
                             }
                         }
-                    }.themedListRow()
+                    }
                 } header: {
                     Text(group.theme.title).themedSectionHeader()
                 } footer: {
