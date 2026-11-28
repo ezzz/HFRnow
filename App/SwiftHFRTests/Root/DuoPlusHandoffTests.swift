@@ -59,8 +59,9 @@ extension DuoLayoutHostedTests {
         #expect(await settle(window) { root.detailReaders[.bookmarks] == nil }, "back kept the reader: \(stacks(in: window))")
 
         unfold(window, host: hosted.host)
-        #expect(await settle(window) { !hasTabBar(window) && split(in: window) != nil })
-        try await Task.sleep(for: .milliseconds(500))
+        // Bookmarks logged out loads nothing: the rebuilt split, its detail column on screen and no stack moving, is the end of
+        // what the unfold started (#1201; a fixed delay only guessed it).
+        #expect(await settle(window) { !hasTabBar(window) && unfoldedDetailShown(in: window) }, "\(stacks(in: window))")
         #expect(!shows("Sujet 5 p1", in: window), "the closed topic came back: \(stacks(in: window))")
         #expect(root.detailReaders[.bookmarks] == nil)
     }
@@ -135,9 +136,10 @@ extension DuoLayoutHostedTests {
         #expect(await settle(window) { root.detailReaders[.bookmarks] == nil }, "back kept the reader: \(stacks(in: window))")
 
         unfold(window, host: hosted.host)
-        #expect(await settle(window) { !hasTabBar(window) && split(in: window) != nil && bookmarkRow("Carafe", in: window) != nil })
-        try await Task.sleep(for: .milliseconds(500))
-        window.layoutIfNeeded()
+        let unfolded = await settle(window) {
+            !hasTabBar(window) && unfoldedDetailShown(in: window) && bookmarkRow("Carafe", in: window) != nil
+        }
+        #expect(unfolded, "\(stacks(in: window))")
         let unfoldedRow = try #require(bookmarkRow("Carafe", in: window), "\(stacks(in: window))")
         #expect(!unfoldedRow.accessibilityTraits.contains(.selected), "the closed bookmark's row is still selected")
         #expect(root.bookmarkSelection.id == nil)
@@ -172,9 +174,8 @@ extension DuoLayoutHostedTests {
         #expect(await settle(window) { root.detailReaders[.bookmarks] == nil }, "the menu kept the reader: \(stacks(in: window))")
 
         root.plusEntry = .bookmarks
-        #expect(await settle(window) { shows("Bookmarks", in: window) }, "\(stacks(in: window))")
-        try await Task.sleep(for: .milliseconds(500))
-        window.layoutIfNeeded()
+        // The list on top with no push in flight: a topic carried back over it would be on its way already (#1201).
+        #expect(await settle(window) { shows("Bookmarks", in: window) && stacksAreIdle(in: window) }, "\(stacks(in: window))")
         #expect(!shows("Sujet 5 p1", in: window), "the old topic came back over the list: \(stacks(in: window))")
     }
 }

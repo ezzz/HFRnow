@@ -213,6 +213,16 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         stacks(in: window).contains { $0.last == title }
     }
 
+    /// No stack on screen is in a push or a pop: what a fold, an unfold or a pop started has been laid out.
+    func stacksAreIdle(in window: UIWindow) -> Bool {
+        controllers(in: window).compactMap { $0 as? UINavigationController }.allSatisfy { $0.transitionCoordinator == nil }
+    }
+
+    /// The unfolded split shows its detail column (the topic, or the placeholder that stands for none) with every stack at rest.
+    func unfoldedDetailShown(in window: UIWindow) -> Bool {
+        split(in: window)?.viewController(for: .secondary)?.viewIfLoaded?.window != nil && stacksAreIdle(in: window)
+    }
+
     func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
         await until({
             window.layoutIfNeeded()
@@ -282,9 +292,13 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         stack.popViewController(animated: false)
         #expect(await settle(window) { root.favorites.selectedTopic == nil }, "back kept the selection: \(stacks(in: window))")
 
+        let list = root.favorites.topicList(for: try #require(root.favorites.selectedSource))
         unfold(window, host: hosted.host)
-        #expect(await settle(window) { !hasTabBar(window) && split(in: window) != nil })
-        try await Task.sleep(for: .milliseconds(500))
+        // The end of what the unfold starts: the rebuilt split laid out with its detail column, no stack moving, and no Favoris
+        // load in flight (whether the list reloads depends on whether its view was rebuilt). A topic brought back by the swap
+        // would be on screen by then (#1201; a fixed delay only guessed it).
+        let settled = await settle(window) { !hasTabBar(window) && unfoldedDetailShown(in: window) && !list.loader.isLoading }
+        #expect(settled, "unfolded: \(stacks(in: window)), loading \(list.loader.isLoading)")
         #expect(!shows("Sujet 1 p1", in: window), "the closed topic came back: \(stacks(in: window))")
         #expect(root.favorites.selectedTopic == nil)
     }
