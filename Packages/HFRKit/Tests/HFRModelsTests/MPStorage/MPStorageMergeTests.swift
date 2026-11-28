@@ -101,11 +101,11 @@ import Testing
     @Test func bothChangingAnItemKeepsOurs() throws {
         let base = try Fixtures.document()
         var ours = base
-        ours.primary.mpFlags?.list[0].page = 10
-        let theirs = otherClient(base) { $0.mpFlags?.list[0].page = 11 }
+        ours.primary.bookmarks?.list[0].label = "A"
+        let theirs = otherClient(base) { $0.bookmarks?.list[0].label = "B" }
         let result = try MPStorageMerge.merge(base: base, ours: ours, theirs: theirs, stamp: late)
-        #expect(result.document.primary.mpFlags?.list.first?.page == 10)
-        #expect(result.conflicts == [MPStorageConflict(location: "mpFlags", key: "123", kind: .bothChanged, resolution: .keptOurs)])
+        #expect(result.document.primary.bookmarks?.list.first?.label == "A")
+        #expect(result.conflicts == [.init(location: "bookmarks", key: "13-1711-55", kind: .bothChanged, resolution: .keptOurs)])
     }
 
     @Test func otherClientsNamespacesEntriesAndRootKeysArePreserved() throws {
@@ -170,14 +170,14 @@ import Testing
     @Test func withoutBaseUndatedItemsAndDifferencesFavourTheForumCopy() throws {
         let base = try Fixtures.document()
         var ours = base
-        ours.primary.mpFlags?.list[0].page = 99
+        ours.primary.bookmarks?.list[0].label = "A"
         try ours.upsertMPFlag(MPStorageMPFlag(topic: 5), stamp: Fixtures.stamp(1_800_000_000))
         let theirs = base
         let result = try MPStorageMerge.merge(base: nil, ours: ours, theirs: theirs, stamp: late)
         #expect(result.document.primary.mpFlags?.list.map(\.topic) == [5, 123])
-        #expect(result.document.primary.mpFlags?.list.last?.page == 4)
+        #expect(result.document.primary.bookmarks?.list.first?.label == "L")
         #expect(result.conflicts == [
-            MPStorageConflict(location: "mpFlags", key: "123", kind: .divergentWithoutBase, resolution: .keptTheirs)
+            MPStorageConflict(location: "bookmarks", key: "13-1711-55", kind: .divergentWithoutBase, resolution: .keptTheirs)
         ])
     }
 

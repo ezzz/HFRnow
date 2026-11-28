@@ -17,6 +17,26 @@ struct ReaderOverflowTests {
         #expect(ReaderOverflow.entries(search: true, offline: false, filter: false, pages: true) == [.search, .pages])
         #expect(ReaderOverflow.entries(search: false, offline: false, filter: false, pages: false).isEmpty)
     }
+
+    /// #1452: legacy's order, Rechercher then Répondre (`MessagesView.swift:5575-5600` @ 87fe0d1c).
+    @Test func replyComesRightAfterSearch() {
+        let all = ReaderOverflow.entries(search: true, reply: true, offline: true, filter: true, pages: true)
+        #expect(all == [.search, .reply, .offline, .filter, .pages])
+        #expect(ReaderOverflow.entries(search: false, reply: true, offline: false, filter: false, pages: true) == [.reply, .pages])
+    }
+
+    /// #1452: the bottom bar keeps the button in every mode but « Pas d'icône », so the overflow adds none there.
+    @Test func replyIsInTheOverflowOnlyWithoutABarButton() {
+        func offered(_ behavior: ReplyButtonBehavior, composer: Bool = true, target: Bool = true, suspended: Bool = false) -> Bool {
+            ReaderOverflow.offersReply(behavior: behavior, hasComposer: composer, hasReplyTarget: target, suspended: suspended)
+        }
+        #expect(offered(.hidden))
+        #expect(!offered(.forum))
+        #expect(!offered(.quick))
+        #expect(!offered(.hidden, composer: false))
+        #expect(!offered(.hidden, target: false))
+        #expect(!offered(.hidden, suspended: true))
+    }
 }
 
 /// #821: logged out, the reader's menu keeps « Rechercher » and a tap asks to sign in instead of searching.

@@ -50,8 +50,15 @@ final class FavoritesOptionsModel {
     }
     /// Sections by category, else one list by last post (`sujets_avec_cat`, default on).
     var groupedByCategory: Bool {
-        didSet { if groupedByCategory != oldValue { settings.set(groupedByCategory, for: SettingKey.favoritesGroupedByCategory) } }
+        didSet {
+            guard groupedByCategory != oldValue else { return }
+            settings.set(groupedByCategory, for: SettingKey.favoritesGroupedByCategory)
+            // Legacy `.onChange(of: favoritesSortedByCategories)` (`Favorites.swift:796-798` @ 87fe0d1c).
+            showsCategoriesOnDemand = false
+        }
     }
+    /// The temporary « categories for now » view of the flat sort: memory only, never a setting (legacy `showsCategoriesOnDemand`).
+    private(set) var showsCategoriesOnDemand = false
     /// Refresh when the list shows again (`favorites_auto_refresh`, default off).
     var autoRefresh: Bool {
         didSet { if autoRefresh != oldValue { settings.set(autoRefresh, for: SettingKey.favoritesAutoRefresh) } }
@@ -107,10 +114,19 @@ final class FavoritesOptionsModel {
 
     /// The layout the settings ask for.
     var layout: FavoritesLayoutOptions {
-        FavoritesLayoutOptions(
-            groupedByCategory: groupedByCategory, showsCollapsedSections: showsCollapsedSections, showsEmptySections: showsEmptySections,
-            unreadOnly: unreadOnly
+        FavoritesPresentation.effectiveLayout(
+            of: FavoritesLayoutOptions(
+                groupedByCategory: groupedByCategory, showsCollapsedSections: showsCollapsedSections,
+                showsEmptySections: showsEmptySections, unreadOnly: unreadOnly
+            ),
+            categoriesOnDemand: showsCategoriesOnDemand, emptySectionsAllowed: mode == .flagsAndFavorites
         )
+    }
+
+    /// The toolbar button in the flat sort: shows the categories for the moment, or goes back to the flat list.
+    func toggleCategoriesOnDemand() {
+        haptics.impact(.light)
+        showsCategoriesOnDemand.toggle()
     }
 
     /// The groups of `page` under the current options, folded sections and super-favourites.
@@ -120,12 +136,12 @@ final class FavoritesOptionsModel {
 
     /// Whether any section of `page` can be folded.
     func hasCollapsibleSections(in page: FavoritesPage) -> Bool {
-        groupedByCategory && !foldableSections(of: page).isEmpty
+        layout.groupedByCategory && !foldableSections(of: page).isEmpty
     }
 
     /// Whether "Tout replier" has something to fold: grouped, and a foldable section is not folded yet (legacy `isSubset(of:)`).
     func canCollapseMore(in page: FavoritesPage) -> Bool {
-        groupedByCategory && !foldableSections(of: page)
+        layout.groupedByCategory && !foldableSections(of: page)
             .isSubset(of: collapsedSections)
     }
 
@@ -226,9 +242,11 @@ final class FavoritesOptionsModel {
         for section in collapsedSections.sorted() { await setCollapsed(false, section: section) }
     }
 
-    /// Marks or unmarks `topic` as a super-favourite of the current account. No-op without account or topic identity.
-    func toggleSuperFavorite(_ topic: TopicSummary) async {
-        guard let stores, let account = stores.account, let id = topic.topicID else { return }
+    /// Marks or unmarks `topic` as a super-favourite of the current account; false when nothing changed (no account, no topic
+    /// identity, or the store refused the write, then `storeProblem` says so).
+    @discardableResult
+    func toggleSuperFavorite(_ topic: TopicSummary) async -> Bool {
+        guard let stores, let account = stores.account, let id = topic.topicID else { return false }
         let adding = !superFavorites.contains(id)
         writeGeneration += 1
         do throws(SmallStoreError) {
@@ -240,10 +258,15 @@ final class FavoritesOptionsModel {
                 superFavorites.remove(id)
             }
             superWriteProblem = nil
+            return true
         } catch {
-            superWriteProblem = "Impossible d’enregistrer les super favoris."
+            superWriteProblem = Self.superWriteFailure
+            return false
         }
     }
+
+    /// What a refused super-favourite write says, in French.
+    static let superWriteFailure = "Impossible d’enregistrer les super favoris."
 
     /// Places the legacy super-favourites the import left pending (LOT-067 D2): each number `page` lists becomes a
     /// super-favourite in every category where it is listed, as legacy matched the number alone (`Favorites.swift:132-157` @

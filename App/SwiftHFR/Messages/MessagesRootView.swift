@@ -47,6 +47,7 @@ struct MessageReaderColumn: View {
     /// The current account's composer: "Répondre" on a conversation (LOT-128) through its `cat=prive` answer link (`RA1`-`RA4`,
     /// reply form `R47b`, answer `W11`); nil when logged out.
     let composer: ComposerServices?
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         if let thread = model.selected, let readerModel = model.reader(for: thread) {
@@ -62,6 +63,16 @@ struct MessageReaderColumn: View {
                 // with newer messages unseen, leaves the row unread.
                 .onChange(of: readerModel.page.map { $0.currentPage >= $0.maxPage } ?? false, initial: true) { _, onLastPage in
                     if onLastPage, let page = readerModel.page { model.markOpened(thread, page: page.currentPage, of: page.maxPage) }
+                }
+                // EXPERIMENTAL(mpDarkTopic, #858): each page shown moves the group's position (legacy's flag, after every load).
+                .onChange(of: MPReachedMessage(reader: readerModel, of: thread), initial: true) { _, reached in
+                    if let reached { model.noteReached(reached, in: thread) }
+                }
+                // EXPERIMENTAL(mpDarkTopic, #858): a row that stays selected (iPad) sends its flags when the reader leaves the
+                // screen or the app the foreground, not only when another conversation is chosen.
+                .onDisappear { model.flushMovedFlags() }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase != .active { model.flushMovedFlags() }
                 }
         } else {
             ContentUnavailableView("Choisis une conversation", systemImage: "envelope")

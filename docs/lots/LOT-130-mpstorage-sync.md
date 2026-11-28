@@ -4,7 +4,7 @@
 - **Difficulty / model:** difficult (Opus 5.5 author → Fable 5.1 reviewer)
 - **Issue:** [#220](https://github.com/ezzz/HFRnow/issues/220) · implements [ADR 0013](../adr/0013-storage-tiers.md) §2, §4 and §7 for MPStorage
 - **Depends on:** LOT-052 (`MPStorageTransport`), LOT-062 (`MPStorageMerge`, document edits), LOT-060 (`SettingsStore`), LOT-119 (Réglages), LOT-081 (accounts), LOT-126 (MP list), LOT-172 (`SyncedSettingsStore`, `AccountKey`), all done.
-- **Followed by:** LOT-131 (blacklist sync, #221) and LOT-132 (bookmarks, #222) call this lot's edit and consent API; the reader's MP-flag write is a follow-up (see "Out of scope").
+- **Followed by:** LOT-131 (blacklist sync, #221) and LOT-132 (bookmarks, #222) call this lot's edit and consent API; the reader's MP-flag write and the opening at the flag came with #858 (« MP multiples → dark topic » option, see "Out of scope").
 
 ## Legacy sources
 `https://github.com/ezzz/HFRnow` @ `87fe0d1c` (AGENTS.md §2). Line numbers of `Classes/MPStorage.m` are the same at `2440d79` (no change between them).
@@ -18,10 +18,10 @@
 | `Classes/MPStorage.m:81-143` (`initOrResetMP:fromView:`) | while on: cached `post` per pseudo (`dicMPStorage_postid`), else search; not found → "Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?" (OK creates, Cancel switches off); then loads the blacklist | `MPStorageSync.detect()` / `sync()` / `create()`; the question moves to the first write (ADR 0013 §7) |
 | `MPStorage.m:147-176` (`reloadMPStorageAsynchronous…`) | reload (skipped after a failed save), `updateLastSucessAcessDate` on success | `MPStorageSync.sync()` (pending edits pushed first, never skipped) |
 | `MPStorage.m:969-978` (`updateLastSucessAcessDate`) | `dd-MM-yyyy HH:mm:ss` in a volatile `registerDefaults:` value | `MPStorageSyncCopy.lastSync`, persisted (ADR 0013 §4) |
-| `MPStorage.m:527-545` (`getUrlFlagForTopidId:`, URL at `:539`), `:547-565` (`getPageFlagForTopidId:`) | the flag of thread `post`: `forum2.php?config=hfr.inc&cat=prive&post=<post>&page=<page>&p=<p>&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#<href>`; page `-1` when none | `MPStorageSync.flag(forThread:in:)` (the link waits for the reader's flag write, Out of scope) |
+| `MPStorage.m:527-545` (`getUrlFlagForTopidId:`, URL at `:539`), `:547-565` (`getPageFlagForTopidId:`) | the flag of thread `post`: `forum2.php?config=hfr.inc&cat=prive&post=<post>&page=<page>&p=<p>&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#<href>`; page `-1` when none | `MPStorageSync.flag(forThread:in:)`; the link: `MessageListModel.positionOpening(of:)` (#858) |
 | `HFRswift/Swift/MPListView.swift:354-373` (`topicsDecoratedWithMPStorageFlags`), `:376-377` | while on: group rows ("Interlocuteurs multiples") with a flag get the flag URL, its page (else the URL's page, else the row's), max page at least that page | `MessageListModel.flag(for:)` |
 | `MPListView.swift:775-786` (`interlocutorLabel`) | a flagged group row reads `⚑ <page> / <max>` instead of "Interlocuteurs multiples" | `MessageRowView` |
-| `Classes/HFRMPViewController.m:225-262` (`didSelectRowAtIndexPath:`), `Common.swift:2740` | while on, a group row opens its flag URL, else the latest message | not yet: comes with the reader's flag write (Out of scope) |
+| `Classes/HFRMPViewController.m:225-262` (`didSelectRowAtIndexPath:`), `Common.swift:2740` | while on, a group row opens its flag URL, else the latest message | `MessageListModel.positionOpening(of:)`, with « MP multiples → dark topic » on (#858) |
 | `Classes/HFRMPViewController.m:32-36`, `Classes/MultisManager.m:85, 104`, `Classes/HFRplusAppDelegate.m:155-156, 508-509` | reload at each MP list load, at account change and at launch | `MPStorageSyncModel.start()` (account change rebuilds the model) |
 
 ## Legacy counterpart (app lots)
@@ -31,7 +31,7 @@
 
 ## UX evolutions (app lots)
 - **GAP-181** (`b·needed`, ADR 0013 §7, operator 2026-10-28): one state per HFR account (`unasked`, `on`, `declined`, `off`) instead of one app-wide switch; on by itself when the account already has a storage thread; never a thread created without asking. The section shows the **current** account's state: switching account switches the section (the other accounts keep theirs).
-- **GAP-119** (`a`, ported with changes): the flag decoration, only while the account's state is `on`; the row still opens at its latest message until SwiftHFR moves the flag itself (Out of scope). A stale or missing document never blocks the list: the rows simply show no flag.
+- **GAP-119** (`a`, ported with changes): the flag decoration, only while the account's state is `on`; since #858 the reader moves the flag and the row opens at it, with the « MP multiples → dark topic » option on. A stale or missing document never blocks the list: the rows simply show no flag.
 - "Dernier accès" survives a relaunch (legacy lost it, `MPStorage.m:969-978`): CHANGELOG-LEGACY row 29's lot, recorded with LOT-060.
 
 ## Behaviour
@@ -86,7 +86,7 @@ While the record is `on`, a group row (`PrivateMessageThread.isGroup`) whose thr
 - Account removed: its record and copy stay (ADR 0013: nothing deleted); logging in again finds them.
 
 ## Out of scope (follow-ups)
-- **Writing MP flags from the reader and opening a group row at its flag** (`MessagesView.swift:3582-3606`, `OnlineMessagesTableViewController.m:1797-1811`, `HFRMPViewController.m:228-251`, link `MPStorage.m:539` @ `87fe0d1c`: after a group MP page loads, the flag moves forward to the page's last message; a tap opens the flag). They ship together: a per-page write to the forum needs the reader's page and anchor plumbing and its own review; follow-up issue (decision of cloud/orch). Until then the label shows the flags other clients write (DTCloud, legacy iOS).
+- **Writing MP flags from the reader and opening a group row at its flag** (`MessagesView.swift:3582-3606`, `OnlineMessagesTableViewController.m:1797-1811`, `HFRMPViewController.m:228-251`, link `MPStorage.m:539` @ `87fe0d1c`: after a group MP page loads, the flag moves forward to the page's last message; a tap opens the flag). Shipped together in #858, behind « MP multiples → dark topic » (#1014): the flag moves in the device copy at each page and is sent once when the conversation is left (`MPStorageSyncModel+DarkTopic.swift`).
 - LOT-131 and LOT-132: the blacklist and bookmark edits, with the consent question in their screens.
 - #447: `SyncedSettingsStore` in the app and `syncKeys` for the records; LOT-067 wiring: `applyLegacySwitch`.
 
