@@ -223,9 +223,10 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         split(in: window)?.viewController(for: .secondary)?.viewIfLoaded?.window != nil && stacksAreIdle(in: window)
     }
 
-    /// A negative check, after the end-state wait: `shown` is watched with a layout pass each poll for `duration` (the former
-    /// sleep, 500 ms) and fails the moment it holds. A negative has no end state of its own; a slow Mac only lengthens the watch.
-    func staysAway(_ window: UIWindow, for duration: Duration = .milliseconds(500), _ shown: () -> Bool) async -> Bool {
+    /// A negative check, after the end-state wait: `shown` is watched with a layout pass each poll for `duration` and fails the
+    /// moment it holds. A negative has no end state of its own; a slow Mac only lengthens the watch. 1 s, twice the former sleep:
+    /// at 500 ms a reader put back 300 ms late on the Bookmarks flow was missed once in two runs (r1434 probe, #1201).
+    func staysAway(_ window: UIWindow, for duration: Duration = .seconds(1), _ shown: () -> Bool) async -> Bool {
         let clock = ContinuousClock()
         let end = clock.now + duration
         repeat {
