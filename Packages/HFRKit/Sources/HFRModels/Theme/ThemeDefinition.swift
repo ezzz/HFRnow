@@ -40,7 +40,7 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
     public let name: String
     /// Gallery family (« Classiques », « Rétro », « OG Web », or a seasonal one).
     public let family: String
-    /// Author shown as « par <auteur> », or nil.
+    /// Author shown as « par <auteur> », or nil; a credit that starts with « d'après » is shown as it is (`creditLine`).
     public let author: String?
     /// The text design of the whole app.
     public let fontDesign: FontDesign
@@ -61,6 +61,13 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
         self.fontDesign = fontDesign
         self.decorations = decorations
         self.variants = variants
+    }
+
+    /// The gallery's credit line (and its VoiceOver label): « par <author> », except for a derived credit (« d'après le forum HFR
+    /// (thème web) », the OG themes), which is already a sentence and is shown as it is; nil without an author.
+    public var creditLine: String? {
+        guard let author else { return nil }
+        return author.hasPrefix("d'après ") ? author : "par \(author)"
     }
 
     /// Whether this is the Legacy theme.

@@ -51,8 +51,8 @@ struct ThemeGalleryRow: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(theme.name).foregroundStyle(.primary)
-                    if let author = theme.author {
-                        Text("par \(author)").scaledFont(.footnote).foregroundStyle(.secondary)
+                    if let credit = theme.creditLine {
+                        Text(credit).scaledFont(.footnote).foregroundStyle(.secondary)
                     }
                     if case .single? = theme.variants {
                         Text("clair = sombre").scaledFont(.footnote).foregroundStyle(.secondary)
@@ -73,7 +73,7 @@ struct ThemeGalleryRow: View {
 
     private var accessibilityLabel: String {
         var parts = [theme.name]
-        if let author = theme.author { parts.append("par \(author)") }
+        if let credit = theme.creditLine { parts.append(credit) }
         if case .single? = theme.variants { parts.append("clair = sombre") }
         return parts.joined(separator: ", ")
     }

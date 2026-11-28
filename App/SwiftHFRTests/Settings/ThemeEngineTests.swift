@@ -124,6 +124,19 @@ struct ThemeEngineTests {
         #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
     }
 
+    /// LOT-193: OG gris (the accessible light grey) shares the OG Web family with OG clair and also shows in the light
+    /// appearance whatever the picker says; both credits read « d'après … » with no « par ».
+    @Test func ogGrisIsInTheBundledGalleryAndShowsInLight() throws {
+        let catalog = ThemeCatalog.bundled
+        let gris = try #require(catalog.themes.first { $0.id == "og-gris" })
+        #expect(catalog.galleryFamilies.first { $0.family == "OG Web" }?.themes.map(\.id) == ["og-clair", "og-gris"])
+        #expect(gris.creditLine == "d'après le forum HFR (thème web)")
+        let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
+        model.mode = .dark
+        model.select(gris)
+        #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
+    }
+
     @Test func aSingleVariantThemeImposesItsAppearance() throws {
         let catalog = try ThemeFixtures.singleVariantCatalog()
         let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)

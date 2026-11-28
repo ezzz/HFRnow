@@ -926,7 +926,7 @@ Inventory, data sent to each host, owners, first-use notices and the decisions o
 
 ### LOT-193 — Styles of OG clair (#734, 2026-11-28)
 
-Each colour of `App/SwiftHFR/Themes/og-clair/` is a value of the captured default-skin stylesheet `R728a` (line numbers of the capture), of its colour key (`R728a.meta.json`, fields in order) or of `R728b`, or a listed accessibility change. The raw values are the operator-validated draft (`docs/assets/themes/tokens/themes.json`); the engine's rules ([THEMES.md](THEMES.md) §3) moved some of them. The orange (`accent`, `#F18F18`) comes from the logo bitmap (« Forum logo colour » above), a fill only. OG gris (grey skin, `R728c`) is not shipped: its analysis is on #1436.
+Each colour of `App/SwiftHFR/Themes/og-clair/` is a value of the captured default-skin stylesheet `R728a` (line numbers of the capture), of its colour key (`R728a.meta.json`, fields in order) or of `R728b`, or a listed accessibility change. The raw values are the operator-validated draft (`docs/assets/themes/tokens/themes.json`); the engine's rules ([THEMES.md](THEMES.md) §3) moved some of them. The orange (`accent`, `#F18F18`) comes from the logo bitmap (« Forum logo colour » above), a fill only. OG gris (grey skin, `R728c`) is below.
 
 | Token | Source | Shipped |
 |---|---|---|
@@ -948,6 +948,32 @@ Each colour of `App/SwiftHFR/Themes/og-clair/` is a value of the captured defaul
 | `unread`, `onUnread` | `R728b` l.43 `.red` `#FF0000` with white text (4.0:1) | `#CC0000` (5.9:1) |
 
 Changes forced by the rules: 1. `selection` `#C2C3F4` → `#C9CAF5` (the app's error text on it 4.33:1 → 4.62:1); 2. `textSecondary`/`meta` `#73818e` (3.73:1 on `surface`; the draft's `#566471`) → `#4B5762` (4.67:1 on `selection`, 5.54:1 on `alternateCell`). Ratios are also in the PR of #734.
+
+### LOT-193 — Styles of OG gris (#1436, 2026-11-28)
+
+`App/SwiftHFR/Themes/og-gris/`: the grey skin's stylesheet `R728c` (line numbers of `R728c-stylesheet-grey-skin.css`; `R728b` for the rules both skins share) with the page and the rows **lightened by the operator's decision of 2026-11-28** (#1436, option a): the forum's `#666666` page and `#AAAAAA` rows cannot reach 4.5:1 with the app's error text (`#B00020` light, `#FF827A` dark) and badge colours, which a theme cannot override. « Draft » is `docs/assets/themes/tokens/themes.json`; ratios are WCAG 2.x, computed with the engine's rules (THEMES.md §3, LOT-188), the worst pair of each token.
+
+| Token | Source | Draft | Shipped | Worst pair (ratio) | Why |
+|---|---|---|---|---|---|
+| `background` | l.2 `body` `#666666` | `#666666` | `#D5D5D5` | `badgeOutline` 4.67, `errorText` 4.99 | decision (a): light grey; derived |
+| `surface` | l.11 `.cBackTab1` `#aaaaaa` | `#AAAAAA` | `#DCDCDC` | `errorText` 5.34, `badgeOutline` 4.99 | decision (a); derived |
+| `alternateCell` | l.14 `#BBBBBB` | `#BBBBBB` | `#E8E8E8` | `textPrimary` 17.14 | decision (a); derived |
+| `title`, `sectionHeader` | l.4 `.cBackHeader` `#202530` (the draft's `#FFFFFF` was for the dark page; l.10 `.fondForumSupercat` `#888888` is 1.62:1 on `#666666`) | `#FFFFFF` | `#202530` | on `background` 10.45 | the forum's header colour on the light page |
+| `surfaceRaised`, `headerBand` | l.4 `.cBackHeader` | `#202530` | `#202530` | n/a | captured |
+| `onHeaderBand` | l.5 `.cHeader` `#888888` | `#8B8B8B` | `#8E8E8E` | on `headerBand` 4.68 (captured value 4.33) | raised, the only text colour that moved on the band |
+| `textPrimary`, `spoilerText`, `onAccent`, `codeText` | l.19-23 `color: #000000` | `#000000` | `#000000` | on `selection` 13.25 | captured |
+| `textSecondary`, `meta` | l.26 `.cFondu` `#4f5258` | `#3C3F45` | `#4F5258` | on `surface` 5.71, `selection` 4.94 | the captured value passes on the light rows (the draft's `#3C3F45` was for the mid-grey) |
+| `counter` | l.9 `.cCatTopicVIP` `#0000FF` | `#0000B0` | `#0000FF` | on `surface` 6.27, `alternateCell` 7.01 | the captured value passes (the draft's `#0000B0` was for the mid-grey) |
+| `link`, `accentText` | l.8 `.cCatTopic` `#1A2A3C` | `#1A2A3C` | `#1A2A3C` | `accentText` on `selection` 9.20 | captured |
+| `pageBar` | l.33 `.barre` `#C2C3F4` | `#C2C3F4` | `#C2C3F4` | n/a (a fill) | captured |
+| `onPageBar` | l.19-23 row text `#000000` (the stylesheet gives the bar no text colour; the page numbers sit on it) | `#000000` | `#000000` | on `pageBar` 12.41 | draft |
+| `selection` | l.33 `.barre` `#C2C3F4` | `#C2C3F4` | `#C9CAF5` | `errorText` 4.62 (captured 4.33) | raised to pass (as OG clair, change 1) |
+| `separator`, `quoteBorder` | l.67-72 `1px solid #000000` | `#000000` | `#000000` | n/a | captured |
+| `quoteBackground`, `spoilerBackground` | l.32 `#eeeeee` | `#EEEEEE` | `#EEEEEE` | `textSecondary` 6.75 | captured |
+| `codeBackground` | `R728b` l.86-89 `.fixed, .code` `#FFF` | `#FFFFFF` | `#FFFFFF` | n/a | captured |
+| `unread`, `onUnread` | `R728b` l.43 `.red` `#FF0000` + white (4.0:1) | `#CC0000`, `#FFFFFF` | `#CC0000`, `#FFFFFF` | 5.89 | raised (as OG clair) |
+| `accent` | logo bitmap (« Forum logo colour »), a fill only | `#F18F18` | `#F18F18` | n/a | captured |
+
 
 ### `aq.super-h.fr`: server source (secondary, not a capture)
 
