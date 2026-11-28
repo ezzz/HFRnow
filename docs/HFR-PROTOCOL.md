@@ -939,10 +939,10 @@ Each colour of `App/SwiftHFR/Themes/og-clair/` is a value of the captured defaul
 | `link`, `accentText`, `sectionHeader` | l.8 `.cCatTopic` | `#000080` |
 | `pageBar` | l.33 `.barre` | `#C2C3F4` |
 | `onPageBar` | l.8 link colour (the page numbers are links) | `#000080` |
-| `textPrimary`, `codeText`, `spoilerText`, `onAccent` | l.21, l.23 `color: #000000` | `#000000` |
+| `textPrimary`, `spoilerText`, `onAccent` | l.21, l.23 `color: #000000` | `#000000` |
 | `separator`, `quoteBorder` | l.67-72 table borders `1px solid #C0C0C0` | `#C0C0C0` |
 | `quoteBackground`, `spoilerBackground` | l.32 `background-color: #FFFFFF` | `#FFFFFF` |
-| `codeBackground` | draft `cssRaw.code` (`#FFFFFF` with a `#000000` border); line not located in `R728a` | `#FFFFFF` |
+| `codeBackground`, `codeText` | `R728b` l.86-89 `.fixed, .code{color:#000;background-color:#FFF;border:1px solid #000}` | `#FFFFFF`, `#000000` |
 | `meta`, `textSecondary` | l.26 `.cFondu` `#73818e` | `#4B5762` (change 2) |
 | `selection` | l.33 `.barre` `#C2C3F4` | `#C9CAF5` (change 1) |
 | `unread`, `onUnread` | `R728b` l.43 `.red` `#FF0000` with white text (4.0:1) | `#CC0000` (5.9:1) |
