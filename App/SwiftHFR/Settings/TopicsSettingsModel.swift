@@ -81,7 +81,7 @@ extension ReplyButtonBehavior {
         case .forum:
             "Icône crayon : même réponse que « Réponse rapide » (ton brouillon du sujet, avec les citations sélectionnées), "
                 + "seule l’icône change."
-        case .hidden: "Pas de bouton de réponse : réponds depuis le menu d’un message (« Citer »)."
+        case .hidden: "Pas de bouton de réponse : « Répondre » est dans le menu « … » du sujet, « Citer » dans le menu d’un message."
         }
     }
 }

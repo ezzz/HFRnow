@@ -17,10 +17,27 @@ enum ReaderOverflow {
         return order.filter(\.1).map(\.0)
     }
 
+    /// The overflow's « Répondre »: whether it is offered and whether a quote fetch makes it busy (as the bar's button).
+    struct ReplyItem {
+        let offered: Bool
+        let busy: Bool
+        let action: () -> Void
+    }
+
     /// « Répondre » is in the overflow only when the bottom bar has no reply button (« Bouton + » = « Pas d'icône »), and then
     /// only with an account and an answer form, as the bar's button (`replySymbol`), and not under an open composer.
     static func offersReply(behavior: ReplyButtonBehavior, hasComposer: Bool, hasReplyTarget: Bool, suspended: Bool) -> Bool {
         behavior == .hidden && hasComposer && hasReplyTarget && !suspended
+    }
+}
+
+extension TopicReaderModel {
+    /// The overflow's reply item: the same `requestReply()` as the bottom-bar button, disabled while a quote loads.
+    func overflowReply(behavior: ReplyButtonBehavior, hasComposer: Bool) -> ReaderOverflow.ReplyItem {
+        ReaderOverflow.ReplyItem(
+            offered: ReaderOverflow.offersReply(
+                behavior: behavior, hasComposer: hasComposer, hasReplyTarget: replyTarget != nil, suspended: suspendsPageInteractions),
+            busy: isLoadingQuote, action: { Task { await self.requestReply() } })
     }
 }
 
@@ -29,7 +46,7 @@ enum ReaderOverflow {
 struct ReaderOverflowToolbar: ToolbarContent {
     let entries: [ReaderOverflow.Entry]
     let search: () -> Void
-    let reply: () -> Void
+    let reply: ReaderOverflow.ReplyItem
     let offline: AnyView
     let filter: () -> Void
     let filterIsBusy: Bool
@@ -45,7 +62,8 @@ struct ReaderOverflowToolbar: ToolbarContent {
                 }
             case .reply:
                 ToolbarItem(placement: .secondaryAction) {
-                    Button(action: reply) { Label("Répondre", systemImage: "square.and.pencil") }
+                    Button(action: reply.action) { Label("Répondre", systemImage: "square.and.pencil") }
+                        .disabled(reply.busy)
                 }
             case .offline:
                 ToolbarItem(placement: .secondaryAction) { offline }
