@@ -15,10 +15,10 @@ struct PseudoListEditorView: View {
         @Bindable var model = model
         Form {
             if model.requiresAccount {
-                Section { Text("Connecte-toi pour gérer la liste noire de ton compte.").foregroundStyle(.secondary).themedListRow() }
+                Section { ThemedRows { Text("Connecte-toi pour gérer la liste noire de ton compte.").foregroundStyle(.secondary) } }
             } else {
                 Section {
-                    Group {
+                    ThemedRows {
                         HStack {
                             TextField("Pseudo", text: $model.draft)
                                 .textInputAutocapitalization(.never)
@@ -28,26 +28,26 @@ struct PseudoListEditorView: View {
                             Button("Ajouter") { Task { await model.add() } }
                                 .disabled(!model.canAdd)
                         }
-                    }.themedListRow()
+                    }
                 }
                 if let unreadable = model.unreadableMessage {
                     Section {
-                        Group {
+                        ThemedRows {
                             Text(unreadable).foregroundStyle(.secondary)
                             Button("Réessayer") { Task { await model.retry() } }
                             UnreadableDataRecoveryButton(content: "les listes de pseudos") { await model.discardUnreadable() }
-                        }.themedListRow()
+                        }
                     }
                 } else {
                     Section {
-                        Group {
+                        ThemedRows {
                             if model.pseudos.isEmpty {
                                 if model.hasLoaded { Text(model.kind.emptyMessage).foregroundStyle(.secondary) }
                             } else {
                                 ForEach(model.pseudos, id: \.self) { Text(verbatim: $0) }
                                     .onDelete { model.remove(at: $0) }
                             }
-                        }.themedListRow()
+                        }
                     } header: {
                         Text(model.kind.title).themedSectionHeader()
                     } footer: {

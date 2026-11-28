@@ -38,11 +38,12 @@ struct ThemedListOutlineTests {
         let appearance: ThemeAppearance
         var look = ListLook.classic
         var sectioned = true
+        var rowHeight: CGFloat = 80
         var body: some View {
             List {
                 if sectioned {
-                    ThemedSection("A") { ForEach(0..<3, id: \.self) { _ in Text("").frame(height: 80) } }
-                    ThemedSection("B") { Text("").frame(height: 80) }
+                    ThemedSection("A") { ForEach(0..<3, id: \.self) { _ in Text("").frame(height: rowHeight) } }
+                    ThemedSection("B") { Text("").frame(height: rowHeight) }
                 } else {
                     Section("A") { ForEach(0..<4, id: \.self) { _ in Text("").frame(height: 80).themedListRow() } }
                 }
@@ -89,6 +90,12 @@ struct ThemedListOutlineTests {
             return starts
         }
 
+        /// How many pixels of the column `x` points from the left, from `top` to `bottom`, are the page's black: a gap in a side. A
+        /// pixel the two rows of a boundary both half cover (anti-aliasing) is still green, not a gap.
+        func gaps(atX x: CGFloat, from top: CGFloat, to bottom: CGFloat) -> Int {
+            (Int(top * scale)..<Int(bottom * scale)).filter { data[($0 * width + Int(x * scale)) * 4 + 1] < 0x30 }.count
+        }
+
         /// The first and last outline pixel along the line `y` points from the top, in points.
         func sides(atY y: CGFloat) -> (CGFloat, CGFloat)? {
             let hits = (0..<width).filter { isOutline($0, Int(y * scale)) }
@@ -120,19 +127,28 @@ struct ThemedListOutlineTests {
     }
 
     /// Rétro-like: one outline per section: a line along the top and one along the bottom of each section and none between its
-    /// rows, the sides joined to them by the rounded corners, the one-row section bounded on its four corners.
-    @Test func aFlatThemeOutlinesEachSectionAsOne() async throws {
-        let frame = try await render(Grouped(appearance: try flat(outlined: true)))
+    /// rows, the sides joined to them by the rounded corners without a gap at a row boundary, the one-row section bounded on its
+    /// four corners, at 80 pt rows and at compact ones (36 pt: the one-row section's corner is capped by its height).
+    @Test(arguments: [80, 36]) func aFlatThemeOutlinesEachSectionAsOne(rowHeight: Int) async throws {
+        let frame = try await render(Grouped(appearance: try flat(outlined: true), rowHeight: CGFloat(rowHeight)))
         let runs = frame.runs(atX: 150)
         #expect(runs.count == 4, "horizontal outline lines at y = \(runs)")
-        guard runs.count == 4, let (left, right) = frame.sides(atY: runs[0] + 40) else { return }
-        // The 45 degree point of each rounded corner (radius 26, the line 0.5 pt in): 26 (1 - cos 45) = 7.6 pt.
-        let inset: CGFloat = 0.5 + 26 * (1 - 0.7071)
+        guard runs.count == 4, let (left, right) = frame.sides(atY: (runs[0] + runs[1]) / 2) else { return }
+        // A side is one line from corner to corner: no gap across the boundaries of the three rows of section A.
+        let radius: CGFloat = 26
+        // The middle of the 1 pt line, past the corners: the card's own mask thins the line's outer pixels where the arc ends.
+        let (start, end) = (runs[0] + radius + 2, runs[1] - radius - 2)
+        let leftGaps = frame.gaps(atX: left + 0.5, from: start, to: end)
+        let rightGaps = frame.gaps(atX: right - 0.5, from: start, to: end)
+        #expect(leftGaps == 0 && rightGaps == 0, "gap pixels in the sides of A: left \(leftGaps), right \(rightGaps)")
+        // The 45 degree point of each rounded corner, r (1 - cos 45) in from the row's corner, r capped by the one-row height.
+        let single = min(radius, (runs[3] + 1 - runs[2]) / 2)
         var corners: [Corner] = []
-        for (section, top, bottom) in [("A", runs[0], runs[1]), ("B", runs[2], runs[3])] {
+        for (section, top, bottom, corner) in [("A", runs[0], runs[1], radius), ("B", runs[2], runs[3], single)] {
+            let inset: CGFloat = 0.5 + corner * (1 - 0.7071)
             for (side, x) in [("left", left + inset), ("right", right - inset)] {
                 corners.append(Corner(name: "\(section) top \(side)", x: x, y: top + inset))
-                corners.append(Corner(name: "\(section) bottom \(side)", x: x, y: bottom - inset))
+                corners.append(Corner(name: "\(section) bottom \(side)", x: x, y: bottom + 1 - inset))
             }
         }
         for corner in corners { #expect(frame.hasOutline(near: corner.x, corner.y), "\(corner.name) corner is open") }

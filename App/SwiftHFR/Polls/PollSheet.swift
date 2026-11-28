@@ -35,19 +35,19 @@ struct PollSheet: View {
     var body: some View {
         ThemedNavigationStack {
             List {
-                Section { Text(model.poll.question).font(.headline).themedListRow() }
+                Section { ThemedRows { Text(model.poll.question).font(.headline) } }
                 switch model.poll.kind {
                 case .votable(let options, _): votingSection(options)
                 case .results(let lines): resultsSection(lines)
                 }
                 if let notice = model.poll.notice {
-                    Section { Text(notice).font(.footnote).foregroundStyle(.secondary).themedListRow() }
+                    Section { ThemedRows { Text(notice).font(.footnote).foregroundStyle(.secondary) } }
                 }
                 if let footer = model.poll.footer {
-                    Section { Text(footer).font(.footnote).foregroundStyle(.secondary).themedListRow() }
+                    Section { ThemedRows { Text(footer).font(.footnote).foregroundStyle(.secondary) } }
                 }
                 if let message = model.message {
-                    Section { Label(message, systemImage: icon).foregroundStyle(color).themedListRow() }
+                    Section { ThemedRows { Label(message, systemImage: icon).foregroundStyle(color) } }
                         .accessibilityElement(children: .combine)
                 }
             }
@@ -85,7 +85,7 @@ struct PollSheet: View {
     @ViewBuilder
     private func votingSection(_ options: [PollOption]) -> some View {
         Section {
-            Group {
+            ThemedRows {
                 ForEach(options) { option in
                     Button { model.toggle(option.id) } label: {
                         HStack(spacing: 12) {
@@ -105,14 +105,14 @@ struct PollSheet: View {
                     Text("Ce sondage à choix multiples n’est pas encore pris en charge : vote depuis le site.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-            }.themedListRow()
+            }
         }
     }
 
     @ViewBuilder
     private func resultsSection(_ lines: [PollResult]) -> some View {
         Section {
-            Group {
+            ThemedRows {
                 ForEach(lines) { line in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(line.label)
@@ -122,7 +122,7 @@ struct PollSheet: View {
                     }
                     .accessibilityElement(children: .combine)
                 }
-            }.themedListRow()
+            }
         }
     }
 

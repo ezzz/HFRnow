@@ -59,7 +59,7 @@ struct ForumSearchView: View {
 
     private var formSection: some View {
         Section {
-            Group {
+            ThemedRows {
                 TextField("Rechercher", text: $model.text)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -99,7 +99,7 @@ struct ForumSearchView: View {
                 .pickerStyle(.segmented)
                 Button(action: submit) { Label("Rechercher", systemImage: "magnifyingglass") }
                     .disabled(!model.canSubmit)
-            }.themedListRow()
+            }
         }
     }
 
@@ -124,19 +124,19 @@ struct ForumSearchView: View {
         }
         if loader.isLoading {
             Section {
-                Group {
+                ThemedRows {
                     HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
                         .accessibilityElement(children: .combine)
                     Button("Annuler") { cancelledLoad = true; model.cancel() }
-                }.themedListRow()
+                }
             }
         } else if let error = loader.error {
             Section {
-                Group {
+                ThemedRows {
                     Label(error.title, systemImage: error.symbol)
                     Text(error.detail).font(.footnote).foregroundStyle(.secondary)
                     Button("Réessayer") { Task { await model.retry() } }
-                }.themedListRow()
+                }
             }
         }
     }

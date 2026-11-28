@@ -24,7 +24,7 @@ struct AboutView: View {
                 VersionRow()
             }
             Section {
-                Group {
+                ThemedRows {
                     ForEach(AboutTopicLink.allCases, id: \.self) { link in
                         Button { model.selected = link } label: {
                             HStack {
@@ -38,7 +38,7 @@ struct AboutView: View {
                             }
                         }
                     }
-                }.themedListRow()
+                }
             } header: {
                 Text("Sujets HFR+").themedSectionHeader()
             } footer: {
@@ -46,7 +46,7 @@ struct AboutView: View {
             }
             // LOT-159 (operator 2026-11-24): legacy's contact block (`credits.html:7-12` @ 87fe0d1c), its sentence above the row.
             Section {
-                Group {
+                ThemedRows {
                     Text(AboutContact.notice).scaledFont(.footnote).foregroundStyle(.secondary)
                     Button { model.openForumContact() } label: {
                         HStack {
@@ -59,19 +59,19 @@ struct AboutView: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                }.themedListRow()
+                }
             } header: {
                 Text("Nous contacter").themedSectionHeader()
             }
             Section {
-                Group {
+                ThemedRows {
                     NavigationLink { ChangelogView().appScreenBackground() } label: {
                         Label("Nouveautés", systemImage: "sparkles")
                     }
                     NavigationLink { StaticPageView(page: .credits).appScreenBackground() } label: {
                         Label(StaticPage.credits.title, systemImage: "info.circle")
                     }
-                }.themedListRow()
+                }
             }
         }
         .navigationTitle(StaticPage.credits.title)
@@ -95,7 +95,7 @@ struct ChangelogView: View {
         List {
             if let changelog {
                 if changelog.entries.isEmpty {
-                    ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles").themedListRow()
+                    ThemedRows { ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles") }
                 }
                 ForEach(changelog.sections, id: \.self) { section in
                     ThemedSection(verbatim: section.title) {

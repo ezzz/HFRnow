@@ -63,7 +63,7 @@ struct PollCreationSheet: View {
                 }
                 if let problem = draft.problem() {
                     Section {
-                        Text(ComposerMessages.poll(problem)).foregroundStyle(.secondary).themedListRow()
+                        ThemedRows { Text(ComposerMessages.poll(problem)).foregroundStyle(.secondary) }
                     }
                 }
             }

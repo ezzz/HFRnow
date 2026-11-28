@@ -121,7 +121,7 @@ import Testing
         #expect(rules.contains { $0.foreground == "link" && $0.background == "alternateCell" })
     }
 
-    /// #1456: a theme whose card does not stand out from the page (Rétro 5250) ships a `groupOutline` that reaches 3:1 on the
+    /// #1456: a theme whose card does not stand out from the page (Rétro 5250, OG clair) ships a `groupOutline` that reaches 3:1 on the
     /// page; one whose card stands out (Swift) needs none, and the token falls back to `separator`.
     @Test func theGroupOutlineIsCheckedOnlyWhereTheCardDoesNotStandOut() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles())
@@ -136,6 +136,15 @@ import Testing
         let swift = try #require(catalog.themes.first { $0.id == "swift" }?.variants?.light)
         #expect(swift.cardStandsOut && swift.groupOutline == nil && swift.resolvedGroupOutline == swift.separator)
         #expect(ThemeTokens.optionalNames.contains("groupOutline"))
+        // OG clair (1.07:1) is outlined too: its `separator` (#C0C0C0, 1.8:1) is too faint, so it carries a 3:1 `groupOutline`.
+        let og = try #require(catalog.themes.first { $0.id == "og-clair" })
+        guard case .single(let faint)? = og.variants else {
+            Issue.record("OG clair is a single variant")
+            return
+        }
+        #expect(!faint.cardStandsOut && faint.groupOutline == ThemeRGB(hex: "#949494"))
+        #expect(faint.resolvedGroupOutline.contrast(with: faint.background) >= ThemeTokens.groupOutlineMinimumContrast)
+        #expect(ThemeTokens.groupOutlineThreshold == 1.10)
     }
 
     /// #1456 (review): on a flat card the outline must reach 3:1 on the page: a dim one, a translucent one and a missing one whose
