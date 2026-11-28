@@ -256,16 +256,12 @@ public actor HFRSession: HTTPTransport {
 // MARK: - Member id
 
 extension HFRSession {
-    /// Name of the member-id cookie. The login alone sets it, for 30 days (`W03`, `W1420a`, `W1420b`): later pages refresh
-    /// `md_user` and `md_passs`, never it (`R1420g`). HFR answers a profile 403 without it, even with `md_user` and
-    /// `md_passs` (`R1420c`, `R1420d`, #1420).
-    public static let memberIDCookieName = "md_id"
+    /// Name of the member-id cookie (`StoredCookie.memberIDName`, #1420).
+    public static let memberIDCookieName = StoredCookie.memberIDName
 
-    /// True when the jar holds a live, non-empty `md_id` other than HFR's `deleted` logout marker (`R283b`): what a profile
-    /// request needs besides the login (#1420).
+    /// True when the jar holds a live `md_id` (`StoredCookie.isLiveMemberID`): what a profile request needs besides the
+    /// login (#1420).
     public func holdsMemberID(now: Date = Date()) -> Bool {
-        cookies(now: now).contains { cookie in
-            cookie.name == Self.memberIDCookieName && !cookie.value.isEmpty && cookie.value != Self.loggedOutMarker
-        }
+        cookies(now: now).contains { $0.isLiveMemberID(at: now) }
     }
 }

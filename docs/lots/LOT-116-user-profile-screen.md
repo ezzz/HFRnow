@@ -68,6 +68,11 @@ Nothing is inferred for these; the screen shows what the parser returns, or "Pag
    not legacy's main one, like every other page of the app.
 2. **Served URL checked.** A page served at another URL than the profile asked for is refused, never parsed as a profile. A 401 or
    403 is its own state (legacy `accessDenied`); another error status keeps the app's « Erreur du forum » (legacy `httpStatus`).
+3. **Images through the reader's fetcher** (cookie-less, image policy, forum hosts only), not `AsyncImage` on any URL.
+4. **No smiley favourite toggle**: the smiley favourites UI is LOT-104's (store LOT-064); the code is selectable instead.
+5. **A grouped list** instead of cards and a grid of figures; same content, Dynamic Type and the app's type scale.
+6. **Opened from a profile link in a topic** (legacy Objective-C reader) rather than only from the avatar menu (legacy Swift reader):
+   the avatar and message menu are not ported yet (LOT-087).
 7. **`md_id` checked before sending** (#1420). HFR refuses a profile without `md_id` (`R1420c`), which only the login sets, for 30 days
    (`W1420a`, `R1420g`). Legacy `5c0f10db` sends the request and, on a 403 without `md_id`, says `reloginRequired`; SwiftHFR sends
    nothing when the session lacks it (an account imported from legacy, a login past 30 days) and shows the same state,
@@ -75,12 +80,8 @@ Nothing is inferred for these; the screen shows what the parser returns, or "Pag
    `profileAccessDenied`. The message points to « Se reconnecter » (SwiftHFR re-logs an account in place) where legacy asks to
    remove and add the account again. The login field set is not changed: SwiftHFR's legacy fields still set `md_id` (`W1420a`, the
    same three cookies as `login.php`'s fields, `W1420b`). Legacy's cookie merge (`MultisManager` `cookies:mergedWith:`) is already
-   SwiftHFR's (`HFRSession.mergeCookies`, #383); the iCloud copy adoption (LOT-173) now keeps the jar's `md_id` for the same member.
-3. **Images through the reader's fetcher** (cookie-less, image policy, forum hosts only), not `AsyncImage` on any URL.
-4. **No smiley favourite toggle**: the smiley favourites UI is LOT-104's (store LOT-064); the code is selectable instead.
-5. **A grouped list** instead of cards and a grid of figures; same content, Dynamic Type and the app's type scale.
-6. **Opened from a profile link in a topic** (legacy Objective-C reader) rather than only from the avatar menu (legacy Swift reader):
-   the avatar and message menu are not ported yet (LOT-087).
+   SwiftHFR's (`HFRSession.mergeCookies`, #383); the iCloud account sync (LOT-173) now keeps this device's `md_id` when a newer copy of
+   the same login lacks it, in the store, the shared copy and the session (`AccountSyncMerge`, `adoptSyncedCredentials`).
 
 ## Tests
 `App/SwiftHFRTests/Profile/`:
@@ -93,7 +94,9 @@ Nothing is inferred for these; the screen shows what the parser returns, or "Pag
   sets it; a real `HFRSession` with an imported legacy account's cookies (no `md_id`) or an expired `md_id` reports none; a 403 is
   `profileAccessDenied` with `md_id` and `profileReloginRequired` when the session lost it during the request; the avatar lookup
   sends nothing without `md_id`. `SyncedCredentialsMemberIDTests`: adopting a synced copy without a live `md_id` keeps the jar's for
-  the same member, a copy's own `md_id` wins, another member's copy takes none. Engine: `HFRSessionMemberIDTests` (loopback only).
+  the same member, a copy's own `md_id` wins, another member's copy takes none. `AccountsModelMemberIDSyncTests`: a newer copy of the
+  same login without `md_id` leaves it in the session, the store and after a relaunch, app running or not, with no new check
+  (#1385). Engine: `HFRSessionMemberIDTests` (loopback only), `AccountSyncMemberIDTests` (merge, convergence, live rule).
 - `UserProfileModelTests`: one load on repeated appearances, title; a failed load then "Réessayer"; a failed reload keeps the profile; every finished load bumps `loadGeneration`;
   the MP button exists only with a hook and after load, and hands the pseudo; links open in a browser, `javascript:` does nothing.
 - `TopicReaderModelTests.aProfileLinkOpensTheProfileSheet`: `https` and `http` profile links give `.profile(memberID:)` with either
