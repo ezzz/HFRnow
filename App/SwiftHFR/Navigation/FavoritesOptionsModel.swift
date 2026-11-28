@@ -50,8 +50,15 @@ final class FavoritesOptionsModel {
     }
     /// Sections by category, else one list by last post (`sujets_avec_cat`, default on).
     var groupedByCategory: Bool {
-        didSet { if groupedByCategory != oldValue { settings.set(groupedByCategory, for: SettingKey.favoritesGroupedByCategory) } }
+        didSet {
+            guard groupedByCategory != oldValue else { return }
+            settings.set(groupedByCategory, for: SettingKey.favoritesGroupedByCategory)
+            // Legacy `.onChange(of: favoritesSortedByCategories)` (`Favorites.swift:796-798` @ 87fe0d1c).
+            showsCategoriesOnDemand = false
+        }
     }
+    /// The temporary « categories for now » view of the flat sort: memory only, never a setting (legacy `showsCategoriesOnDemand`).
+    private(set) var showsCategoriesOnDemand = false
     /// Refresh when the list shows again (`favorites_auto_refresh`, default off).
     var autoRefresh: Bool {
         didSet { if autoRefresh != oldValue { settings.set(autoRefresh, for: SettingKey.favoritesAutoRefresh) } }
@@ -107,11 +114,17 @@ final class FavoritesOptionsModel {
 
     /// The layout the settings ask for.
     var layout: FavoritesLayoutOptions {
-        FavoritesLayoutOptions(
-            groupedByCategory: groupedByCategory, showsCollapsedSections: showsCollapsedSections, showsEmptySections: showsEmptySections,
-            unreadOnly: unreadOnly
+        FavoritesPresentation.effectiveLayout(
+            of: FavoritesLayoutOptions(
+                groupedByCategory: groupedByCategory, showsCollapsedSections: showsCollapsedSections,
+                showsEmptySections: showsEmptySections, unreadOnly: unreadOnly
+            ),
+            categoriesOnDemand: showsCategoriesOnDemand
         )
     }
+
+    /// The toolbar button in the flat sort: shows the categories for the moment, or goes back to the flat list.
+    func toggleCategoriesOnDemand() { showsCategoriesOnDemand.toggle() }
 
     /// The groups of `page` under the current options, folded sections and super-favourites.
     func groups(for page: FavoritesPage) -> [TopicGroup] {
@@ -120,12 +133,12 @@ final class FavoritesOptionsModel {
 
     /// Whether any section of `page` can be folded.
     func hasCollapsibleSections(in page: FavoritesPage) -> Bool {
-        groupedByCategory && !foldableSections(of: page).isEmpty
+        layout.groupedByCategory && !foldableSections(of: page).isEmpty
     }
 
     /// Whether "Tout replier" has something to fold: grouped, and a foldable section is not folded yet (legacy `isSubset(of:)`).
     func canCollapseMore(in page: FavoritesPage) -> Bool {
-        groupedByCategory && !foldableSections(of: page)
+        layout.groupedByCategory && !foldableSections(of: page)
             .isSubset(of: collapsedSections)
     }
 

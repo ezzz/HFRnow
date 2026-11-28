@@ -22,6 +22,17 @@ enum FavoritesPresentation {
     /// Identity of the super-favourites section.
     static let superFavoritesSectionID = "super-favorites"
 
+    /// The layout to draw: with the flat sort, the on-demand view groups by category and shows every folded section, as legacy's
+    /// `usesCategorizedFavoritesList` and `showsAllFavoriteSections` (`Favorites.swift:488-494` @ 87fe0d1c). In the grouped sort it
+    /// changes nothing (there the button is « sections repliées », a setting).
+    static func effectiveLayout(of layout: FavoritesLayoutOptions, categoriesOnDemand: Bool) -> FavoritesLayoutOptions {
+        guard categoriesOnDemand, !layout.groupedByCategory else { return layout }
+        var result = layout
+        result.groupedByCategory = true
+        result.showsCollapsedSections = true
+        return result
+    }
+
     /// The groups to show. Grouped: super-favourites first (each topic only there, so a row never appears twice), then the
     /// categories in page order, a collapsed one keeping its header. Flat: every topic by last post, one headless group.
     static func groups(
