@@ -5,6 +5,9 @@ import HFRNetwork
 import HFRStorage
 import Observation
 
+/// A LOT-062 edit of the document, as `MPStorageSync.edit(now:_:)` takes it.
+typealias MPStorageLocalEdit = @Sendable (inout MPStorageDocument, MPStorageStamp) throws -> Bool
+
 // Port of HFRswift/Swift/AppSettingsView.swift (handleMPStorageToggle, reloadMPStorage) and Classes/MPStorage.m
 // (initOrResetMP:fromView:) @ 87fe0d1c. Differences: one state per HFR account, on by itself when the account already has
 // a storage thread, the creation question asked when switching on or at the first write, never at launch (GAP-181,
@@ -75,6 +78,8 @@ final class MPStorageSyncModel {
     @ObservationIgnored private let isLoggedIn: @Sendable () async -> Bool
     @ObservationIgnored private let clock: @Sendable () -> Date
     @ObservationIgnored private var started = false
+    /// A flag was moved in the device copy and not sent yet (#858, `MPStorageSyncModel+DarkTopic.swift`).
+    @ObservationIgnored var flagsMoved = false
     /// Whether the last failure was the network's: only then does `start()` run again at the next appearance.
     @ObservationIgnored private var lastFailureWasNetwork = false
 
@@ -280,6 +285,15 @@ final class MPStorageSyncModel {
               let flag = MPStorageSync.flag(forThread: post, in: document), let page = flag.page, page > 0
         else { return nil }
         return flag
+    }
+
+    // EXPERIMENTAL(mpDarkTopic, #858): the flag the reader moves goes to the device copy first (`moveFlag(of:to:)`).
+    /// Applies `change` to `function`'s section in the device copy only, nothing sent (the next sync sends it); false when it
+    /// changed nothing, the account is not `on`, the function is off, or the copy refused it (not read yet, too large).
+    func editLocally(_ function: MPStorageFunction, _ change: @escaping MPStorageLocalEdit) async -> Bool {
+        guard isOn, isEnabled(function), (try? await sync.edit(now: clock(), change)) == true else { return false }
+        _ = await loadCopy()
+        return true
     }
 
     // MARK: Internals
