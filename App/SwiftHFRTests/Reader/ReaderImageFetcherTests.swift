@@ -70,7 +70,10 @@ struct ReaderImageFetcherTests {
     }
 
     @Test func theLiveFetcherUsesTheCookielessTransport() {
-        #expect(ReaderImageFetcher().transport is AnonymousTransport)
+        // The live fetcher wraps the cookie-less transport to merge identical GETs in flight (#1397): what is wrapped is what counts.
+        let live = ReaderImageFetcher().transport as? CoalescingTransport
+        #expect(live?.base is AnonymousTransport)
+        #expect(ReaderImageFetcher.sharedTransport is CoalescingTransport)
     }
 
     @Test func aBlockedURLIsNeverRequested() async {
