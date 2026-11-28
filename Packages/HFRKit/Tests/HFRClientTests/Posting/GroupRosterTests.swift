@@ -25,6 +25,8 @@ struct GroupRosterTests {
         #expect(body == (try PostingHarness.browserBody(of: "W74", checkboxes: boxes)))
         #expect(run.requests.map(\.method) == [.get, .post, .get])
         #expect(run.requests.last?.url == (try PostingCapture.pageURL("R127")))
+        // The form fetched for the write waits like legacy's (60 s); the background re-read keeps a list load's 10 s (#1375).
+        #expect(run.requests.map(\.timeout) == [60, PostingFlow.postTimeout, 10])
         #expect(run.checks == 1)
     }
 

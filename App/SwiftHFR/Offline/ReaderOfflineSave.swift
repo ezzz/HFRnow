@@ -80,16 +80,49 @@ struct OfflineSaveBanner: View {
     let saver: OfflineSaveModel
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: OfflineSaveCloseButton.spacing) {
             if saver.isSaving { ProgressView() }
             Text(OfflineSaveText.text(for: saver.state)).scaledFont(.footnote)
             Spacer()
-            if !saver.isSaving { Button("Fermer", systemImage: "xmark") { saver.dismiss() }.labelStyle(.iconOnly) }
+            if !saver.isSaving { OfflineSaveCloseButton { saver.dismiss() } }
         }
         .padding(.horizontal).padding(.vertical, 8)
         .glassEffect(.regular, in: .rect(cornerRadius: 10)) // as `FilteredPostsBanner`: wrapped text keeps its corners
         .padding(.horizontal).padding(.bottom, 4)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The banner's ✕. Its hit region is at least 44 x 44 pt (HIG, Buttons; #1329) while the banner keeps its height and the glyph
+/// its place: the margin of `MinimumHitRegion` is pulled back by a negative padding, so the region overflows the card's padding.
+/// Sideways it reaches over the spacer, never further than `OfflineSaveBanner`'s stack spacing, so it cannot cover the text.
+struct OfflineSaveCloseButton: View {
+    /// The spacing of the banner's stack, which caps how far the region reaches towards the text.
+    static let spacing: CGFloat = 8
+
+    let action: () -> Void
+    /// Test seams: the laid-out frame (global) of the hit region (before the negative padding) and of the visible glyph.
+    var regionProbe: (@MainActor (CGRect) -> Void)?
+    var glyphProbe: (@MainActor (CGRect) -> Void)?
+    /// The glyph's size once laid out, which the overhang depends on (the default size until it is read).
+    @State private var glyph = CGSize(width: 16, height: 16)
+
+    var body: some View {
+        let sideways = 2 * MinimumHitRegion.overhang(of: glyph.width)
+        let leading = min(sideways / 2, Self.spacing)
+        let vertical = MinimumHitRegion.overhang(of: glyph.height)
+        Button(action: action) {
+            Label("Fermer", systemImage: "xmark").labelStyle(.iconOnly)
+                .onGeometryChange(for: CGSize.self, of: \.size) { glyph = $0 }
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { glyphProbe?($0) })
+                // The margins are the overhang, so the glyph sits where the negative padding below puts the layout back.
+                .padding(.leading, leading).padding(.trailing, sideways - leading).padding(.vertical, vertical)
+                .minimumHitRegion()
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: { regionProbe?($0) })
+        }
+        .padding(.leading, -leading)
+        .padding(.trailing, -(sideways - leading))
+        .padding(.vertical, -vertical)
     }
 }
 

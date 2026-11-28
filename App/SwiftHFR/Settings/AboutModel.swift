@@ -65,7 +65,7 @@ enum AboutContact {
     /// Legacy's sentence above the contact (`credits.html:9`, accents fixed). The product name in it ("HFR+", legacy's) is the
     /// operator's call.
     static let notice = "HFR+ n'est pas développé par l'équipe du site hardware.fr, mais de manière bénévole. Pour toutes "
-        + "questions, soucis, bugs, vous pouvez nous contacter :"
+        + "questions, soucis, bugs, tu peux nous contacter :"
     /// Legacy's row title (`credits.html:12`).
     static let forumTitle = "Sur le forum : Topic Unique"
     /// The topic it opens: the app's topic, legacy's link (`credits.html:12`) in the id form of `AboutTopicLink`.

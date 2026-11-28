@@ -9,7 +9,7 @@ enum MPDarkTopic {
 
     /// What it does, shown under the switch (no ⓘ, operator 2026-11-17) and read as its hint. Says the switch-off path and that
     /// the option needs MP storage.
-    static let explanation = "Affiche dans la liste des MP multiples la page où vous en étiez, enregistrée par les autres applications "
+    static let explanation = "Affiche dans la liste des MP multiples la page où tu en étais, enregistrée par les autres applications "
         + "HFR+ dans le MP de stockage (Réglages › Stockage MP doit être activé). Cette application ne l'écrit pas encore. "
         + "Désactivé : ces positions ne sont pas lues ; rien n'est supprimé du MP de stockage."
 

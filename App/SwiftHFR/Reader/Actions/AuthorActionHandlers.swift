@@ -10,8 +10,8 @@ import SwiftUI
 // the sent notice `:4299-4304`, `:2602-2605`) @ 2440d79, and of the profile opened from a message (`presentAvatarActionSheet`
 // `:4415-4420`, `userProfileQuickActions` `:4387-4412`, `dismissUserProfile(then:)` `:4422-4490`) @ 87fe0d1c. Differences: as
 // legacy, a tap on the author opens the profile when the message links to it (#652, which reverses #595's menu-first choice), and
-// the author menu, anchored at the author rather than a sheet, only otherwise (GAP-064); the profile is fetched without cookies
-// (LOT-116, GAP-167); Blacklist and Whitelist are `PseudoListActionHandler` (LOT-118).
+// the author menu, anchored at the author rather than a sheet, only otherwise (GAP-064); the profile is fetched with the
+// account's session, as legacy (LOT-116, #1363, GAP-167); Blacklist and Whitelist are `PseudoListActionHandler` (LOT-118).
 
 /// "Profil" in the author menu, and what a tap on the author runs when the message has a profile link (#652): opens the
 /// member's profile screen (LOT-116) for that message.
@@ -73,7 +73,7 @@ enum PrivateMessageFeedback {
             let message = result.message.trimmingCharacters(in: .whitespacesAndNewlines)
             return message.isEmpty ? "Message privé envoyé" : message
         case .checkTopic:
-            return "Envoi non confirmé : vérifiez vos MP avant de renvoyer."
+            return "Envoi non confirmé : vérifie tes MP avant de renvoyer."
         case .keptDraft, .discardedDraft, .closedWithoutSaving:
             return nil
         }

@@ -30,9 +30,9 @@ struct ImageUploadView: View {
             .navigationTitle("Insérer une image")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
             }
-            .alert("Hébergeur d'images", isPresented: askingNotice) {
+            .alert(AlertTitles.imageHostQuestion, isPresented: askingNotice) {
                 Button("Annuler", role: .cancel) { model.declineNotice() }
                 Button("Continuer") { model.acceptNotice() }
             } message: {
@@ -102,7 +102,7 @@ struct ImageUploadView: View {
                 }
                 .pickerStyle(.menu)
             } else {
-                Text("L'envoi d'images n'est pas disponible dans cette version. Vous pouvez insérer un lien.")
+                Text("L'envoi d'images n'est pas disponible dans cette version. Tu peux insérer un lien.")
                     .foregroundStyle(.secondary)
             }
             if model.isUploading { ProgressView("Envoi en cours…") }

@@ -46,7 +46,10 @@ struct AppIconSettingsView: View {
             .disabled(!model.isAvailable || model.isSwitching)
         }
         .background(Color(.systemGroupedBackground))
-        .alert("Icône", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+        .alert(
+            AlertTitles.iconChangeFailed,
+            isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+        ) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(model.errorMessage ?? "")

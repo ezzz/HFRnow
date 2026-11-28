@@ -37,23 +37,23 @@ struct MPStorageTransportReadTests {
         ])
     }
 
-    @Test("#1200 P1: a storage-subject thread whose first message has no edit link is another member's, not the account's")
+    @Test("#1200 P1, #1203: a storage-subject thread another member started (R1203b, no edit link) is skipped for the account's")
     func skipsForeignThreadWithStorageSubject() async throws {
         let outcome = await MPStorageHarness.run(
-            [try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPageOfAnotherMember(), .failure(.offline)]
+            [try MPStorageCapture.list("R1203a"), try MPStorageCapture.foreignThreadPage(), try MPStorageCapture.threadPage()]
         ) { transport, session throws(MPStorageTransportError) in
             try await transport.findThread(through: session)
         }
-        // `R13u1`'s only storage row is ruled out by its first page, so the search walks on to page 2 (failed here) instead
-        // of returning that row.
-        #expect(outcome.error == .network(.offline))
-        let urls = outcome.requests.map(\.url.absoluteString)
-        #expect(urls.count == 3)
-        #expect(urls.prefix(2) == [
+        // `R1203a` row 1 is user2's thread with the subject; its first page, at the URL captured, carries no edit link, so
+        // the search goes on to the account's own row (row 47, `R60a`) instead of returning row 1, as legacy did.
+        #expect(outcome.value == MPStorageCapture.post)
+        #expect(outcome.requests.map(\.url.absoluteString) == [
             try HFREndpoint.privateMessages(page: 1).url.absoluteString,
+            try Capture.meta("R1203b").url,
             try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url.absoluteString
         ])
-        #expect(urls.last?.contains("cat=prive&page=2") == true)
+        #expect(try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.foreignPost).url.absoluteString
+            == Capture.meta("R1203b").url)
         #expect(outcome.posts.isEmpty)
     }
 

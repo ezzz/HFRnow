@@ -1,11 +1,13 @@
 import Foundation
 import HFRNetwork
 import HFRParsing
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 
 /// `MemberAvatarPrefetcher` and its live lookup (#714): a one-to-one correspondent with no cached avatar is looked up on their
-/// profile, cookie-less, one lookup at a time, at most once per pseudo. Every transport is a `MockTransport` (LESSONS 56).
+/// profile (id cookie-less, profile with the session since #1363), one lookup at a time, at most once per pseudo. Every
+/// transport is a `MockTransport` (LESSONS 56).
 struct MemberAvatarPrefetcherTests {
     private static let avatar = URL(string: "https://forum-images.hardware.fr/images/perso/a.png")!
 
@@ -15,6 +17,7 @@ struct MemberAvatarPrefetcherTests {
         private var asked: [String] = []
         private var running = 0
         private var peak = 0
+        private var generation = 0
         private let answer: @Sendable (String) -> MemberAvatarLookupResult
 
         init(answer: @escaping @Sendable (String) -> MemberAvatarLookupResult = { _ in .avatar(MemberAvatarPrefetcherTests.avatar) }) {
@@ -23,6 +26,12 @@ struct MemberAvatarPrefetcherTests {
 
         var pseudos: [String] { lock.withLock { asked } }
         var maximumConcurrency: Int { lock.withLock { peak } }
+        /// Stands for a login installed in the session (a re-login moves the generation, #1195).
+        func logInAgain() { lock.withLock { generation += 1 } }
+
+        func loginState() async -> ProfileLoginState {
+            lock.withLock { ProfileLoginState(isLoggedIn: true, hasMemberID: true, generation: generation) }
+        }
 
         func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult {
             lock.withLock {
@@ -114,6 +123,53 @@ struct MemberAvatarPrefetcherTests {
         #expect(offers.pseudos == ["user2", "user2"])
     }
 
+    /// #1397: a correspondent HFR has no avatar for costs two requests once per 24 h, not once per launch (a new prefetcher stands
+    /// for the next launch, over the same persisted misses).
+    @Test func aNoAvatarAnswerHoldsAcrossLaunchesForADay() async throws {
+        let suite = "MemberAvatarPrefetcherTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let clock = Clock(Date(timeIntervalSince1970: 1_000_000))
+        let store = UserDefaultsSettingsStore(defaults: defaults)
+        func launch(_ lookup: ScriptedLookup) -> MemberAvatarPrefetcher {
+            MemberAvatarPrefetcher(
+                lookup: lookup, misses: .persisted(in: store, now: { clock.now }), hasAvatar: { _ in false }, offer: { _, _ in }
+            )
+        }
+        let first = ScriptedLookup { _ in .none }
+        await launch(first).prefetch(pseudo: "User4")
+        #expect(first.pseudos == ["User4"])
+        let second = ScriptedLookup { _ in .none }
+        await launch(second).prefetch(pseudo: "user4")
+        #expect(second.pseudos.isEmpty)
+        clock.advance(by: 24 * 60 * 60 + 1)
+        let third = ScriptedLookup { _ in .none }
+        await launch(third).prefetch(pseudo: "user4")
+        #expect(third.pseudos == ["user4"])
+    }
+
+    /// A failure is not a "no avatar": nothing is remembered across launches, so the next launch asks again.
+    @Test func aFailedLookupIsNotRememberedAcrossLaunches() async throws {
+        let suite = "MemberAvatarPrefetcherTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let lookup = ScriptedLookup { _ in .failed }
+        let misses = MemberAvatarPrefetcher.Misses.persisted(in: UserDefaultsSettingsStore(defaults: defaults))
+        for _ in 0..<2 {
+            await MemberAvatarPrefetcher(lookup: lookup, misses: misses, hasAvatar: { _ in false }, offer: { _, _ in })
+                .prefetch(pseudo: "user5")
+        }
+        #expect(lookup.pseudos == ["user5", "user5"])
+    }
+
+    private final class Clock: @unchecked Sendable {
+        private let lock = NSLock()
+        private var date: Date
+        init(_ date: Date) { self.date = date }
+        var now: Date { lock.withLock { date } }
+        func advance(by seconds: TimeInterval) { lock.withLock { date = date.addingTimeInterval(seconds) } }
+    }
+
     @Test func aCachedAvatarOrABlankPseudoIsNotLookedUp() async {
         let lookup = ScriptedLookup()
         let prefetcher = prefetcher(lookup, cached: ["user2"])
@@ -172,10 +228,10 @@ struct MemberAvatarPrefetcherTests {
         let anonymous: MockTransport
     }
 
-    /// `profilebdd.php` answers the `301` of `R716a`/`R716c` (with the id of the `R56b` member); the profile is `R56b`.
-    /// The session answers the same, so only the request counts catch a lookup that would use it.
+    /// `profilebdd.php` answers the `301` of `R716a`/`R716c` (a member id); the profile served is `R1363b`.
+    /// Both clients answer the same, so only the request counts catch a lookup that would use the wrong one.
     private func liveRig(location: String = "/hfr/profil-910002.htm") throws -> LiveRig {
-        let profile = try LiveTopicPageSourceTests.capture("R56b-profile-other-member-anon.html")
+        let profile = try LiveTopicPageSourceTests.capture("R1363b-profile-own-user1.html")
         let handler: MockTransport.Handler = { request async throws(NetworkError) -> HTTPResponse in
             if request.url.path() == "/profilebdd.php" {
                 return HTTPResponse(statusCode: 301, headers: ["Location": location], url: request.url)
@@ -186,25 +242,27 @@ struct MemberAvatarPrefetcherTests {
         }
         let session = MockTransport(handler: handler)
         let anonymous = MockTransport(handler: handler)
+        let fetcher = PageFetcher(session: session, anonymous: anonymous)
         return LiveRig(
-            lookup: LiveMemberAvatarLookup(fetcher: PageFetcher(session: session, anonymous: anonymous)),
+            lookup: LiveMemberAvatarLookup(
+                fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true })
+            ),
             session: session, anonymous: anonymous
         )
     }
 
-    @Test func theLiveLookupReadsTheAvatarOfTheRedirectedProfileWithoutCookies() async throws {
+    /// The id lookup leaves without cookies (`R716c`); the profile goes through the session, HFR refusing it without (#1363).
+    @Test func theLiveLookupFindsTheIdWithoutCookiesAndReadsTheProfileWithTheSession() async throws {
         let rig = try liveRig()
-        let html = try #require(String(data: try LiveTopicPageSourceTests.capture("R56b-profile-other-member-anon.html"), encoding: .utf8))
+        let data = try LiveTopicPageSourceTests.capture("R1363b-profile-own-user1.html")
+        let html = try #require(String(data: data, encoding: .utf8))
         let expected = try #require(try UserProfileParser.parse(html: html).avatarURL)
         #expect(await rig.lookup.avatar(forPseudo: "user two") == .avatar(expected))
-        #expect(await rig.session.requests.isEmpty)
-        let requests = await rig.anonymous.requests
-        #expect(requests.map(\.url.absoluteString) == [
-            "https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user%20two",
-            "https://forum.hardware.fr/hfr/profil-910002.htm"
-        ])
-        #expect(requests.first?.redirectPolicy == .doNotFollow)
-        #expect(requests.allSatisfy { $0.headers["Cookie"] == nil })
+        let anonymous = await rig.anonymous.requests
+        #expect(anonymous.map(\.url.absoluteString) == ["https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user%20two"])
+        #expect(anonymous.first?.redirectPolicy == .doNotFollow)
+        #expect(anonymous.allSatisfy { $0.headers["Cookie"] == nil })
+        #expect(await rig.session.requests.map(\.url.absoluteString) == ["https://forum.hardware.fr/hfr/profil-910002.htm"])
     }
 
     /// An unknown pseudo (`R716d`: empty id) stops after the first request, as HFR's answer; a location that is not a profile too.
@@ -219,7 +277,78 @@ struct MemberAvatarPrefetcherTests {
     /// A failed exchange is `.failed`, not "no avatar", so the prefetcher asks again later.
     @Test func aTransportFailureIsAFailure() async {
         let offline = MockTransport { _ async throws(NetworkError) -> HTTPResponse in throw .offline }
-        let lookup = LiveMemberAvatarLookup(fetcher: PageFetcher(session: MockTransport(replies: []), anonymous: offline))
+        let fetcher = PageFetcher(session: MockTransport(replies: []), anonymous: offline)
+        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true }))
         #expect(await lookup.avatar(forPseudo: "user2") == .failed)
+    }
+}
+
+// #1363: a refusal (no login, HFR's 401/403) stops the lookups instead of retrying them every 60 s.
+extension MemberAvatarPrefetcherTests {
+    /// HFR's 403 to a profile (`R1363a`) is a refusal, not "no avatar" nor a failure to retry.
+    @Test func aRefusedProfileIsARefusal() async {
+        let redirect = MockTransport { request async throws(NetworkError) -> HTTPResponse in
+            HTTPResponse(statusCode: 301, headers: ["Location": "/hfr/profil-910002.htm"], url: request.url)
+        }
+        let refused = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
+            throw .httpStatus(code: 403, url: url("https://forum.hardware.fr/hfr/profil-910002.htm"))
+        }
+        let fetcher = PageFetcher(session: refused, anonymous: redirect)
+        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { true }))
+        #expect(await lookup.avatar(forPseudo: "user2") == .refused)
+        #expect(await refused.requests.count == 1)
+    }
+
+    /// Without a login the profile would be refused: not even the cookie-less id lookup leaves.
+    @Test func aLoggedOutLookupSendsNothing() async {
+        let session = MockTransport(replies: [])
+        let anonymous = MockTransport(replies: [])
+        let fetcher = PageFetcher(session: session, anonymous: anonymous)
+        let lookup = LiveMemberAvatarLookup(fetcher: fetcher, profiles: LiveUserProfileSource(fetcher: fetcher, isLoggedIn: { false }))
+        #expect(await lookup.avatar(forPseudo: "user2") == .refused)
+        #expect(await session.requests.isEmpty)
+        #expect(await anonymous.requests.isEmpty)
+    }
+
+    /// A re-login in place (same session, new login generation) lifts the suspension: the refused pseudo is looked up again.
+    @Test func aReLoginLiftsTheSuspension() async {
+        let refusals = Refusals(count: 1, then: .avatar(Self.avatar))
+        let lookup = ScriptedLookup { _ in refusals.next() }
+        let prefetcher = prefetcher(lookup)
+        await prefetcher.prefetch(pseudo: "user2")
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2"])
+        lookup.logInAgain()
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2", "user2"])
+    }
+
+    /// One refusal suspends the prefetcher: no other pseudo, and not the same one after its retry delay, is looked up.
+    @Test func aRefusalStopsEveryLookup() async throws {
+        let lookup = ScriptedLookup { _ in .refused }
+        let prefetcher = prefetcher(lookup, retryDelay: .milliseconds(50))
+        await prefetcher.prefetch(pseudo: "user2")
+        await prefetcher.prefetch(pseudo: "user3")
+        try await Task.sleep(for: .milliseconds(100))
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2"])
+    }
+}
+
+/// Answers `.refused` `count` times, then `then`.
+private final class Refusals: @unchecked Sendable {
+    private let lock = NSLock()
+    private var left: Int
+    private let then: MemberAvatarLookupResult
+    init(count: Int, then: MemberAvatarLookupResult) {
+        left = count
+        self.then = then
+    }
+    func next() -> MemberAvatarLookupResult {
+        lock.withLock {
+            guard left > 0 else { return then }
+            left -= 1
+            return .refused
+        }
     }
 }

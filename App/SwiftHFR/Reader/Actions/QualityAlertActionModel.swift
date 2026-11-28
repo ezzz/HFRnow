@@ -259,22 +259,22 @@ struct QualityAlertActionHandler: MessageActionHandler {
 enum QualityAlertMessages {
     static let incomplete = "Données AQ incomplètes"
     static let impossible = "Création d'AQ impossible"
-    static let ownReport = "Post déjà signalé par vous"
+    static let ownReport = "Post déjà signalé par toi"
     static let created = "Alerte Qualitay créée."
     static let added = "Message ajouté à l'Alerte Qualitay."
     /// No invitation to retry: every attempt e-mails the AQ operator and a refusal may be the anti-flood ban (HFR-PROTOCOL §8).
     static let notRecorded = "L'Alerte Qualitay n'a pas été enregistrée : le service a refusé ou n'a pas répondu."
     /// The topic's list does not say who joined an AQ: a refused addition is most often one the member already made (`T59`).
     static let additionNotRecorded =
-        "Ajout non enregistré. Vous avez peut-être déjà signalé ce message dans cette alerte : vérifiez la liste avant de réessayer."
-    static let unverified = "Alerte Qualitay non confirmée par le service. Vérifiez la liste avant de réessayer."
+        "Ajout non enregistré. Tu as peut-être déjà signalé ce message dans cette alerte : vérifie la liste avant de réessayer."
+    static let unverified = "Alerte Qualitay non confirmée par le service. Vérifie la liste avant de réessayer."
 
     /// The notice N1 (LOT-071 T3): the host and who runs it, what is sent, what becomes public, the operator's own records.
     static func notice(host: String) -> String {
         "Les Alertes Qualitay sont publiées sur \(host), un service communautaire qui n'est ni HFR ni cette application. "
-            + "Pour créer ou plussoyer une alerte, l'application lui envoie, sans identification : votre pseudo (en minuscules), "
+            + "Pour créer ou plussoyer une alerte, l'application lui envoie, sans identification : ton pseudo (en minuscules), "
             + "le numéro et le titre du sujet, le numéro et le lien du message, le titre et le commentaire de l'alerte, et le nom "
-            + "de l'application. L'alerte est publique. Le service garde une empreinte de votre adresse IP, dont une adresse IPv4 "
+            + "de l'application. L'alerte est publique. Le service garde une empreinte de ton adresse IP, dont une adresse IPv4 "
             + "peut être retrouvée, et prévient son exploitant par e-mail à chaque tentative, même refusée. Les conditions de cet "
             + "exploitant s'appliquent."
     }
@@ -282,7 +282,7 @@ enum QualityAlertMessages {
     /// Why a report was refused before anything was sent.
     static func problem(_ problem: AQReportProblem) -> String {
         switch problem {
-        case .missing(.title): "Donnez un titre à l'alerte."
+        case .missing(.title): "Donne un titre à l'alerte."
         case .tooLong(.title): "Le titre de l'alerte est trop long."
         case .unsupportedCharacters: "Le titre ou le sujet contient un caractère que le service ne garde pas (la plupart des emoji)."
         case .tooLong, .missing, .outOfRange, .notForumPermalink: incomplete

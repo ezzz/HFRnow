@@ -7,6 +7,7 @@ import Testing
 /// open full screen with no toggle since #1137, `ComposerFullScreenTests`; operator, 2026-11-10), a card docked on the keyboard so
 /// the page it was opened from stays visible above it; full height on an iPad and in compact height, where the system shows a
 /// sheet full anyway and no toggle claims otherwise.
+@MainActor
 struct ComposerPresentationTests {
     @Test(arguments: [true, false])
     func aReplyOrAnEditOpensAtPartialHeightOnlyOnAnIPhone(isPhone: Bool) {

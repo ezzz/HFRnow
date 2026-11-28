@@ -37,6 +37,24 @@ struct QualityAlertsVisibilityTests {
         #expect(model.rows.contains { $0.item.link == forum25.link })
     }
 
+    /// #1398: a root rebuilt on an account switch counts from the feed the first root read, with the new viewer's rule: the review
+    /// account's root hides forum 25, another account's counts it, and no request leaves.
+    @Test func aRebuiltRootAppliesTheNewViewersRuleToTheFeedAlreadyRead() async throws {
+        let (items, _) = try feed()
+        let source = FakeQualityAlertsSource(items: items)
+        let launchFeed = QualityAlertsLaunchFeed()
+        let member = Support.model(source: source, accountName: "member", isLoggedIn: true, launchFeed: launchFeed)
+        await member.checkAtLaunch(sleep: { _ in })
+        #expect(member.unreadCount == 26)
+        let reviewer = Support.model(source: source, accountName: "applereview", isLoggedIn: true, launchFeed: launchFeed)
+        await reviewer.checkAtLaunch(sleep: { _ in })
+        #expect(reviewer.unreadCount == 25)
+        let loggedOut = Support.model(source: source, launchFeed: launchFeed)
+        await loggedOut.checkAtLaunch(sleep: { _ in })
+        #expect(loggedOut.unreadCount == 25)
+        #expect(source.calls == 1)
+    }
+
     @Test func aLoggedInSessionThatExpiredReadsAsLoggedOut() async throws {
         let (items, _) = try feed()
         let model = Support.model(source: FakeQualityAlertsSource(items: items), accountName: "member", isLoggedIn: false)

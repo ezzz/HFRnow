@@ -208,11 +208,11 @@ struct MPNotificationPermissionTests {
         #expect(MPNotificationSettingsAlert.badge.title == "Notifications désactivées dans iOS")
         #expect(
             MPNotificationSettingsAlert.notifications.message
-                == "Autorisez SwiftHFR dans Réglages › Notifications pour recevoir les messages privés."
+                == "Autorise SwiftHFR dans Réglages › Notifications pour recevoir les messages privés."
         )
         #expect(
             MPNotificationSettingsAlert.badge.message
-                == "Autorisez SwiftHFR dans Réglages › Notifications pour voir la pastille sur l’icône."
+                == "Autorise SwiftHFR dans Réglages › Notifications pour voir la pastille sur l’icône."
         )
     }
 }

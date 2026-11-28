@@ -31,7 +31,7 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
 
 1. **Load** — `PostingFlow.loadForm(at:in:)` takes the composer URL (answer link, quote link, decoded edit link, new-topic
    link, new-MP link) and an `HFRSession`. The URL must be `https` on `forum.hardware.fr`, default port, no user info
-   (`invalidFormURL`, nothing requested). GET through the session; the final URL after redirects must pass the same check (the session follows redirects to any `hardware.fr` host, LOT-042), else `invalidFormURL` and nothing is kept. The page
+   (`invalidFormURL`, nothing requested). GET through the session, 60 s idle like legacy's plain `URLRequest` (`ReplyService.swift:238-243` @ `87fe0d1c`, #1375); the final URL after redirects must pass the same check (the session follows redirects to any `hardware.fr` host, LOT-042), else `invalidFormURL` and nothing is kept. The page
    is parsed twice from the same string: `HopFormParser.parse` (LOT-036) for the fields, `HopFormParser.layout` for the
    document order. No form: the page's `.hop` is classified (LOT-037); the logged-out sentence gives `notLoggedIn`,
    anything else `formUnavailable(message:)` (`RA5`). An empty `hash_check` or `pseudo` (anonymous composer `R40b`) gives

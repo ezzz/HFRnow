@@ -17,8 +17,8 @@ struct MessageListLoggedOutTests {
         let list = model(loggedIn: false)
         await list.onAppear()
         #expect(list.signInPrompt(current: nil) == SignInPrompt(
-            title: "Connectez-vous pour accéder aux MP",
-            message: "Ajoutez un pseudo pour charger vos messages privés.",
+            title: "Connecte-toi pour accéder aux MP",
+            message: "Ajoute un pseudo pour charger tes messages privés.",
             systemImage: "envelope.badge",
             action: "Ajouter un pseudo",
             target: .newAccount
@@ -31,14 +31,14 @@ struct MessageListLoggedOutTests {
         let prompt = list.signInPrompt(current: row(.valid))
         #expect(prompt?.action == "Se reconnecter")
         #expect(prompt?.target == .existing(id: "user1", displayName: "User1"))
-        #expect(prompt?.message == "Reconnectez-vous pour charger vos messages privés.")
+        #expect(prompt?.message == "Reconnecte-toi pour charger tes messages privés.")
     }
 
     @Test func anExpiredSessionSaysSo() async {
         let list = model(loggedIn: false)
         await list.onAppear()
         let message = list.signInPrompt(current: row(.expired))?.message
-        #expect(message == "Votre session a expiré : reconnectez-vous pour charger vos messages privés.")
+        #expect(message == "Ta session a expiré : reconnecte-toi pour charger tes messages privés.")
     }
 
     @Test func withAnAccountThereIsNoPrompt() async {

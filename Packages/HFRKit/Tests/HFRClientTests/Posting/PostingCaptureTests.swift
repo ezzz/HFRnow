@@ -38,6 +38,18 @@ struct PostingCaptureTests {
         #expect(result.postNumber == nil)
     }
 
+    @Test("The form fetched at send waits as long as legacy's (60 s idle), not a list load's 10 s (#1375)")
+    func formFetchUsesLegacyLimit() async throws {
+        let outcome = try await PostingHarness.run(form: "R47b", answer: "W11") { flow, form async throws(PostingError) in
+            try await flow.reply("fixture-test 2, line 1", with: form)
+        }
+        let get = try #require(outcome.requests.first)
+        #expect(get.method == .get)
+        #expect(get.timeout == 60)
+        #expect(get.timeout == PostingFlow.formTimeout)
+        #expect(get.totalTimeout == nil)
+    }
+
     @Test("W11: reply from R47b; the captured bare LF is sent as CRLF")
     func reply() async throws {
         let outcome = try await PostingHarness.run(form: "R47b", answer: "W11") { flow, form async throws(PostingError) in

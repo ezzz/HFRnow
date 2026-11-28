@@ -7,7 +7,7 @@ Source: the operator's requests of 2026-10-28 and his reviews that day (Legacy a
 ## 1. Model (as shipped by LOT-123)
 
 - Réglages › Icône lists `AppIconOption`s; a choice calls `setAlternateIconName` and is stored under the legacy key `icon` only once the system accepted it.
-- Each icon is an Icon Composer file `App/SwiftHFR/Icon-<NAME>.icon`, listed in `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in both configurations. The name lives only in `AppIconOption.alternateIconName`: a redrawn icon swaps in under the same name.
+- Each icon is an Icon Composer file `App/SwiftHFR/Icon-<NAME>.icon`, listed in `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in every build configuration. The name lives only in `AppIconOption.alternateIconName`: a redrawn icon swaps in under the same name.
 - Raw values of the legacy options are the legacy `icon` values (`HFRswift/Swift/AppSettingsView.swift:33-83` @ `87fe0d1c`), so the choice survives the update. New options use a kebab-case raw value and an `Icon-<PACK>-<NAME>` file name (`noel-hfr` → `Icon-NOEL-HFR`).
 - The picker (`AppIconSettingsView`) is a grid by pack: a **preview of every icon as on the Home Screen**, its name and a ring on the chosen one. The system has no API to read an alternate icon's image, so the previews are asset-catalogue image sets rendered from the `.icon` files by `scripts/icon-previews.sh` (Xcode's `ictool`, Default and Dark renditions, so the grid follows light and dark): `Assets.xcassets/IconPreviews/IconPreview-<bundle name>.imageset` (`AppIconOption.previewImageName`). A test fails when an option has no preview.
 - Apple (HIG › App icons, read 2026-10-28, re-read before quoting): alternate icons need their own dark, clear and tinted variants and go through App Review; 1024 px masters; no baked highlights, shadows or bevels (<https://developer.apple.com/design/human-interface-guidelines/app-icons>).
@@ -35,6 +35,9 @@ The picker groups icons by pack ([LOT-189](LOTS.md)). *Shipped* = in `dev-swift`
 | | Printemps | `spring` | a cherry tree in bloom partly hidden by the redface, dense background | all year | shipped (LOT-190) |
 | | Été | `summer` | blue background, a big sun, a small coconut palm in the opposite corner, the redface with sunglasses | all year | shipped (LOT-190) |
 | | Hiver | `winter` | the redface with a scarf as on `icons-season.jpg` (operator 15:40: « la précédente était mieux ») | all year | shipped (LOT-190) |
+| Liquid Glass | H plein cadre | `glass-h` | the Classique H as one glass group (Icon Composer glass: specular, translucency, system shadow) over the yellow-orange gradient; iOS 27 look | all year | shipped (#1409) |
+| | Face anneau | `glass-face-ring` | the REDFACE face split into two glass groups (ring; eyes and mouth), same coordinates as `Icon-REDFACE` (rule 2), over the red gradient | all year | shipped (#1409) |
+| | Face disque | `glass-face-disc` | a white glass disc (the face, same outer edge) with the features in red on top, over the red gradient | all year | shipped (#1409) |
 
 **Dated icons** are listed only inside their window. The window's dates are Gregorian, in the device's time zone, whatever the device calendar (Islamic, Hebrew, Persian, Buddhist, Japanese: #1199), as the seasonal theme's are (`NoelCalendar`). At the end of the window the icon stays (a switch must be the user's): on the first launch after the window the app asks once « Revenir à l'icône précédente ? » (decision Q4, 2026-10-28); the buttons are [Revenir] [Garder] (#1151).
 
@@ -52,7 +55,7 @@ The orange of the forum logo, used as a fill (Orange, Noël HFR, Halloween HFR, 
 ## 5. Submitting an icon (agents and humans)
 
 1. Open an issue `[SwiftHFR] Icon: <name>` (`### Summary`, pack, window), wait for `status: ready`, claim it.
-2. Add `App/SwiftHFR/Icon-<PACK>-<NAME>.icon` with Default, Dark and Tinted annotations and its master; add a case to `AppIconOption` (title, name, `pack`, `window`: data only) and the name to the alternate names in both configurations; run `scripts/icon-previews.sh Icon-<PACK>-<NAME>` and commit the `IconPreview-…` image set. A full-art PNG icon gets its Dark and Tinted layers from `swift tooling/icons/make-variants.swift <Default PNG>` unless drawn by hand.
+2. Add `App/SwiftHFR/Icon-<PACK>-<NAME>.icon` with Default, Dark and Tinted annotations and its master; add a case to `AppIconOption` (title, name, `pack`, `window`: data only) and the name to the alternate names in every build configuration (Debug, Release, Beta); run `scripts/icon-previews.sh Icon-<PACK>-<NAME>` and commit the `IconPreview-…` image set. A full-art PNG icon gets its Dark and Tinted layers from `swift tooling/icons/make-variants.swift <Default PNG>` unless drawn by hand. A layered vector icon (REDFACE, CLASSIC, the Liquid Glass pack) may leave Dark, Clear and Tinted to the system: same fill for dark, no tinted annotation; check each rendition with `ictool` instead.
 3. PR checklist:
    - [ ] screenshots at 1024 px and on light and dark Home Screens, in Clear and Tinted
    - [ ] readable at 29 pt

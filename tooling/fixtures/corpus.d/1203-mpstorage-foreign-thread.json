@@ -1,0 +1,6 @@
+{"captures": [
+  {"raw": "W1203", "id": "W1203", "slug": "mp-create-storage-subject-success", "ext": "html", "private": false},
+  {"raw": "R1203a", "id": "R1203a", "slug": "mp-list-foreign-storage-row-unread", "ext": "html", "private": true},
+  {"raw": "R1203b", "id": "R1203b", "slug": "mp-thread-foreign-storage-subject-first-page", "ext": "html", "private": true},
+  {"raw": "R1203c", "id": "R1203c", "slug": "mp-list-foreign-storage-row-after-get", "ext": "html", "private": true}
+]}

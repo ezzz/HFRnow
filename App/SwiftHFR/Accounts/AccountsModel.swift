@@ -58,6 +58,10 @@ final class AccountsModel {
     /// Advanced by every login saved for an account: a session write-back whose jar was read before it is stale,
     /// even when the login renewed the same `HFRSession` object.
     @ObservationIgnored private var loginSaves: [String: Int] = [:]
+    /// Per account: the login (`loginIdentity`) its session held when a check or a login last confirmed it (#1276).
+    @ObservationIgnored private var confirmedLogins: [String: Set<String>] = [:]
+    /// The account whose write-back this device is pushing to the sync copy right now (`pushOwnRefresh`), if any.
+    @ObservationIgnored private var pushingRefresh: String?
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
     @ObservationIgnored private var currentSessionID: ObjectIdentifier?
     /// When the last forum check of the sessions (launch or re-check) ended; nil until one has.
@@ -282,6 +286,7 @@ final class AccountsModel {
         loginSaves[stored.pseudo, default: 0] += 1
         sessions[stored.pseudo] = session
         statuses[stored.pseudo] = .valid
+        confirmedLogins[stored.pseudo] = Self.loginIdentity(of: account.cookies)
         storeProblem = nil
         reloadRows()
         noteSyncChange(.login(pseudo: stored.pseudo))
@@ -316,6 +321,7 @@ final class AccountsModel {
         }
         sessions[id] = nil
         statuses[id] = nil
+        confirmedLogins[id] = nil
         reloadRows()
         noteSyncChange(.removal(pseudo: removed.pseudo))
     }
@@ -334,6 +340,8 @@ final class AccountsModel {
         // what the store holds now. Nor if a login was saved meanwhile: a re-login renews this same session, so the
         // jar may have been read before it, and the store already holds the login. No suspension point follows.
         guard sessions[id] === session, loginSaves[id, default: 0] == saves else { return }
+        // Written back only after a check or a login confirmed the session: a sync copy of this login is then not news.
+        confirmedLogins[id] = Self.loginIdentity(of: cookies)
         do {
             let refreshed = try store.update { book -> String? in
                 guard var account = book.account(matching: id) else { return nil }
@@ -346,7 +354,7 @@ final class AccountsModel {
             }
             // Only a real change is shared (LOT-173): a check that confirms the same cookies must not make this device's
             // copy look newer than a re-login on another device.
-            if let refreshed { noteSyncChange(.refresh(pseudo: refreshed)) }
+            if let refreshed { pushOwnRefresh(refreshed) }
         } catch CredentialStoreError.pseudoMismatch, CredentialStoreError.invalidPseudo {
             // The jar names another pseudo than the account: nothing is written and the store is intact, so this is
             // not a store problem. The screens must not keep using a jar of another identity: the session is rebuilt
@@ -401,6 +409,7 @@ extension AccountsModel {
         for id in report.dropped {
             sessions[id] = nil
             statuses[id] = nil
+            confirmedLogins[id] = nil
         }
         let book: AccountBook
         do {
@@ -409,22 +418,9 @@ extension AccountsModel {
             storeProblem = StoreProblem(error)
             return
         }
-        var adopted: [(session: HFRSession, account: Account)] = []
-        for id in report.replaced {
-            guard let account = book.account(matching: id) else { continue }
-            if let session = sessions[account.pseudo] {
-                adopted.append((session, account))
-                // A write-back of the jar read before the adoption must not overwrite these cookies (as after a re-login).
-                loginSaves[account.pseudo, default: 0] += 1
-            } else {
-                sessions[account.pseudo] = HFRSession(cookies: account.cookies, hashCheck: account.hashCheck)
-            }
-            statuses[account.pseudo] = .checking
-        }
+        let (installs, ids) = takeOver(report.replaced, from: book)
         publish(book)
-        let ids = report.replaced.compactMap { book.account(matching: $0)?.pseudo }
         guard !ids.isEmpty else { return }
-        let installs = adopted
         syncCheckTask = Task {
             for install in installs {
                 await install.session.adoptSyncedCredentials(cookies: install.account.cookies, hashCheck: install.account.hashCheck)
@@ -432,6 +428,59 @@ extension AccountsModel {
             }
             await self.checkSessions(ids) { $0 == .checking }
         }
+    }
+
+    /// Installs the replaced accounts of `book`: a new session for an account this device had none for, the stored
+    /// credentials for an existing one, each to be checked (`ids`). An existing session that a check or a login confirmed
+    /// with the same login is left alone (#1276): HFR sends `md_user` and `md_passs` again with a new expiry on every
+    /// logged-in answer, so every check's write-back is a refresh pushed to the copy, and a copy whose dates win the merge
+    /// (another device's clock ahead) comes back as a replacement that differs only by those dates. Adopting it signalled a
+    /// session change (the lists reload, #1231) and checked the session again, whose write-back came back again: the
+    /// launch loop of #1276.
+    private func takeOver(
+        _ replaced: Set<String>, from book: AccountBook
+    ) -> (installs: [(session: HFRSession, account: Account)], ids: [String]) {
+        var installs: [(session: HFRSession, account: Account)] = []
+        var ids: [String] = []
+        for id in replaced {
+            guard let account = book.account(matching: id) else { continue }
+            if let session = sessions[account.pseudo] {
+                if holdsConfirmedLogin(account) { continue }
+                installs.append((session, account))
+                // A write-back of the jar read before the adoption must not overwrite these cookies (as after a re-login).
+                loginSaves[account.pseudo, default: 0] += 1
+            } else {
+                sessions[account.pseudo] = HFRSession(cookies: account.cookies, hashCheck: account.hashCheck)
+            }
+            statuses[account.pseudo] = .checking
+            ids.append(account.pseudo)
+        }
+        return (installs, ids)
+    }
+
+    /// Whether the account's session is `valid` and needs nothing from a sync replacement (#1276): either the replacement
+    /// is this device's own write-back coming back from the push (`pushOwnRefresh`), which then never starts another
+    /// check of the account whatever the copy holds, so the loop is bounded; or it carries the login a check or a login
+    /// confirmed.
+    private func holdsConfirmedLogin(_ account: Account) -> Bool {
+        guard statuses[account.pseudo] == .valid else { return false }
+        return pushingRefresh == account.pseudo || confirmedLogins[account.pseudo] == Self.loginIdentity(of: account.cookies)
+    }
+
+    /// Pushes the write-back of a session a check or a login confirmed to the sync copy (LOT-173). A take-over that this
+    /// push reports for the same account is its own refresh losing the merge to a copy dated ahead (#1276).
+    private func pushOwnRefresh(_ pseudo: String) {
+        pushingRefresh = pseudo
+        noteSyncChange(.refresh(pseudo: pseudo))
+        pushingRefresh = nil
+    }
+
+    /// The cookies that say which login a jar holds, without their dates (#1276): the values of `md_user` and `md_passs`,
+    /// which stays the same across logins (HFR-PROTOCOL.md §6c, `R72`). `md_id` is left out: the login alone sets it, for
+    /// 30 days (`W03`), so a jar drops it while a stored copy may still list it expired; it is implied by `md_user`.
+    /// Compared in memory, never logged.
+    static func loginIdentity(of cookies: [StoredCookie]) -> Set<String> {
+        Set(cookies.filter { ["md_user", "md_passs"].contains($0.name) }.map { "\($0.name)=\($0.value)" })
     }
 
     private func reloadRows() {
@@ -482,8 +531,18 @@ extension HFRSession {
     /// Installs the credentials another device stored for this account (LOT-173) in one actor turn, fenced like a login:
     /// a token read by a request that left before cannot overwrite them (#340).
     func adoptSyncedCredentials(cookies: [StoredCookie], hashCheck: String?) {
-        replaceCookies(with: cookies)
+        replaceCookies(with: cookies + Self.memberIDToKeep(from: self.cookies(), adopting: cookies))
         updateHashCheck(hashCheck)
         advanceLoginGeneration()
+    }
+
+    /// The jar's `md_id` when a copy of the same member holds none live (#1420): only a login sets it (`W1420a`), HFR refuses
+    /// profiles without it (`R1420c`), and a copy may lack it (another device's legacy import, or its login past 30 days).
+    /// Legacy `5c0f10db` merges its account cookies the same way. A copy of another `md_user` takes the jar as it is.
+    static func memberIDToKeep(from jar: [StoredCookie], adopting copy: [StoredCookie], now: Date = .now) -> [StoredCookie] {
+        guard !copy.contains(where: { $0.isLiveMemberID(at: now) }) else { return [] }
+        let user = { (cookies: [StoredCookie]) in cookies.first { $0.name == identityCookieName }?.value }
+        guard let member = user(jar), member != loggedOutMarker, member == user(copy) else { return [] }
+        return jar.filter { $0.isLiveMemberID(at: now) }
     }
 }

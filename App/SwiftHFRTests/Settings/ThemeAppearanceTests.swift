@@ -57,7 +57,7 @@ struct ThemeAppearanceTests {
         #expect(variables["--app-dark-background"] == "rgb(46, 47, 51)")
         #expect(variables["--app-dark-quote-background"] == "rgb(38, 40, 47)")
         #expect(variables["--app-dark-separator"] == appearance.adjustedDark(ThemeColor(hex: 0x4A4B50)).cssRGB)
-        #expect(variables.count == 6)
+        #expect(variables.count == 8)
     }
 
     @Test func theReaderScriptOnlyEverWritesFormattedColours() {
@@ -72,7 +72,7 @@ struct ThemeAppearanceTests {
         let statements = script.split(separator: ";").dropFirst().dropLast(2)
         let setters = statements.filter { $0.contains("s.setProperty(") }
         let removals = statements.filter { $0.contains("s.removeProperty(") }
-        #expect(setters.count == 6)
+        #expect(setters.count == 8)
         #expect(setters.allSatisfy { $0.contains("s.setProperty('--app-") && $0.contains("'rgb(") })
         #expect(removals.count == 4)
         #expect(removals.allSatisfy { $0.contains("s.removeProperty('--app-light-") })

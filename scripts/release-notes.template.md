@@ -1,4 +1,4 @@
-# SwiftHFR {{VERSION}} ({{BUILD}}) — TestFlight
+# SwiftHFR {{VERSION}} ({{BUILD}}) — {{CHANNEL}}
 
 Commit `{{COMMIT}}`, changes since `{{SINCE}}`.
 

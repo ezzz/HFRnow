@@ -11,8 +11,6 @@ struct MessageRowView: View {
     let thread: PrivateMessageThread
     /// The member's unread state as the list shows it (HFR's, until the thread is opened).
     let isUnread: Bool
-    /// The row is the list's selection (iPad): the system highlight must show, so the tint steps aside.
-    var isSelected = false
     /// A group row's MPStorage position, `⚑ <page> / <max>` (LOT-130); nil shows the interlocutors.
     var flagLabel: String?
     @Environment(\.listDensity) private var density
@@ -52,6 +50,7 @@ struct MessageRowView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityValue(Self.accessibilityValue(of: thread))
         .listRowInsets(density.rowInsets)
     }
 
@@ -63,13 +62,13 @@ struct MessageRowView: View {
         let info = MessageRowInfoLine.make(thread: thread, flagLabel: flagLabel)
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: density.lineSpacing) {
-                if let leading = info.leading { Text(leading) }
+                if let leading = info.leading { Text(leading).accessibilityLabel(MessageRowInfoLine.spokenLeading(leading)) }
                 if let trailing = info.trailing { Text(trailing) }
             }
             .scaledFont(.caption).foregroundStyle(.secondary)
         } else if info.leading != nil || info.trailing != nil {
             HStack(spacing: 8) {
-                if let leading = info.leading { Text(leading).lineLimit(1) }
+                if let leading = info.leading { Text(leading).lineLimit(1).accessibilityLabel(MessageRowInfoLine.spokenLeading(leading)) }
                 Spacer(minLength: 0)
                 if let trailing = info.trailing { Text(trailing).lineLimit(1).layoutPriority(-1) }
             }
@@ -97,7 +96,7 @@ struct MessageRowView: View {
     /// HFR's "Interlocuteurs multiples" label (legacy `MPListView.swift:895-901` @ `87fe0d1c`, which tests the word "multiples";
     /// here the whole label, so a member whose pseudo holds that word keeps their avatar). A blank name has no avatar:
     /// the view then draws the monogram.
-    static func avatarSubject(of thread: PrivateMessageThread) -> (pseudo: String?, isGroup: Bool) {
+    nonisolated static func avatarSubject(of thread: PrivateMessageThread) -> (pseudo: String?, isGroup: Bool) {
         let label = "Interlocuteurs multiples"
         let candidate = thread.interlocutors.first ?? thread.summary.starterOrInterlocutors
         let name = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -105,9 +104,15 @@ struct MessageRowView: View {
         return (name.isEmpty ? nil : name, false)
     }
 
-    /// The accent tint of an unread, unselected row; nil leaves the system background (#570).
-    static func rowTint(isUnread: Bool, isSelected: Bool) -> RowTint? {
-        isUnread && !isSelected ? RowTint() : nil
+    /// What VoiceOver hears for a group row besides its text: the group icon is hidden from it and the visible row no longer says
+    /// « Interlocuteurs multiples » (#900), so the state is spoken (#1158; legacy read that text, `MPListView.swift:775-787` @ 87fe0d1c).
+    static func accessibilityValue(of thread: PrivateMessageThread) -> String {
+        avatarSubject(of: thread).isGroup ? "Conversation de groupe" : ""
+    }
+
+    /// The accent tint of an unread row (the selected one too, over the selection tint, #1073); nil leaves the system background (#570).
+    static func rowTint(isUnread: Bool) -> RowTint? {
+        isUnread ? RowTint() : nil
     }
 
     /// Primary and semibold when unread, secondary and regular when read (#651).

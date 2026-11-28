@@ -20,8 +20,9 @@ struct RowTint: View {
     /// Legacy's pill corner radius (`Common.swift:3678` @ 87fe0d1c).
     static let cornerRadius: CGFloat = 12
 
-    /// Opacity of the tint: stronger in dark, where the same alpha reads weaker, and again with Increase Contrast.
-    static func strength(scheme: ColorScheme, contrast: ColorSchemeContrast, weight: Double = 1) -> Double {
+    /// Opacity of the tint: stronger in dark, where the same alpha reads weaker, and again with Increase Contrast. Pure, so
+    /// `nonisolated`: `ListLook.selectedStrength` (a value type's helper) reads it off the main actor (#1364).
+    nonisolated static func strength(scheme: ColorScheme, contrast: ColorSchemeContrast, weight: Double = 1) -> Double {
         ((scheme == .dark ? 0.16 : 0.10) + (contrast == .increased ? 0.08 : 0)) * weight
     }
 

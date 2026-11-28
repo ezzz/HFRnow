@@ -7,7 +7,7 @@ import SwiftUI
 // takes its place and opens the login.
 /// The words of the logged-out stand-in for the blocklist entries.
 enum SignInToBlock {
-    static let title = "Connectez-vous pour bloquer"
+    static let title = "Connecte-toi pour bloquer"
     /// VoiceOver hint of the entry where a screen draws it as a button (the profile sheet).
     static let hint = "Ouvre la connexion. La liste noire est liée à un compte."
 }

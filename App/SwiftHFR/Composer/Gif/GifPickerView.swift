@@ -26,9 +26,9 @@ struct GifPickerView: View {
                 .navigationTitle("GIF")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                    SheetCloseToolbarItem { dismiss() }
                 }
-                .alert("Service de GIF", isPresented: $isAskingNotice) {
+                .alert(AlertTitles.gifServiceQuestion, isPresented: $isAskingNotice) {
                     Button("Annuler", role: .cancel) { dismiss() }
                     Button("Continuer") { Task { await model.acceptNotice() } }
                 } message: {
@@ -70,7 +70,7 @@ struct GifPickerView: View {
         case .failed(let reason):
             message(reason, icon: "wifi.exclamationmark", action: ("Réessayer", { Task { await model.retry() } }))
         case .loaded where model.items.isEmpty:
-            message("Aucun GIF trouvé. Essayez avec un autre mot.", icon: "questionmark.bubble", action: nil)
+            message("Aucun GIF trouvé. Essaie avec un autre mot.", icon: "questionmark.bubble", action: nil)
         case .loaded:
             grid
         }

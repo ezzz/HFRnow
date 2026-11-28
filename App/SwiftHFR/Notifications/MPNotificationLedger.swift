@@ -17,8 +17,27 @@ enum MPNotificationLedger {
         _ = try? await store.record(summary, account: account)
     }
 
+    /// Records one conversation read in the app (`mark` nil) or marked unread there for `account`, that conversation alone (#1006):
+    /// what a background check recorded since the list was loaded stays. A failed write is not shown, as `recordSeen`.
+    static func recordThread(
+        _ topic: Int, unread mark: UnreadThreadMark?, account: String, store: NotificationLedgerStore = live
+    ) async {
+        _ = try? await store.setThread(topic, unread: mark, account: account)
+    }
+
     /// The unread conversations of an MP list page 1 the app showed.
     static func seenSummary(of page: PrivateMessageListPage) -> NotificationSummary {
-        NotificationSummary(unreadThreads: Set(page.threads.filter(\.isUnread).compactMap { $0.summary.topicID?.topic }))
+        seenSummary(of: page.threads.filter(\.isUnread))
+    }
+
+    /// The conversations in `unread` with their reply count and last post (#571): a reply in a conversation that was
+    /// already unread moves only those (HFR-PROTOCOL §6c LOT-140), so the ledger keeps them and the background check
+    /// notifies it; a reply the member saw in the list is recorded here and not notified.
+    static func seenSummary(of unread: [PrivateMessageThread]) -> NotificationSummary {
+        let rows = unread.compactMap { thread in thread.summary.topicID.map { ($0.topic, thread.summary) } }
+        return NotificationSummary(
+            unreadThreads: Set(rows.map(\.0)),
+            unreadThreadMarks: rows.map { UnreadThreadMark(topic: $0.0, repliesCount: $0.1.repliesCount, lastPost: $0.1.lastPost?.date) }
+        )
     }
 }

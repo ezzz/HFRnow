@@ -113,8 +113,8 @@ struct AnonymousAvatarLoader: AvatarLoading {
 
     private let transport: any HTTPTransport
 
-    /// Creates a loader on a fresh cookie-less transport.
-    init(transport: any HTTPTransport = AnonymousTransport()) {
+    /// Creates a loader on the shared cookie-less transport.
+    init(transport: any HTTPTransport = AnonymousTransport.shared) {
         self.transport = transport
     }
 

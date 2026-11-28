@@ -117,7 +117,7 @@ struct FilteredPostsMenuModelTests {
         let (model, _) = menus(account: nil)
         let menu = try #require(model.menu(post: 301, source: .avatar, anchor: nil, in: try await result()))
         #expect(menu.entries == [.signInToBlock, .allowlist])
-        #expect(menu.entries.first?.title == "Connectez-vous pour bloquer")
+        #expect(menu.entries.first?.title == "Connecte-toi pour bloquer")
         #expect(!model.wantsSignIn)
         await model.perform(.signInToBlock, in: menu)
         #expect(model.wantsSignIn)

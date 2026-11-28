@@ -83,8 +83,11 @@ smileys, fields and links, the avatar being the `avatar_center` image only, code
 invalid figures, a header without rows, whole-title matching, line breaks, a page that is not a profile. They state our rules, not facts
 about HFR.
 
-**Pending capture** (nothing hand-built): a profile seen **logged in** (does the row set change? is there an `addContact` row, the
-"liste de contacts" link legacy looks for?), a profile of a **banned or deleted member**, a profile with a **real birth date and
+A profile seen **logged in** is captured since: `R716b`, `R124p1` and `R1363b` (#1363). The row set is the same plus an "Ajouter
+<pseudo> à votre liste de contacts" row (`addContact`, legacy's "liste de contacts") and, on `R1363b`, a "Couleurs personnalisées"
+link row; `UserProfileLoggedInTests` reads `R1363b`. HFR serves profiles to a logged-in session only since 2026-11-26 (`R1363a`).
+
+**Pending capture** (nothing hand-built): a profile of a **banned or deleted member**, a profile with a **real birth date and
 signature** (HTML or BBCode in a value cell, links in values), a member with a **status other than `Membre`** (modérateur, admin),
 a personal smiley with an **apostrophe or space in its file name** (seen on the smiley search, R53b, not on a profile), and an
 avatar on a non-`jpg` extension.

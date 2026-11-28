@@ -5,6 +5,7 @@ import HFRParsing
 import Testing
 
 /// #714: which pseudo an MP row's avatar is read for, on the rows the parser really produces from the captured lists.
+@MainActor
 struct MessageRowAvatarTests {
     private static let listURL = "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1"
 
@@ -24,6 +25,17 @@ struct MessageRowAvatarTests {
         let group = try #require(rows.first { $0.isGroup })
         let groupSubject = MessageRowView.avatarSubject(of: group)
         #expect(groupSubject.isGroup && groupSubject.pseudo == nil)
+    }
+
+    @Test("A group row says so to VoiceOver, a one-to-one row says nothing (#1158)")
+    func groupRowIsSpoken() throws {
+        let rows = try threads("R13u1-mp-list-recipient-unread.html")
+        for row in rows {
+            #expect(MessageRowView.accessibilityValue(of: row) == (row.isGroup ? "Conversation de groupe" : ""))
+        }
+        #expect(rows.contains { $0.isGroup } && rows.contains { !$0.isGroup })
+        // Same rule as the icon: a row that only carries the label of a group is a group too.
+        #expect(MessageRowView.accessibilityValue(of: thread(starter: "Interlocuteurs multiples")) == "Conversation de groupe")
     }
 
     @Test("A group row never leaks a member's pseudo (R123a)")

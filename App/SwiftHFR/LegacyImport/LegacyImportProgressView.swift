@@ -22,7 +22,7 @@ struct LegacyImportProgressView: View {
         var spark: Double
     }
 
-    static let title = "Import de vos données HFR+…"
+    static let title = "Import de tes données HFR+…"
     /// Matches `IMPACT_ANGLE` and `SHOULDER` in `make.py`.
     static let impactAngle = 58.0
     static let shoulder = UnitPoint(x: 72.0 / 128.0, y: 62.0 / 128.0)

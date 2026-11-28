@@ -59,4 +59,11 @@ struct MessageRowInfoLineTests {
         #expect(MessageRowInfoLine.make(thread: row, flagLabel: "⚑ 1 / 2", now: now).leading == "⚑ 1 / 2")
         #expect(MessageRowInfoLine.make(thread: row, flagLabel: nil, now: now).leading == nil)
     }
+
+    @Test("Spoken leading: a group's flag in words, other text as it is (#1161)")
+    func spokenLeading() {
+        #expect(MessageRowInfoLine.spokenLeading("⚑ 2 / 3") == "Page 2 sur 3")
+        #expect(MessageRowInfoLine.spokenLeading("autre") == "autre")
+        #expect(MessageRowInfoLine.spokenLeading("⚑ x / y") == "⚑ x / y")
+    }
 }

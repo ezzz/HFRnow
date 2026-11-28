@@ -5,6 +5,7 @@ import Testing
 
 /// #565: the system bottom bar of a list sat inside the iPhone floating tab bar's frame. The placement follows the root that was
 /// built (tab bar or sidebar), never the size class: a Plus / Pro Max iPhone in landscape is regular width with the tab bar.
+@MainActor
 @Suite("Pager placement")
 struct PagerPlacementTests {
     @Test("the tab bar root gets the pager as an inset above it")

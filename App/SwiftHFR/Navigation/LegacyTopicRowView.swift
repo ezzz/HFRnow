@@ -42,6 +42,7 @@ struct LegacyTopicRowView: View {
             }
             HStack(spacing: 6) {
                 Text(TopicRowInfoLine.leading(topic, showsFlag: showsFlag))
+                    .accessibilityLabel(TopicRowInfoLine.spokenLeading(topic, showsFlag: showsFlag))
                 Spacer(minLength: 0)
                 if let trailing = TopicRowInfoLine.trailing(topic) { Text(trailing).lineLimit(1) }
             }

@@ -12,7 +12,7 @@ struct BlocklistSyncQuestions: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Stockage MP", isPresented: consentShown) {
+            .alert(AlertTitles.blocklistSyncQuestion, isPresented: consentShown) {
                 Button("Synchroniser") { Task { await model?.answerConsent(true) } }
                 Button("Garder sur cet appareil", role: .cancel) { Task { await model?.answerConsent(false) } }
             } message: {

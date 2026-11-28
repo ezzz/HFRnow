@@ -7,7 +7,7 @@ struct ReaderServices: Sendable {
     let imageFetcher: ReaderImageFetcher
     /// Image mode and display choices.
     let settings: ReaderSettings
-    /// Public profiles opened from a link (LOT-116), fetched without cookies.
+    /// Public profiles opened from a link (LOT-116), fetched with the account's session (#1363).
     let profiles: any UserProfileSource
     /// Records the reading position of the current account (LOT-111); nil when logged out.
     var positions: (any ReaderPositionRecording)?

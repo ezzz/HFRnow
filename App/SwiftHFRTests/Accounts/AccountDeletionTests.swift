@@ -329,7 +329,7 @@ struct AccountDeletionModelTests {
 
         await deletion.retry()
 
-        #expect(deletion.phase == .refused(message: "L’élément vide du trousseau n’a pas pu être supprimé. Réessayez."))
+        #expect(deletion.phase == .refused(message: "L’élément vide du trousseau n’a pas pu être supprimé. Réessaie."))
         #expect(deletion.keychainItemPending)
         // As after a relaunch: a new model, the screen opens and reads the stores.
         let relaunched = AccountDeletionModel(accounts: accounts, eraser: SeededStores().eraser)

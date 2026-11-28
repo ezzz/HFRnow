@@ -235,7 +235,7 @@ struct FilteredPostsModelTests {
         let model = model(FakeFilteredSource { _, _, _ throws(FilteredPostsError) in throw .network(.offline) })
         model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
         await settle(model)
-        #expect(model.errorMessage == "Pas de connexion. Réessayez une fois connecté.")
+        #expect(model.errorMessage == "Pas de connexion. Réessaie une fois connecté.")
         #expect(model.result == nil)
         model.dismissError()
         #expect(model.errorMessage == nil)

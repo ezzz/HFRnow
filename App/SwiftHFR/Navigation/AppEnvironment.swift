@@ -26,7 +26,8 @@ struct AppEnvironment {
     let favoriteStores: FavoritesStores
     /// Flag writes of the current account (LOT-125): list rows and the message menu; nil when logged out.
     let flagActions: TopicFlagActions?
-    /// Avatars of the MP rows' correspondents the cache lacks (#714), looked up without cookies; nil when logged out.
+    /// Avatars of the MP rows' correspondents the cache lacks (#714): id lookup without cookies, profile with the session (#1363);
+    /// nil when logged out.
     let memberAvatars: MemberAvatarPrefetcher?
     /// The reader's copy of the pseudo lists (LOT-117), refreshed after the MPStorage sync changes the blocklist (LOT-131).
     let pseudoListsSnapshot: PseudoListsSnapshot
@@ -38,6 +39,9 @@ struct AppEnvironment {
     /// Where the Plus tab's AQ list and badge come from (LOT-133); nil in an environment built by hand (tests), so no root
     /// fetches the live feed with the address of the Info.plist. `make` sets the live one.
     var qualityAlertsSource: (any QualityAlertsSource)?
+    /// The AQ feed already read that the roots of this environment count from (#1398): the app's (`QualityAlertsLaunchFeed.shared`)
+    /// from `make`; nil in an environment built by hand (tests), whose roots each get their own, so no test leaves a feed to another.
+    var qualityAlertsFeed: QualityAlertsLaunchFeed?
 
     /// The environment for `session`.
     static func make(
@@ -65,7 +69,8 @@ struct AppEnvironment {
                 store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
                 pseudoLists: { lists.current }
             ),
-            profiles: LiveUserProfileSource(fetcher: fetcher),
+            // HFR serves profiles to a logged-in session only (#1363, `R1363a`); without a login no request leaves.
+            profiles: LiveUserProfileSource(session: session),
             positions: LiveReaderPositionRecorder.live(account: accountName),
             // DISABLED(offline, #822): kept for a later design (#846), not reachable. No offline services, so no screen can offer it.
             offline: OfflineSaveAvailability.isReachable ? .live(fetcher: fetcher) : nil,
@@ -94,11 +99,11 @@ struct AppEnvironment {
             ),
             favoriteStores: .live(account: accountName),
             flagActions: flagActions,
-            // Only the MP list asks, and it needs an account; the lookups themselves never carry the session.
-            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars),
+            // Only the MP list asks, and it needs an account; the id lookup never carries the session, the profile does (#1363).
+            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, session: session, store: avatars),
             pseudoListsSnapshot: lists, blocklistChanges: blocklistChanges,
             privateMessageCount: privateMessageCount,
-            qualityAlertsSource: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:])
+            qualityAlertsSource: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:]), qualityAlertsFeed: .shared
         )
     }
 

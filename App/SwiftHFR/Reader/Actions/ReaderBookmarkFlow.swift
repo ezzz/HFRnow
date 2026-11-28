@@ -9,7 +9,7 @@ struct ReaderBookmarkFlow: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Stockage MP", isPresented: consentShown, presenting: bookmarks?.pendingConsent) { draft in
+            .alert(AlertTitles.mpStorageQuestion, isPresented: consentShown, presenting: bookmarks?.pendingConsent) { draft in
                 // The draft comes from the alert: SwiftUI clears the presenting state before the button runs (LOT-087).
                 Button("Activer") { Task { await bookmarks?.answerConsent(true, for: draft) } }
                 Button("Annuler", role: .cancel) { Task { await bookmarks?.answerConsent(false, for: draft) } }
@@ -47,7 +47,7 @@ private struct BookmarkTitleSheet: View {
                 Section {
                     Group {
                         Text("Créer un bookmark sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
-                        TextField("Ajoutez un titre", text: $title)
+                        TextField("Ajoute un titre", text: $title)
                             .textInputAutocapitalization(.sentences)
                             .focused($focused)
                             .submitLabel(.done)

@@ -152,7 +152,7 @@ final class SmileyPickerModel: Identifiable {
     }
 
     /// How to add a favourite, shown while the list is empty (the context menu was not discoverable, #600).
-    static let noFavoritesText = "Aucun favori dans l’app pour le moment. Maintenez le doigt sur un smiley, puis « Ajouter aux favoris »."
+    static let noFavoritesText = "Aucun favori dans l’app pour le moment. Maintiens le doigt sur un smiley, puis « Ajouter aux favoris »."
 
     private var favoritesSection: PickerSection {
         if favoritesAreUnreadable {
@@ -169,7 +169,7 @@ final class SmileyPickerModel: Identifiable {
     private var forumSection: PickerSection {
         if let forum, !forum.isEmpty { return PickerSection(kind: .forum, smileys: forum, state: .smileys) }
         if forum != nil {
-            return PickerSection(kind: .forum, smileys: [], state: .empty("Aucun smiley favori sur votre compte HFR."))
+            return PickerSection(kind: .forum, smileys: [], state: .empty("Aucun smiley favori sur ton compte HFR."))
         }
         if forumFailed {
             return PickerSection(kind: .forum, smileys: [], state: .failed("Smileys du forum indisponibles pour le moment."))
@@ -179,15 +179,15 @@ final class SmileyPickerModel: Identifiable {
     }
 
     /// How to create one, shown while the list is empty.
-    static let noOwnSmileysText = "Vous n’avez créé aucun smiley. Le forum permet d’en créer jusqu’à 11 (profil › Smilies persos)."
+    static let noOwnSmileysText = "Tu n’as créé aucun smiley. Le forum permet d’en créer jusqu’à 11 (profil › Smilies persos)."
 
     private var ownSection: PickerSection {
         if let own, !own.isEmpty { return PickerSection(kind: .own, smileys: own, state: .smileys) }
         if own != nil { return PickerSection(kind: .own, smileys: [], state: .empty(Self.noOwnSmileysText)) }
         if ownFailed {
-            return PickerSection(kind: .own, smileys: [], state: .failed("Vos smileys sont indisponibles pour le moment."))
+            return PickerSection(kind: .own, smileys: [], state: .failed("Tes smileys sont indisponibles pour le moment."))
         }
-        let state: PickerSectionState = ownLoader == nil ? .empty("Vos smileys sont indisponibles ici.") : .loading
+        let state: PickerSectionState = ownLoader == nil ? .empty("Tes smileys sont indisponibles ici.") : .loading
         return PickerSection(kind: .own, smileys: [], state: state)
     }
 
