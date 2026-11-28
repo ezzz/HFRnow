@@ -240,7 +240,7 @@ struct TopicReaderModelTests {
         }
         let reader = model(pages)
         await reader.onAppear()
-        #expect(pages.requests.first?.servedPage == nil)
+        #expect(pages.requests == [ReaderTarget(source: .topic(readerTopic), page: 1)])
         await reader.goToPage(2)
         #expect(pages.requests.last == ReaderTarget(source: .topic(readerTopic), page: 2, servedPage: served))
         await reader.refresh()

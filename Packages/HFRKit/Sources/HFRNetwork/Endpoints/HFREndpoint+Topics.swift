@@ -60,12 +60,20 @@ extension HFREndpoint {
     }
 
     /// The path of `served` up to `sujet_<topic>`, when `served` is a canonical topic page of the forum origin
-    /// (`/hfr/<forum>[/<sub-category>]/<slug>-sujet_<topic>_<page>.htm`, HFR-PROTOCOL R5).
+    /// (`/hfr/<forum>[/<sub-category>]/<slug>-sujet_<topic>_<page>.htm`, HFR-PROTOCOL R5), written as HFR serves it: the
+    /// whole path, lower-case `sujet` and `.htm` as in every capture, the topic number as written, no `.` or `..` segment
+    /// (encoded or not).
     static func canonicalStem(of served: URL, topic: Int) -> String? {
         guard served.scheme?.lowercased() == "https", served.host()?.lowercased() == forumHostName, served.port == nil,
               served.user() == nil, served.password() == nil else { return nil }
         let path = served.path(percentEncoded: true)
-        guard let match = path.wholeMatch(of: canonicalPagePattern), Int(match.output.2) == topic else { return nil }
+        let hasDotSegment = path.split(separator: "/").contains { segment in
+            let decoded = String(segment).removingPercentEncoding ?? String(segment)
+            return decoded == "." || decoded == ".."
+        }
+        guard !hasDotSegment, let match = path.wholeMatch(of: canonicalPagePattern), match.output.2 == String(topic) else {
+            return nil
+        }
         return String(match.output.1)
     }
 
@@ -74,7 +82,7 @@ extension HFREndpoint {
 
     // `Regex` is not `Sendable`; this literal captures only `Substring`s and is compiled once by the runtime.
     nonisolated(unsafe) private static let canonicalPagePattern =
-        /(\/hfr\/[^\/]+\/(?:[^\/]+\/)?[^\/]+-sujet_([0-9]+))_[0-9]+\.htm/.ignoresCase()
+        /(\/hfr\/[^\/]+\/(?:[^\/]+\/)?[^\/]+-sujet_([0-9]+))_[0-9]+\.htm/
 
     /// R5 for a known message: the page holding it, with its `#t<numreponse>` anchor.
     public static func topicPage(post: PostID, page: Int) throws -> HTTPRequest {

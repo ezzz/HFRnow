@@ -43,7 +43,16 @@ struct HFREndpointServedTopicPageTests {
             "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=25&post=1711&page=1",  // id form
             "https://forum.hardware.fr/hfr/apple/x/y/unique-sujet_1711_1.htm",  // not the R5 shape
             "https://forum.hardware.fr/hfr/reseauxpersosoho/FAI/sujet_1711_1.htm",  // empty slug: not a captured final URL
-            "https://forum.hardware.fr/x/apple/unique-forum-released-sujet_1711_1.htm"  // not under /hfr/
+            "https://forum.hardware.fr/x/apple/unique-forum-released-sujet_1711_1.htm",  // not under /hfr/
+            "https://forum.hardware.fr/x/hfr/apple/unique-forum-released-sujet_1711_1.htm",  // /hfr/ not at the start
+            "https://forum.hardware.fr/hfr/apple/unique-forum-released-sujet_1711_1.htm/x",  // something after the page
+            "https://forum.hardware.fr/hfr/apple/unique-forum-released-sujet_1711_1.html",  // not `.htm`
+            "https://forum.hardware.fr/hfr/apple/unique-forum-released-SUJET_1711_1.HTM",  // not as HFR writes it
+            "https://forum.hardware.fr/hfr/apple/unique-forum-released-sujet_01711_1.htm",  // the number written otherwise
+            "https://:pw@forum.hardware.fr/hfr/apple/unique-forum-released-sujet_1711_1.htm",  // a password
+            "https://forum.hardware.fr/hfr/../unique-forum-released-sujet_1711_1.htm",  // a dot segment
+            "https://forum.hardware.fr/hfr/apple/./unique-forum-released-sujet_1711_1.htm",  // a dot segment
+            "https://forum.hardware.fr/hfr/%2E%2E/unique-forum-released-sujet_1711_1.htm"  // an encoded dot segment
         ]
     )
     func fallsBack(served text: String) throws {
