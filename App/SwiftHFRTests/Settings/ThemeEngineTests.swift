@@ -105,12 +105,27 @@ struct ThemeEngineTests {
         let catalog = ThemeCatalog.bundled
         let retro = try #require(catalog.themes.first { $0.id == "retro-5250" })
         _ = try #require(catalog.themes.first { $0.id == "swift" })
-        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro"])
+        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro", "OG Web"])
         let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
         model.mode = .light
         model.select(retro)
         #expect(model.appearance.forcedColorScheme == .dark && model.preferredColorScheme == .dark)
         #expect(retro.fontDesign == .monospaced)
+    }
+
+    /// LOT-193: OG clair and OG gris are bundled in the OG Web family; each one is a single variant that shows in the appearance
+    /// its background reads as, whatever the picker says (light for OG clair, dark for OG gris: white contrasts more with #666666).
+    @Test func ogClairAndOgGrisAreInTheBundledGallery() throws {
+        let catalog = ThemeCatalog.bundled
+        let clair = try #require(catalog.themes.first { $0.id == "og-clair" })
+        let gris = try #require(catalog.themes.first { $0.id == "og-gris" })
+        let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
+        model.mode = .dark
+        model.select(clair)
+        #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
+        model.mode = .light
+        model.select(gris)
+        #expect(model.appearance.forcedColorScheme == .dark && model.preferredColorScheme == .dark)
     }
 
     @Test func aSingleVariantThemeImposesItsAppearance() throws {

@@ -56,6 +56,10 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     public let pageBar: ThemeRGB?
     /// Optional: counters of a table-like theme; `textSecondary` when absent.
     public let counter: ThemeRGB?
+    /// Optional: text on `headerBand`; `textPrimary` when absent.
+    public let onHeaderBand: ThemeRGB?
+    /// Optional: text on `pageBar`; `textPrimary` when absent.
+    public let onPageBar: ThemeRGB?
 
     /// Decodes every token; a name that is not a token (a typo of an optional one would otherwise be ignored) is an error.
     public init(from decoder: any Decoder) throws {
@@ -94,6 +98,8 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         meta = try optional("meta")
         pageBar = try optional("pageBar")
         counter = try optional("counter")
+        onHeaderBand = try optional("onHeaderBand")
+        onPageBar = try optional("onPageBar")
     }
 
     /// The names of the required tokens, in the order of THEMES.md §3.
@@ -104,7 +110,7 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     ]
 
     /// The names of the optional tokens.
-    public static let optionalNames = ["headerBand", "alternateCell", "meta", "pageBar", "counter"]
+    public static let optionalNames = ["headerBand", "alternateCell", "meta", "pageBar", "counter", "onHeaderBand", "onPageBar"]
 
     /// `headerBand`, or its fallback.
     public var resolvedHeaderBand: ThemeRGB { headerBand ?? surfaceRaised }
@@ -116,6 +122,10 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     public var resolvedPageBar: ThemeRGB { pageBar ?? surfaceRaised }
     /// `counter`, or its fallback.
     public var resolvedCounter: ThemeRGB { counter ?? textSecondary }
+    /// `onHeaderBand`, or its fallback.
+    public var resolvedOnHeaderBand: ThemeRGB { onHeaderBand ?? textPrimary }
+    /// `onPageBar`, or its fallback.
+    public var resolvedOnPageBar: ThemeRGB { onPageBar ?? textPrimary }
 
     private static let black = ThemeRGB(red: 0, green: 0, blue: 0)
     private static let white = ThemeRGB(red: 255, green: 255, blue: 255)
@@ -175,7 +185,7 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         ("accentText", "readerAlternate"),
         // Optional table tokens (LOT-193), on what they sit on.
         ("meta", "surface"), ("meta", "alternateCell"), ("counter", "surface"), ("counter", "alternateCell"),
-        ("textPrimary", "alternateCell"), ("textPrimary", "headerBand"), ("textPrimary", "pageBar")
+        ("textPrimary", "alternateCell"), ("link", "alternateCell"), ("onHeaderBand", "headerBand"), ("onPageBar", "pageBar")
     ].map { ContrastRule(foreground: $0.0, background: $0.1, minimum: 4.5) }
 
     /// A rule the variant breaks, or a token of a rule that is not opaque.
@@ -200,7 +210,8 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         "quoteBackground": \.quoteBackground, "quoteBorder": \.quoteBorder, "codeBackground": \.codeBackground,
         "codeText": \.codeText, "spoilerBackground": \.spoilerBackground, "spoilerText": \.spoilerText, "unread": \.unread,
         "onUnread": \.onUnread, "headerBand": \.resolvedHeaderBand, "alternateCell": \.resolvedAlternateCell,
-        "meta": \.resolvedMeta, "pageBar": \.resolvedPageBar, "counter": \.resolvedCounter
+        "meta": \.resolvedMeta, "pageBar": \.resolvedPageBar, "counter": \.resolvedCounter,
+        "onHeaderBand": \.resolvedOnHeaderBand, "onPageBar": \.resolvedOnPageBar
     ]
 
     /// The colour of the token `name`, or of a derived name of `contrastRules`, for a variant shown in light (`inLight`) or

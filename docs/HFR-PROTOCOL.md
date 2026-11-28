@@ -924,6 +924,26 @@ Inventory, data sent to each host, owners, first-use notices and the decisions o
 | Giphy | GIF picker | API key required (ADR 0007) | E §6 |
 | Video players | YouTube, Vimeo, Streamable links shown as `<iframe>` players (`embedded_videos`) | Dailymotion, Coub, Twitch commented out in legacy; removed from the live app by `d645f52`; SwiftHFR shows a placeholder, player on tap (LOT-071 D-071-2) | `ParseMessagesOperation.m:238-300`, `LinkItem.m:149-158` |
 
+### LOT-193 — Styles of OG clair and OG gris (#734, 2026-11-28)
+
+Each colour of `App/SwiftHFR/Themes/og-clair/` and `og-gris/` is a value of the captured stylesheets (`R728a` default skin, `R728c` grey skin; line numbers of the capture) or a listed accessibility change. The raw values are the operator-validated draft (`docs/assets/themes/tokens/themes.json`); the engine's rules ([THEMES.md](THEMES.md) §3) moved some of them. The orange (`accent`, `#F18F18`) comes from the logo bitmap (« Forum logo colour » above), a fill only.
+
+| Token | OG clair: source | OG gris: source |
+|---|---|---|
+| `background` | the colour key's first field, `#FFFFFF` | `R728c` l.2 `body` `#666666`; shipped `#D5D5D5` (change 1) |
+| `surface`, `alternateCell` | `R728a` l.11 `.cBackTab1` `#F7F7F7`; alternate `#DEDFDF` | `R728c` l.11 `#aaaaaa`, alternate l.14 `#BBBBBB`; shipped `#DCDCDC`, `#E8E8E8` (change 1) |
+| `surfaceRaised`, `headerBand` | `#001932` (header band) | `R728c` l.4 `.cBackHeader` `#202530` |
+| `onHeaderBand` | `#FFFFFF` | `R728c` l.5 `.cHeader` `#888888` (4.33:1 on the band); shipped `#8E8E8E` (change 3) |
+| `link`, `accentText` | `#000080` | `R728c` l.8 `.cCatTopic` `#1A2A3C` |
+| `pageBar` | `R728a` l.33 `.barre` `#C2C3F4` | same |
+| `meta`, `textSecondary` | `R728a` l.26 `.cFondu` `#73818e`; shipped `#4B5762` (change 2) | `R728c` l.26 `#4f5258`; draft `#3C3F45` |
+| `counter` | none (falls back to `textSecondary`) | `.cCatTopicVIP` `#0000FF` (`R728a` l.9); draft `#0000B0` |
+| `quoteBackground`, `spoilerBackground` | white | `R728c` l.32 `#eeeeee` |
+| `title`, `sectionHeader` | `#001932` / `#000080` | `R728c` l.10 `.fondForumSupercat` `#888888`; draft `#FFFFFF`, shipped `#202530` (change 1) |
+| `unread` | `#FF0000` (`the_style.css`); draft `#CC0000` (white text 4.0:1 → 5.9:1) | same |
+
+The changes the engine's rules forced, with their ratios, are in the PR body of #734. Why OG gris changed (change 1): a themed row writes its errors in the app's own `errorText` and its outlined unread capsule in the app's badge grey, and no appearance gives both 4.5:1 on a mid-grey: `#B00020` needs a background and a row of at least about `#D0D0D0` (light), `#FF827A` of at most about `#202020` (dark). The faithful mid-grey (`#666666` page, `#AAAAAA` rows) needs a theme to carry its own error and badge colours: a follow-up issue.
+
 ### `aq.super-h.fr`: server source (secondary, not a capture)
 
 The AQ service's server code is published by its operator (roger21) under AGPL-3.0: `roger21/toyo@96c0aeafdbfc6dfdd63746a6be65a79f227c5860`, folder `aq/` (cited below as `toyo@96c0aea:<file>:<line>`, paths under `aq/`). roger21 told the operator that this code is what runs in production, connection settings aside (private message of 2026-11-07, recorded on #573). Under [ADR 0015](adr/0015-third-party-source-as-protocol-source.md) it is a **secondary source**: it explains the captures and names states to capture; the captures (`T01`, `T02`, `T50`, `T51` on the live host, `T52`-`T90` on a local instance, §6c LOT-055) stay the oracle, and a state known only from the source is handled on the safe side. The reference userscript `roger21/hfr@b8d110b10fae3096bc547fc0cbc06be1266d18a9`, `hfr_alerte_quali_mod_r21.user.js` (cited `hfr@b8d110b:<line>`), shows how another client uses it. Facts only, in our words; no code is copied.

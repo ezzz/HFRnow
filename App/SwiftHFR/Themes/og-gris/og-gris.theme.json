@@ -1,0 +1,40 @@
+{
+  "id": "og-gris",
+  "name": "OG gris",
+  "family": "OG Web",
+  "author": "d'après le forum HFR (thème web)",
+  "fontDesign": "default",
+  "decorations": null,
+  "variants": {
+    "any": {
+      "background": "#D5D5D5",
+      "surface": "#DCDCDC",
+      "surfaceRaised": "#202530",
+      "title": "#202530",
+      "textPrimary": "#000000",
+      "textSecondary": "#3C3F45",
+      "sectionHeader": "#202530",
+      "accent": "#F18F18",
+      "accentText": "#1A2A3C",
+      "onAccent": "#000000",
+      "separator": "#000000",
+      "link": "#1A2A3C",
+      "quoteBackground": "#EEEEEE",
+      "quoteBorder": "#000000",
+      "codeBackground": "#FFFFFF",
+      "codeText": "#000000",
+      "unread": "#CC0000",
+      "onUnread": "#FFFFFF",
+      "spoilerBackground": "#EEEEEE",
+      "spoilerText": "#000000",
+      "selection": "#C9CAF5",
+      "headerBand": "#202530",
+      "onHeaderBand": "#8E8E8E",
+      "alternateCell": "#E8E8E8",
+      "meta": "#3C3F45",
+      "pageBar": "#C2C3F4",
+      "onPageBar": "#000000",
+      "counter": "#0000B0"
+    }
+  }
+}

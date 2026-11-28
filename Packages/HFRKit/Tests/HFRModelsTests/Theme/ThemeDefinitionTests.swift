@@ -49,10 +49,10 @@ import Testing
     @Test func theBrokenThemeFailsTheContrastRuleItBreaks() throws {
         let theme = try JSONDecoder().decode(ThemeDefinition.self, from: Self.fixture("broken-theme"))
         let failures = theme.contrastViolations.map { "\($0.variant) \($0.violation.rule.foreground)/\($0.violation.rule.background)" }
-        // Its dark link fails on every surface links are drawn on (the reader's page, quotes, spoilers, code, even messages).
+        // Its dark link fails on every surface links are drawn on (the reader page, quotes, spoilers, code, even messages, cells).
         #expect(failures == [
             "dark link/surface", "dark link/quoteBackground", "dark link/spoilerBackground", "dark link/codeBackground",
-            "dark link/readerAlternate"
+            "dark link/readerAlternate", "dark link/alternateCell"
         ])
         #expect(theme.contrastViolations.first?.violation.description == "link on surface: 1.64:1, needs 4.5:1")
     }
@@ -90,7 +90,35 @@ import Testing
             Issue.record("Rétro 5250 is a single variant")
             return
         }
-        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro"])
+        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro", "OG Web"])
+    }
+
+    /// LOT-193: OG clair and OG gris (family OG Web, one variant each) ship with the optional table tokens (header band,
+    /// alternate cell, meta, page bar and the text on both bars).
+    @Test func ogClairAndOgGrisAreBundledWithTheirTableTokens() throws {
+        let catalog = ThemeCatalog(files: try Self.bundledFiles())
+        for (id, name) in [("og-clair", "OG clair"), ("og-gris", "OG gris")] {
+            let theme = try #require(catalog.themes.first { $0.id == id })
+            #expect(theme.name == name && theme.family == "OG Web" && theme.fontDesign == .default)
+            guard case .single(let tokens)? = theme.variants else {
+                Issue.record("\(name) is a single variant")
+                continue
+            }
+            #expect(tokens.resolvedHeaderBand == ThemeRGB(hex: id == "og-clair" ? "#001932" : "#202530"))
+            #expect(tokens.alternateCell != nil && tokens.meta != nil && tokens.pageBar != nil)
+            #expect(tokens.onHeaderBand != nil && tokens.onPageBar != nil)
+        }
+        #expect(catalog.galleryFamilies.first { $0.family == "OG Web" }?.themes.map(\.id) == ["og-clair", "og-gris"])
+    }
+
+    /// The text of a band falls back to `textPrimary`, and the rule follows it.
+    @Test func aBandTextTokenFallsBackToTextPrimaryAndIsChecked() throws {
+        let tokens = try #require(ThemeCatalog(files: try Self.bundledFiles()).themes.first { $0.id == "swift" }?.variants?.light)
+        #expect(tokens.resolvedOnHeaderBand == tokens.textPrimary && tokens.resolvedOnPageBar == tokens.textPrimary)
+        let rules = ThemeTokens.contrastRules
+        #expect(rules.contains { $0.foreground == "onHeaderBand" && $0.background == "headerBand" })
+        #expect(rules.contains { $0.foreground == "onPageBar" && $0.background == "pageBar" })
+        #expect(rules.contains { $0.foreground == "link" && $0.background == "alternateCell" })
     }
 
     /// The contrast test fails on a broken bundled theme: the same check, given the broken fixture among the bundled files.
