@@ -195,6 +195,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-903 | Experimental options | None. | — | Single row « Expérimental » at the end of Réglages (monochrome warning symbol) opening an « Expérimental » page; the themes (Composer, Messages…) are its sections, each switch with an ⓘ except « MP multiples → dark topic », whose description sits under its switch (#1014), the footer under the last one; device keys, all off by default (the modern composer too since #855, which made legacy's full-screen composer the default). Lists the options whose two paths exist: « Composer moderne » (#904), « Recherche dans la barre » (#896), « MP multiples → dark topic » (#1014, it replaced « Stockage MP détaillé », #859), « Chargement des images » (#902) and « Lignes denses » (#905, #973: dense topic and MP rows, last poster, one info line cut with « … » except at accessibility text sizes, bold section titles). | #903, #971, #855, #1014 | new | new UX: operator 2026-11-14 | b·operator |
 | GAP-1213 | Light style and theme tiles | None: one light look, and « Thème » is a menu with the dark controls always shown. | — | Réglages › Thème: « Thème » is three image tiles (Clair, Sombre, Système split diagonally, drawn from the reader's surfaces, the dot in the chosen accent); the light theme has a « Style du thème clair » (Blanc, today's look, default; Doux, a warm off-white #F5F4EF), the dark controls show for Sombre and Système only; device setting `theme_light_style`. | #1213 | new | new UX: operator (#1213) | b·operator |
 | GAP-1178 | App voice (« tu » or « vous ») | « Vous » in every user-facing string (« Connectez-vous… », « Réessayez… », « Votre session a expiré… »). | AppSettingsView.swift:260; Favorites.swift:669; MPListView.swift:583 @ `87fe0d1c` | Tous les textes de l'app s'adressent au lecteur en « tu » (« Connecte-toi… », « Réessaie… », « Ta session a expiré… ») ; les textes de HFR eux-mêmes (charte, phrases de confirmation du serveur) restent tels quels. | #1178 | UX change | port: ezzz Swift layer | b·operator |
+| GAP-735 | Fête nationale overlay | None. | none @ 87fe0d1c | Première ouverture le 14/07 : buste de Marianne et feux d'artifice sur l'écran, « Fête nationale », 4 s, une fois par an, fermé d'un toucher ; rien avec Réduire les animations ou « Animations de saison » désactivé (docs/THEMES.md §5). | LOT-194 | UX change | new UX: operator | b·operator |
 
 ## Accounts
 
@@ -212,6 +213,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-169 | App lock | None. | — | Optional Face ID / code lock with grace delay. | LOT-173 | new | new UX: operator | b·operator |
 | GAP-170 | Legacy data import | Not applicable (in-place update). | — | Idempotent import of accounts, lists, settings and drafts. | LOT-067, LOT-158 | new | new UX: spec | a |
 | GAP-246 | Session expiry | An account row shows its avatar, name and a checkmark; nothing says when a session lapses. | AccountMenuViews.swift:11-26 @ 87fe0d1c | Comptes shows « Session valable jusqu’au <date> » under a confirmed account (the stored login cookies' expiry) and explains that HFR keeps an account 30 days, renewed whenever the app opens the forum with it. | LOT-156 | new | new UX: spec | b·operator |
+| GAP-1420 | Profiles without `md_id` | HFR refuses profiles without `md_id`, set at login only; legacy merges the account's cookies instead of replacing them, logs in with `login.php`'s fields, and on a 403 without `md_id` asks to remove and add the account again. | `UserProfileService.swift:43-47`; `UserProfileLoadingError.swift:30-32`; `MultisManager.m:228-262`; `LoginService.swift:62-77` @ `5c0f10db` | No profile request without `md_id` (an account imported from legacy, a login past 30 days): « Connexion requise » pointing to « Se reconnecter »; a 403 to a session that lost it meanwhile too; a 403 with it stays « accès refusé ». Answers already merged (#383); the account sync keeps this device's `md_id` when a newer copy of the same login lacks it (ADR 0013 Amendment 5). Login fields unchanged: legacy's still set `md_id` (`W1420a`, `W1420b`). | #1420 | ported with changes | port: ezzz Swift layer | a |
 
 ## Offline and sync
 
@@ -311,13 +313,13 @@ Gap issues: #1309 state views (needs a decision), #1310 haptics, #1311 row menus
 | Gap | Rows |
 |---|---|
 | same | 31 |
-| ported with changes | 67 |
+| ported with changes | 68 |
 | ported with changes (engine only) | 1 |
-| UX change | 63 |
+| UX change | 64 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 2 |
-| **Total** | **196** |
+| **Total** | **198** |
 
 ## Convergence notes
 
@@ -347,14 +349,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (159)
+### GAP rows of type `ported with changes`, `UX change` or `new` (161)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 005, 007, 020, 021, 022, 023, 026, 027, 032, 033, 037, 038, 040, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595, 1039 | 52 |
+| a | 004, 005, 007, 020, 021, 022, 023, 026, 027, 032, 033, 037, 038, 040, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595, 1039, 1420 | 53 |
 | a·master | 002, 093, 117, 150, 152, 210, 217, 219, 682, 713 | 10 |
 | b·needed | 024, 036, 056, 058, 070, 089, 133, 181, 192 | 9 |
-| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297, 1347 | 46 |
+| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 735, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297, 1347 | 47 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 912, 1073, 1074, 1107, 1374 | 42 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
