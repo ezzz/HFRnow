@@ -105,12 +105,23 @@ struct ThemeEngineTests {
         let catalog = ThemeCatalog.bundled
         let retro = try #require(catalog.themes.first { $0.id == "retro-5250" })
         _ = try #require(catalog.themes.first { $0.id == "swift" })
-        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro"])
+        #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro", "OG Web"])
         let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
         model.mode = .light
         model.select(retro)
         #expect(model.appearance.forcedColorScheme == .dark && model.preferredColorScheme == .dark)
         #expect(retro.fontDesign == .monospaced)
+    }
+
+    /// LOT-193: OG clair is bundled in the OG Web family; a single variant that shows in the light appearance whatever the picker
+    /// says (black text contrasts more with its #FFFFFF background).
+    @Test func ogClairIsInTheBundledGallery() throws {
+        let catalog = ThemeCatalog.bundled
+        let clair = try #require(catalog.themes.first { $0.id == "og-clair" })
+        let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
+        model.mode = .dark
+        model.select(clair)
+        #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
     }
 
     @Test func aSingleVariantThemeImposesItsAppearance() throws {
