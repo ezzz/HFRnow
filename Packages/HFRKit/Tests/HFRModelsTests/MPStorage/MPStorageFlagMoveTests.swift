@@ -101,4 +101,18 @@ import Testing
             MPStorageConflict(location: "mpFlags", key: "777", kind: .divergentWithoutBase, resolution: .keptOurs)
         ])
     }
+
+    /// The same position on both sides is no conflict of positions: the merge's default rule decides (Fable round 2, 1), so without
+    /// a base the forum's copy and the keys another client added to it are kept.
+    @Test func aTieFallsBackToTheDefaultRule() throws {
+        var theirs = try Self.flagged(page: 3, message: 300)
+        theirs.primary.mpFlags?.list[0].extra = ["seen": .string("x")]
+        let result = try MPStorageMerge.merge(
+            base: nil, ours: try Self.flagged(page: 3, message: 300), theirs: theirs, stamp: Fixtures.stamp(1_800_000_000)
+        )
+        #expect(result.document.primary.mpFlags?.list.first { $0.topic == 777 }?.extra == ["seen": .string("x")])
+        #expect(result.conflicts == [
+            MPStorageConflict(location: "mpFlags", key: "777", kind: .divergentWithoutBase, resolution: .keptTheirs)
+        ])
+    }
 }

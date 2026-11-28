@@ -35,10 +35,12 @@ extension MPStorageMPFlag: MPStorageItem {
     /// Flags carry no date in v0.1.
     public var storageDate: Date? { nil }
 
-    /// The further position (page, then message; `mine` on a tie): a read position only moves forward (legacy
-    /// `pageToSave >= currentStoredPage`, `MessagesView.swift:3589-3590` @ 87fe0d1c), so a flag another client moved further is
-    /// never taken back by an earlier page read here with a stale copy (#858).
+    /// The further position (page, then message; nil on a tie, so the merge's default rule applies): a read position only
+    /// moves forward (legacy `pageToSave >= currentStoredPage`, `MessagesView.swift:3589-3590` @ 87fe0d1c), so a flag another
+    /// client moved further is never taken back by an earlier page read here with a stale copy (#858).
     public static func conflictWinner(mine: MPStorageMPFlag, other: MPStorageMPFlag) -> MPStorageMPFlag? {
-        (other.page ?? -1, other.messageNumber ?? 0) > (mine.page ?? -1, mine.messageNumber ?? 0) ? other : mine
+        let theirs = (other.page ?? -1, other.messageNumber ?? 0), ours = (mine.page ?? -1, mine.messageNumber ?? 0)
+        if theirs == ours { return nil }
+        return theirs > ours ? other : mine
     }
 }

@@ -11,6 +11,8 @@ import Foundation
 ///   last writer); a dated deletion (tombstone) removes a dated item created before it;
 /// - without `base`, an item present on both sides keeps `theirs`, an item on one side only is kept unless a
 ///   tombstone on the other side is newer than its date;
+/// - an item type with its own rule (`MPStorageItem.conflictWinner`) decides a conflict on both sides first, with or
+///   without `base`: an `mpFlags` read position keeps the further one (#858);
 /// - writer metadata changes only where the result differs from `theirs`.
 public enum MPStorageMerge {
     /// Merges the three copies; throws `noWritableEntry` when `ours` or `theirs` has no `0.1` entry.
