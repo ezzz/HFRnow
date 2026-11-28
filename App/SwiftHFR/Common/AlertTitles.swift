@@ -20,6 +20,8 @@ enum AlertTitles {
     static let markUnreadFailed = "Marquage comme non lu impossible"
     /// A favourite flag could not be removed (« Supprimer » on a favourites row).
     static let flagRemoveFailed = "Suppression du drapeau impossible"
+    /// A favourite could not be added from a list (« Ajouter aux favoris », #869).
+    static let favoriteAddFailed = "Ajout aux favoris impossible"
     /// A super favourite could not be saved on the device (« Ajouter aux / Retirer des super favoris » on a category row, #869).
     static let superFavoriteSaveFailed = "Enregistrement du super favori impossible"
     /// The first blocklist write of an account that never chose: sync it with MPStorage?

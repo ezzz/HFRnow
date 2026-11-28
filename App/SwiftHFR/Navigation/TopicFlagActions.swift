@@ -11,6 +11,9 @@ protocol TopicFlagWriting: Sendable {
     func removeFavorite(_ topic: TopicID) async throws(TopicFlagError) -> TopicFlagResult
     /// Puts the topic in the favourites by following a message's `addflag.php` link (`TopicFlagFlow.addFavorite`).
     func addFavorite(link: URL) async throws(TopicFlagError) -> TopicFlagResult
+    /// Puts `topic` in the favourites from a list: its `page` is read and its last message's `addflag.php` link followed
+    /// (`TopicFlagFlow.addFavorite(_:fromLastMessageOfPage:in:)`, #869).
+    func addFavorite(_ topic: TopicID, fromLastMessageOfPage page: Int) async throws(TopicFlagError) -> TopicFlagResult
     /// Marks a private conversation unread by following its page's `nonlu.php` link (`TopicFlagFlow.markUnread`).
     func markUnread(link: URL) async throws(TopicFlagError) -> TopicFlagResult
 }
@@ -27,6 +30,10 @@ struct LiveTopicFlagWriter: TopicFlagWriting {
 
     func addFavorite(link: URL) async throws(TopicFlagError) -> TopicFlagResult {
         try await flow.addFavorite(link: link, in: session)
+    }
+
+    func addFavorite(_ topic: TopicID, fromLastMessageOfPage page: Int) async throws(TopicFlagError) -> TopicFlagResult {
+        try await flow.addFavorite(topic, fromLastMessageOfPage: page, in: session)
     }
 
     func markUnread(link: URL) async throws(TopicFlagError) -> TopicFlagResult {
@@ -72,6 +79,15 @@ struct TopicFlagActions: Sendable {
         }
     }
 
+    /// Adds `topic` to the favourites from a list row (#869): its `page` is read first, which moves the read flag to its end.
+    func addFavorite(_ topic: TopicID, fromLastMessageOfPage page: Int) async -> TopicFlagOutcome {
+        do throws(TopicFlagError) {
+            return .done(try await writer.addFavorite(topic, fromLastMessageOfPage: page).message)
+        } catch {
+            return Self.outcome(for: error)
+        }
+    }
+
     /// Marks unread the private conversation whose page gave `link` (legacy `markUnread`). A failure is never shown as done.
     func markUnread(link: URL) async -> TopicFlagOutcome {
         do throws(TopicFlagError) {
@@ -97,7 +113,8 @@ struct TopicFlagActions: Sendable {
     static func isRetryable(_ error: TopicFlagError) -> Bool {
         switch error {
         case .sessionNotConfirmed(.unconfirmed), .sessionChanged, .network: true
-        case .sessionNotConfirmed, .invalidLink, .invalidTopic, .missingToken, .notLoggedIn, .rejected, .unconfirmed: false
+        case .sessionNotConfirmed, .invalidLink, .invalidTopic, .missingToken, .favoriteLinkMissing, .notLoggedIn, .rejected,
+             .unconfirmed: false
         }
     }
 
@@ -111,6 +128,8 @@ struct TopicFlagActions: Sendable {
         case .sessionChanged:
             // A login landed between the check and the write (#1200 P2): the same words as a check that saw it.
             session(.unconfirmed(.sessionChanged))
+        case .favoriteLinkMissing:
+            "La dernière page du sujet ne propose pas l'ajout aux favoris : rien n'a été envoyé. Actualisez la liste puis réessayez."
         case .missingToken:
             "Session incomplète : rien n'a été envoyé. Actualise la liste puis réessaie."
         case .notLoggedIn:

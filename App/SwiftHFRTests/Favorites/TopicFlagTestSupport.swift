@@ -8,15 +8,18 @@ import HFRNetwork
 final class FakeFlagWriter: TopicFlagWriting, @unchecked Sendable {
     typealias RemoveHandler = @Sendable (TopicID) async throws(TopicFlagError) -> TopicFlagResult
     typealias AddHandler = @Sendable (URL) async throws(TopicFlagError) -> TopicFlagResult
+    typealias ListAddHandler = @Sendable (TopicID, Int) async throws(TopicFlagError) -> TopicFlagResult
 
     private let lock = NSLock()
     private var removals: [TopicID] = []
     private var additions: [URL] = []
     private var unreadLinks: [URL] = []
+    private var listAdditions: [ListAddition] = []
     var removeHandler: RemoveHandler = { topic in confirmed(.removeFavoriteFromList, topic, "Drapeaux effacés avec succès") }
     var addHandler: AddHandler = { _ in
         confirmed(.addFavorite, TopicID(category: .forum(13), topic: 1), "Favori positionné avec succès")
     }
+    var listAddHandler: ListAddHandler = { topic, _ in confirmed(.addFavorite, topic, "Favori positionné avec succès") }
     var unreadHandler: AddHandler = { _ in
         confirmed(.markUnread, TopicID(category: .privateMessages, topic: 1), "Le message a été marqué comme non lu avec succès")
     }
@@ -25,6 +28,8 @@ final class FakeFlagWriter: TopicFlagWriting, @unchecked Sendable {
     var removed: [TopicID] { lock.withLock { removals } }
     /// Links followed to add a favourite, in order.
     var added: [URL] { lock.withLock { additions } }
+    /// Favourites added from a list (#869), with the page read for each, in order.
+    var addedFromList: [ListAddition] { lock.withLock { listAdditions } }
     /// Links followed to mark a conversation unread, in order.
     var markedUnread: [URL] { lock.withLock { unreadLinks } }
 
@@ -38,10 +43,21 @@ final class FakeFlagWriter: TopicFlagWriting, @unchecked Sendable {
         return try await addHandler(link)
     }
 
+    func addFavorite(_ topic: TopicID, fromLastMessageOfPage page: Int) async throws(TopicFlagError) -> TopicFlagResult {
+        lock.withLock { listAdditions.append(ListAddition(topic: topic, page: page)) }
+        return try await listAddHandler(topic, page)
+    }
+
     func markUnread(link: URL) async throws(TopicFlagError) -> TopicFlagResult {
         lock.withLock { unreadLinks.append(link) }
         return try await unreadHandler(link)
     }
+}
+
+/// A favourite added from a list: the topic and the page read for it.
+struct ListAddition: Equatable {
+    var topic: TopicID
+    var page: Int
 }
 
 /// HFR's confirmation of `action` on `topic`.

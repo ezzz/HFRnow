@@ -39,6 +39,20 @@ public struct TopicFlagFlow: Sendable {
         try await follow(.addFavorite, link: link, through: session, after: check(session))
     }
 
+    /// Puts `topic` in the account's favourites from a topic list (#869, operator decision of 2026-11-28, option A): a list
+    /// row carries no `addflag.php` link, so the session is checked first (#314), then `page` of the topic is read (the R5
+    /// GET, `R21`; HFR redirects a page past the end to the last one, `R24`) and the `addflag.php` link of its last message
+    /// is followed, as `addFavorite(link:in:)` does, fenced on the login checked before.
+    ///
+    /// Reading the page moves the account's read flag to its last message (HFR-PROTOCOL §6c, `:580`): the operator
+    /// accepted it. A page without that link sends no write (`favoriteLinkMissing`).
+    /// - Throws: `invalidTopic`, `sessionNotConfirmed`, `sessionChanged`, `favoriteLinkMissing`, `notLoggedIn`, `rejected`,
+    ///   `unconfirmed`, `network`.
+    public func addFavorite(_ topic: TopicID, fromLastMessageOfPage page: Int, in session: HFRSession) async throws(TopicFlagError)
+        -> TopicFlagResult {
+        try await addFavorite(topic, fromLastMessageOfPage: page, through: session, after: check(session))
+    }
+
     /// Removes the topic's flag by following a topic page's `delflag.php` link (a state-changing GET).
     ///
     /// On a favourite this also removes the topic's read flag (`P03f`). HFR never refuses it: sent again on a topic
@@ -105,6 +119,41 @@ public struct TopicFlagFlow: Sendable {
         guard case .forum(let category) = topic.category, category > 0, topic.topic > 0 else { throw .invalidTopic }
         let seed = try await Self.confirm(check, in: session)
         return try await removeFavoriteFromList(topic, through: session, since: seed)
+    }
+
+    /// `addFavorite(_:fromLastMessageOfPage:in:)`: the check, the page read, then the write fenced on the checked login; an
+    /// invalid topic or page asks nothing.
+    func addFavorite(
+        _ topic: TopicID, fromLastMessageOfPage page: Int, through session: any PostingSession, after check: SessionCheck
+    ) async throws(TopicFlagError) -> TopicFlagResult {
+        guard case .forum(let category) = topic.category, category > 0, topic.topic > 0, page >= 1 else { throw .invalidTopic }
+        let seed = try await Self.confirm(check, in: session)
+        let link = try await favoriteLink(of: topic, page: page, through: session)
+        return try await follow(.addFavorite, link: link, through: session, since: seed)
+    }
+
+    /// The `addflag.php` link of the last message of `page`, read with the session (a read: a failure sends no write, so it
+    /// is `network`). Only a link of this very topic counts.
+    func favoriteLink(of topic: TopicID, page: Int, through session: any PostingSession) async throws(TopicFlagError) -> URL {
+        let request: HTTPRequest
+        do {
+            request = try HFREndpoint.topicPage(topic: topic, page: page)
+        } catch {
+            throw .invalidTopic
+        }
+        if Task.isCancelled { throw .network(.cancelled) }
+        let response: HTTPResponse
+        do {
+            response = try await session.send(request)
+        } catch {
+            throw .network(error)
+        }
+        guard PostingFlow.isForumPage(response.url),
+              let actions = try? MessageActionsParser.actions(in: response.decodedText().text),
+              let link = actions.last?.favoriteURL,
+              FlagLink(link, path: TopicFlagAction.addFavorite.linkPath ?? "")?.topic == topic
+        else { throw .favoriteLinkMissing }
+        return link
     }
 
     /// The write's GET. With a `seed`, it leaves only while the session holds `seed`'s login (`PostingSession.send(since:)`).

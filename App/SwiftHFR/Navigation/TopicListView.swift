@@ -135,6 +135,9 @@ struct TopicListView: View {
             if let topic = model.retryableRemoval {
                 Button("Réessayer") { Task { await model.removeFlag(topic) } }
                 Button("Annuler", role: .cancel) {}
+            } else if let topic = model.retryableAddition {
+                Button("Réessayer") { Task { await model.addFavorite(topic) } }
+                Button("Annuler", role: .cancel) {}
             } else {
                 Button("OK", role: .cancel) {}
             }
@@ -182,14 +185,20 @@ struct TopicListView: View {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }
                     }
                 }
-                // #869: the first button (at the edge) is the favourite, then the super favourite, labelled by the row's state.
+                // #869: the first button (at the edge) is the favourite, then the super favourite, labelled by the row's state;
+                // a followed or read row that is no favourite keeps legacy « Supprimer » last.
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if model.canRemoveFlag(topic) { removeButton(topic) }
+                    let adds = model.canAddFavorite(topic)
+                    if adds { addButton(topic) } else if model.canRemoveFlag(topic) { removeButton(topic) }
                     if model.canToggleSuperFavorite(topic) { superFavoriteButton(topic) }
+                    if adds, model.canRemoveFlag(topic) { removeButton(topic) }
                 }
                 .accessibilityActions {
                     // The swipes, for VoiceOver (a swipe is not reachable there; HIG › Context menus, #866 note on #869).
                     if model.canMarkRead(topic) { Button("Lu") { model.markRead(topic) } }
+                    if model.canAddFavorite(topic), !model.isAddingFavorite(topic) {
+                        Button("Ajouter aux favoris") { Task { await model.addFavorite(topic) } }
+                    }
                     if model.canRemoveFlag(topic), !model.isRemovingFlag(topic) {
                         Button(model.removeFlagTitle(topic)) { Task { await model.removeFlag(topic) } }
                     }
@@ -199,31 +208,6 @@ struct TopicListView: View {
                 }
                 .contextMenu { menu(topic) }
         }
-    }
-
-    /// "Supprimer", « Retirer des favoris » on a favourite (legacy trailing swipe and menu entry, #869): "Suppression…" and
-    /// disabled while the removal is in flight.
-    private func removeButton(_ topic: TopicSummary) -> some View {
-        let removing = model.isRemovingFlag(topic)
-        // Not the super favourite's `star.circle`: this one is an HFR write the list cannot undo (#869 review).
-        let icon = model.isFavorite(topic) ? "star.slash" : "trash"
-        return Button(role: .destructive) {
-            Task { await model.removeFlag(topic) }
-        } label: {
-            Label(removing ? "Suppression…" : model.removeFlagTitle(topic), systemImage: removing ? "hourglass" : icon)
-        }
-        .disabled(removing)
-    }
-
-    /// « Ajouter aux / Retirer des super favoris » (#869; legacy had it in the Favoris row menu only, `Favorites.swift:1150-1158`
-    /// @ 87fe0d1c).
-    private func superFavoriteButton(_ topic: TopicSummary) -> some View {
-        Button {
-            Task { await model.toggleSuperFavorite(topic) }
-        } label: {
-            Label(model.superFavoriteTitle(topic), systemImage: "star.circle")
-        }
-        .tint(.orange)
     }
 
     /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter. What cannot run
@@ -254,6 +238,9 @@ struct TopicListView: View {
         Divider()
         if model.canMarkRead(topic) {
             Button("Lu", systemImage: "checkmark") { model.markRead(topic) }
+        }
+        if model.canAddFavorite(topic), !model.isAddingFavorite(topic) {
+            Button("Ajouter aux favoris", systemImage: "star") { Task { await model.addFavorite(topic) } }
         }
         if model.canToggleSuperFavorite(topic) {
             Button(model.superFavoriteTitle(topic), systemImage: "star.circle") { Task { await model.toggleSuperFavorite(topic) } }
