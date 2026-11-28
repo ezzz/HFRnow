@@ -63,6 +63,10 @@ struct MessageReaderColumn: View {
                 .onChange(of: readerModel.page.map { $0.currentPage >= $0.maxPage } ?? false, initial: true) { _, onLastPage in
                     if onLastPage, let page = readerModel.page { model.markOpened(thread, page: page.currentPage, of: page.maxPage) }
                 }
+                // EXPERIMENTAL(mpDarkTopic, #858): each page shown moves the group's position (legacy's flag, after every load).
+                .onChange(of: MPReachedMessage(reader: readerModel, of: thread), initial: true) { _, reached in
+                    if let reached { Task { await model.reached(reached, in: thread) } }
+                }
         } else {
             ContentUnavailableView("Choisissez une conversation", systemImage: "envelope")
         }

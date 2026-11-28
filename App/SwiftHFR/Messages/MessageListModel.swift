@@ -19,7 +19,10 @@ final class MessageListModel {
     /// Conversation chosen in the list, shown by the reader.
     var selected: PrivateMessageThread? {
         // Leaving the conversation drops its reader, so opening it again fetches the current messages.
-        didSet { if selected == nil { currentReader = nil } }
+        didSet {
+            if selected == nil { currentReader = nil }
+            conversationChanged(from: oldValue, to: selected) // EXPERIMENTAL(mpDarkTopic, #858): sends the flags reading moved.
+        }
     }
 
     /// The switch position: the current account's last choice (`MPListSegmentStore`, #899), Tous the first time (or the old
@@ -43,6 +46,9 @@ final class MessageListModel {
 
     /// MPStorage sync of the current account (LOT-130), for the group rows' flags; nil when logged out.
     let mpStorage: MPStorageSyncModel?
+    // EXPERIMENTAL(mpDarkTopic, #858): the app's own positions of the group conversations (`MessageListModel+DarkTopic.swift`).
+    /// What « MP multiples → dark topic » keeps for the list: the positions and the send of the flags.
+    let darkTopic: MPDarkTopicPositions
     /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
     /// do not need it.
     let privateMessageCount: PrivateMessageCount?
@@ -83,11 +89,13 @@ final class MessageListModel {
         settings: (any SettingsStore)? = nil,
         account: String? = nil,
         mpStorage: MPStorageSyncModel? = nil,
+        readingPositions: MPReadingPositions? = nil,
         privateMessageCount: PrivateMessageCount? = nil,
         ledgerSeen: (@Sendable (NotificationSummary) async -> Void)? = nil
     ) {
         self.ledgerSeen = ledgerSeen
         self.mpStorage = mpStorage
+        darkTopic = MPDarkTopicPositions(store: readingPositions)
         self.privateMessageCount = privateMessageCount
         segments = settings.map(MPListSegmentStore.init(settings:))
         self.account = account
@@ -255,24 +263,16 @@ final class MessageListModel {
     /// Where a row opens: the page of its latest message (legacy tap, `HFRMPViewController.m:255`), so a conversation with
     /// new messages shows them. MP rows carry no HFR flag link (`sujetCase5` is empty, `R13u1`). The reader then opens at the
     /// page's last message, as the link's `#bas` does in legacy (`OnlineMessagesTableViewController.m:1838,2050`). A row
-    /// without a usable latest-message link opens like any topic row. A group row does not open at its MPStorage flag yet
-    /// (legacy `HFRMPViewController.m:228-251` @ 87fe0d1c): SwiftHFR does not move the flag while reading, so a flag nobody
-    /// moves would open an old page forever; the opening comes with the reader's flag write (LOT-130 spec, Out of scope).
+    /// without a usable latest-message link opens like any topic row. With « MP multiples → dark topic » on, a group row with
+    /// a position opens there (legacy `HFRMPViewController.m:228-251`, `Common.swift:2738-2742` @ 87fe0d1c; #858).
     private func openingTarget(of thread: PrivateMessageThread) -> (target: ReaderTarget, fromLatestMessage: Bool)? {
+        if let opening = positionOpening(of: thread) { return opening } // EXPERIMENTAL(mpDarkTopic, #858): replaces the latest.
         if let last = thread.summary.lastPost?.path,
            let target = ReaderTarget(link: last, fallbackTopic: thread.summary.topicID) {
             return (target, true)
         }
         guard let target = ReaderTarget(opening: thread.summary) else { return nil }
         return (target, false)
-    }
-
-    /// The group row's MPStorage flag as legacy wrote it, `⚑ <page> / <max>` (`MPListView.swift:775-786` @ 87fe0d1c), max being
-    /// at least the flag's page (`:368`); nil without a flag (one-to-one rows, MPStorage off, no document yet).
-    func flagLabel(for thread: PrivateMessageThread) -> String? {
-        guard let page = mpStorage?.flag(for: thread)?.page else { return nil }
-        let current = max(page, 1)
-        return "⚑ \(current) / \(max(thread.summary.pageCount, current))"
     }
 
     /// The new-MP composer the page on screen links to (legacy `newTopic` on the MP list, `TopicsTableViewController.m:222-245`
@@ -393,6 +393,7 @@ final class MessageListModel {
         markedUnread.removeAll()
         // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
         if loader.value == .signedOut { selected = nil } else { await recordReadState() }
+        await reloadPositions() // EXPERIMENTAL(mpDarkTopic, #858): the rows' positions as the app now holds them.
         if advancing { await advanceWhileSegmentEmpty() }
     }
 }

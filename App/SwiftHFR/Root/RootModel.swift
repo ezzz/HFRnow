@@ -162,6 +162,8 @@ final class RootModel {
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
             renderOptions: environment.reader.settings.renderOptions, settings: store,
             account: environment.currentAccountName, mpStorage: mpStorage,
+            // EXPERIMENTAL(mpDarkTopic, #858): the store the reader already records positions in, under the same account.
+            readingPositions: environment.currentAccountName.map { MPReadingPositions(account: $0) },
             privateMessageCount: count,
             // What the list shows is not notified by the next background check (LOT-140).
             ledgerSeen: environment.currentAccountName.map { account in
