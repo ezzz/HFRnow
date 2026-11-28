@@ -226,9 +226,11 @@ final class FavoritesOptionsModel {
         for section in collapsedSections.sorted() { await setCollapsed(false, section: section) }
     }
 
-    /// Marks or unmarks `topic` as a super-favourite of the current account. No-op without account or topic identity.
-    func toggleSuperFavorite(_ topic: TopicSummary) async {
-        guard let stores, let account = stores.account, let id = topic.topicID else { return }
+    /// Marks or unmarks `topic` as a super-favourite of the current account; false when nothing changed (no account, no topic
+    /// identity, or the store refused the write, then `storeProblem` says so).
+    @discardableResult
+    func toggleSuperFavorite(_ topic: TopicSummary) async -> Bool {
+        guard let stores, let account = stores.account, let id = topic.topicID else { return false }
         let adding = !superFavorites.contains(id)
         writeGeneration += 1
         do throws(SmallStoreError) {
@@ -240,10 +242,15 @@ final class FavoritesOptionsModel {
                 superFavorites.remove(id)
             }
             superWriteProblem = nil
+            return true
         } catch {
-            superWriteProblem = "Impossible d’enregistrer les super favoris."
+            superWriteProblem = Self.superWriteFailure
+            return false
         }
     }
+
+    /// What a refused super-favourite write says, in French.
+    static let superWriteFailure = "Impossible d’enregistrer les super favoris."
 
     /// Places the legacy super-favourites the import left pending (LOT-067 D2): each number `page` lists becomes a
     /// super-favourite in every category where it is listed, as legacy matched the number alone (`Favorites.swift:132-157` @
