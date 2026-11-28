@@ -8,9 +8,9 @@ import UIKit
 // Classes/PlusSettingsViewController.m (theme_noel_period cell, `:112-115`) @ 87fe0d1c. Differences (GAP-147): a window every
 // year; Noël soft is switched on once per season, the user's theme is saved and restored, « Désactiver » opts out for the
 // year; packing at the end; legacy forced the theme off at every launch (`:103`, `:365`), so it never showed.
-/// The seasonal scheduler (THEMES.md §5), one for the app: at each scene activation it switches Noël soft on, shows the arrival,
-/// packs or restores, from the date of `now` in the Gregorian calendar of `timeZone`. State lives in the device-only
-/// `season.*` keys of `store`.
+/// The seasonal scheduler (THEMES.md §5), one for the app: at each scene activation it switches the soft theme of a family on
+/// (Noël soft, Spooktober soft, LOT-191), shows the arrival, packs or restores, from the date of `now` in the Gregorian calendar
+/// of `timeZone`. State lives in the device-only `season.*` keys of `store`, one set per family and season.
 @MainActor
 @Observable
 final class SeasonalThemeModel {
@@ -28,11 +28,31 @@ final class SeasonalThemeModel {
     enum Alert: Hashable, Identifiable {
         /// « Thème de Noël activé » (or « Thème de Noël » when nothing was switched on) [OK] [Désactiver].
         case noelArrival(year: Int)
+        /// « Spooktober est là ! » [OK] [Désactiver] (LOT-191).
+        case samainArrival(year: Int)
 
         /// The alert's message.
-        var message: String {
+        var message: String { "Thème disponible dans les réglages" }
+
+        /// The family whose arrival it is, and its season.
+        var family: SeasonFamily {
             switch self {
-            case .noelArrival: "Thème disponible dans les réglages"
+            case .noelArrival: .noel
+            case .samainArrival: .samain
+            }
+        }
+
+        var year: Int {
+            switch self {
+            case let .noelArrival(year), let .samainArrival(year): year
+            }
+        }
+
+        /// The arrival alert of `family`'s season `year`.
+        static func arrival(of family: SeasonFamily, year: Int) -> Alert {
+            switch family {
+            case .noel: .noelArrival(year: year)
+            case .samain: .samainArrival(year: year)
             }
         }
 
@@ -56,8 +76,10 @@ final class SeasonalThemeModel {
     private(set) var activeTheme: SeasonalTheme?
     /// The arrival alert waiting for an answer; stored, so a kill before it is seen shows it again at the next launch.
     private(set) var pendingAlert: Alert?
-    /// Today is inside a Noël window: the « Thèmes de saison » section shows and Noël soft can be picked.
-    private(set) var isSelectable = false
+    /// The family whose window today is in: the « Thèmes de saison » section shows and its themes can be picked.
+    private(set) var selectableFamily: SeasonFamily?
+    /// Today is inside a seasonal window.
+    var isSelectable: Bool { selectableFamily != nil }
     /// « Thèmes de saison automatiques ».
     var isAutomatic: Bool {
         didSet { if isAutomatic != oldValue { store.set(isAutomatic, for: SettingKey.seasonalThemesAutomatic) } }
@@ -109,67 +131,98 @@ final class SeasonalThemeModel {
     @discardableResult
     func sceneDidBecomeActive() -> [Event] {
         let date = now()
-        let year = NoelCalendar.seasonYear(of: date, in: calendar)
-        var events: [Event] = []
-        // A theme of another season: left on by an app not opened since its window, however long ago, or switched on under a
-        // clock that ran ahead and was set back. Restored first, so two saved themes never coexist.
-        if let active = store.value(for: SettingKey.noelActiveYear), active != year {
-            restore(year: active)
-            events.append(.restoredSilently(year: active))
-        }
-        let phase = NoelCalendar.phase(of: date, in: calendar)
-        // Elves still waiting for a clear screen when the packing days are over: the theme they would take down goes now.
-        if phase != .packing, !packing.isPlaying { packing.finish() }
-        // An arrival nobody answered before its window closed is dropped.
-        if !phase.isSelectable { store.reset(SettingKey.noelArrivalPending(year: year)) }
-        switch phase {
-        case .switchOn, .arrivalOnly:
-            if let arrival = arrive(year: year, switching: phase == .switchOn) { events.append(arrival) }
-        case .packing where isOn(year: year):
-            let first = !store.value(for: SettingKey.noelPackingShown(year: year))
-            store.set(true, for: SettingKey.noelPackingShown(year: year))
-            // The store is restored now; the theme stays drawn until the elves have taken it down.
-            if first, animationsAllowed { packing.queue(year: year, theme: activeTheme ?? .noelSoft) }
-            restore(year: year)
-            events.append(first ? .packed(year: year, animated: animationsAllowed) : .restoredSilently(year: year))
-        case .outside where isOn(year: year):
-            restore(year: year)
-            events.append(.restoredSilently(year: year))
-        default:
-            break
-        }
+        let events = SeasonFamily.allCases.flatMap { activate($0, on: date) }
         refresh()
         return events
     }
 
-    /// The first activation of a window, once per season: the arrival is stored as pending until answered, and Noël soft is
-    /// switched on when `switching` (01/12–24/12), automatic themes are on and the season is not opted out.
-    private func arrive(year: Int, switching: Bool) -> Event? {
-        guard !store.value(for: SettingKey.noelArrivalShown(year: year)) else { return nil }
-        store.set(true, for: SettingKey.noelArrivalShown(year: year))
-        store.set(true, for: SettingKey.noelArrivalPending(year: year))
-        let switched = switching && isAutomatic && !store.value(for: SettingKey.noelOptedOut(year: year)) && !isOn(year: year)
-        if switched { switchOn(year: year, theme: .noelSoft) }
-        if animationsAllowed { crossings.queueArrival() }
+    /// One family's part of an activation (see `sceneDidBecomeActive`): at most one family is inside its window at a time.
+    private func activate(_ family: SeasonFamily, on date: Date) -> [Event] {
+        let year = family.seasonYear(of: date, in: calendar)
+        var events: [Event] = []
+        // A theme of another season: left on by an app not opened since its window, however long ago, or switched on under a
+        // clock that ran ahead and was set back. Restored first, so two saved themes never coexist.
+        if let active = store.value(for: family.activeYear), active != year {
+            restore(family, year: active)
+            events.append(.restoredSilently(year: active))
+        }
+        let phase = family.phase(of: date, in: calendar)
+        // Elves still waiting for a clear screen when the packing days are over: the theme they would take down goes now.
+        if phase != .packing, packing.current?.theme.family == family, !packing.isPlaying { packing.finish() }
+        // An arrival nobody answered before its window closed is dropped.
+        if !phase.isSelectable { store.reset(family.arrivalPending(year: year)) }
+        if let event = event(for: phase, of: family, year: year) { events.append(event) }
+        return events
+    }
+
+    /// Samain overlays still waiting for a clear screen when their window closes with the app in the foreground (midnight on 07/11
+    /// behind the keyboard, or on 31/10 behind a sheet): the witch and the arrival are dropped, with the alert that would name
+    /// « Spooktober est là ! » a day late. The layers ask before they start one. Noël's own is #1440's follow-up, not changed here.
+    func dropOverlaysOutOfSeason() {
+        let family = SeasonFamily.samain
+        let date = now()
+        let phase = family.phase(of: date, in: calendar)
+        if phase != .packing, packing.current?.theme.family == family, !packing.isPlaying { packing.finish() }
+        guard !phase.isSelectable else { return }
+        let pending = family.arrivalPending(year: family.seasonYear(of: date, in: calendar))
+        guard store.value(for: pending) else { return }
+        store.reset(pending)
+        crossings.dropArrival(ifItems: family.arrivalItems)
+        refresh()
+    }
+
+    /// What the first activation of `phase` does for `family`'s season `year`, if anything.
+    private func event(for phase: NoelCalendar.Phase, of family: SeasonFamily, year: Int) -> Event? {
+        switch phase {
+        case .switchOn, .arrivalOnly:
+            return arrive(family, year: year, switching: phase == .switchOn)
+        case .packing where isOn(family, year: year):
+            let first = !store.value(for: family.packingShown(year: year))
+            store.set(true, for: family.packingShown(year: year))
+            // The store is restored now; the theme stays drawn until the elves have taken it down.
+            if first, animationsAllowed { packing.queue(year: year, theme: onTheme(family, year: year)) }
+            restore(family, year: year)
+            let packed: Event = first ? .packed(year: year, animated: animationsAllowed) : .restoredSilently(year: year)
+            return packed
+        case .outside where isOn(family, year: year):
+            restore(family, year: year)
+            return .restoredSilently(year: year)
+        default:
+            return nil
+        }
+    }
+
+    /// The first activation of a window, once per season: the arrival is stored as pending until answered, and the family's soft
+    /// theme is switched on when `switching` (Noël: 01/12–24/12, Samain: all of October), automatic themes are on and the season
+    /// is not opted out.
+    private func arrive(_ family: SeasonFamily, year: Int, switching: Bool) -> Event? {
+        guard !store.value(for: family.arrivalShown(year: year)) else { return nil }
+        store.set(true, for: family.arrivalShown(year: year))
+        store.set(true, for: family.arrivalPending(year: year))
+        let switched = switching && isAutomatic && !store.value(for: family.optedOut(year: year)) && !isOn(family, year: year)
+        if switched { switchOn(family, year: year, theme: family.defaultTheme) }
+        if animationsAllowed { crossings.queueArrival(items: family.arrivalItems) }
         return .arrival(year: year, switchedOn: switched, sleigh: animationsAllowed)
     }
 
     /// The alert's title: it names the situation (HIG › Alerts, #1174), so « activé » only when a Noël theme really is on (not on
-    /// 25–26/12, with automatic themes off, or after the user picked another theme before the alert came).
+    /// 25–26/12, with automatic themes off, or after the user picked another theme before the alert came). Spooktober's is the
+    /// operator's sentence, true whether or not a theme was switched on.
     func title(for alert: Alert) -> String {
         switch alert {
         case .noelArrival: activeTheme != nil ? "Thème de Noël activé" : "Thème de Noël"
+        case .samainArrival: "Spooktober est là !"
         }
     }
 
     /// The answer to the arrival alert: « Désactiver » restores the previous theme and opts out for the season; « OK » keeps it.
     func answerArrival(disable: Bool) {
-        guard case let .noelArrival(year) = pendingAlert else { return }
-        store.reset(SettingKey.noelArrivalPending(year: year))
+        guard let alert = pendingAlert else { return }
+        store.reset(alert.family.arrivalPending(year: alert.year))
         alertScene = nil
         if disable {
-            store.set(true, for: SettingKey.noelOptedOut(year: year))
-            restore(year: year)
+            store.set(true, for: alert.family.optedOut(year: alert.year))
+            restore(alert.family, year: alert.year)
         }
         refresh()
     }
@@ -190,20 +243,25 @@ final class SeasonalThemeModel {
         if alertScene == scene { alertScene = nil }
     }
 
-    /// A pick in Réglages › Thème: a seasonal theme inside its window, or nil for the user's own theme. Moving from one Noël
-    /// theme to the other keeps the theme saved when the first was switched on.
+    /// A pick in Réglages › Thème: a seasonal theme inside its window, or nil for the user's own theme. Moving from one theme of
+    /// a family to the other keeps the theme saved when the first was switched on.
     func select(_ theme: SeasonalTheme?) {
         let date = now()
-        let year = NoelCalendar.seasonYear(of: date, in: calendar)
-        if let theme {
-            guard NoelCalendar.phase(of: date, in: calendar).isSelectable else { return }
-            if isOn(year: year) {
-                store.set(theme.rawValue, for: SettingKey.noelThemeID(year: year))
-            } else {
-                switchOn(year: year, theme: theme)
+        guard let theme else {
+            for family in SeasonFamily.allCases {
+                let year = family.seasonYear(of: date, in: calendar)
+                if isOn(family, year: year) { restore(family, year: year) }
             }
-        } else if isOn(year: year) {
-            restore(year: year)
+            refresh()
+            return
+        }
+        let family = theme.family
+        let year = family.seasonYear(of: date, in: calendar)
+        guard family.phase(of: date, in: calendar).isSelectable else { return }
+        if isOn(family, year: year) {
+            store.set(theme.rawValue, for: family.themeID(year: year))
+        } else {
+            switchOn(family, year: year, theme: theme)
         }
         refresh()
     }
@@ -212,40 +270,51 @@ final class SeasonalThemeModel {
     /// zone of the moment, so a zone change during a run is followed.
     private var calendar: Calendar { NoelCalendar.gregorian(in: timeZone()) }
 
-    private func isOn(year: Int) -> Bool {
-        store.value(for: SettingKey.noelPreviousThemeID(year: year)) != nil
+    private func isOn(_ family: SeasonFamily, year: Int) -> Bool {
+        store.value(for: family.previousThemeID(year: year)) != nil
     }
 
-    /// Gives the user's theme back. Noël soft never writes the "Thème" keys, so restoring is dropping the saved id; it never
-    /// writes `theme_id` either, so a theme picked during the season stays (operator decision (a), 2026-11-12).
-    private func restore(year: Int) {
-        store.reset(SettingKey.noelPreviousThemeID(year: year))
-        store.reset(SettingKey.noelThemeID(year: year))
-        if store.value(for: SettingKey.noelActiveYear) == year { store.reset(SettingKey.noelActiveYear) }
+    /// Gives the user's theme back. A seasonal theme never writes the "Thème" keys, so restoring is dropping the saved id; it
+    /// never writes `theme_id` either, so a theme picked during the season stays (operator decision (a), 2026-11-12).
+    private func restore(_ family: SeasonFamily, year: Int) {
+        store.reset(family.previousThemeID(year: year))
+        store.reset(family.themeID(year: year))
+        if store.value(for: family.activeYear) == year { store.reset(family.activeYear) }
     }
 
-    /// Saves the current theme (LOT-188's stored `theme_id`, Legacy when none), names the Noël theme now on and points at the
+    /// Saves the current theme (LOT-188's stored `theme_id`, Legacy when none), names the seasonal theme now on and points at the
     /// season, so any later activation can find and restore it. Restoring drops the saved id: the overlay never writes
     /// `theme_id`, so the user's theme is back as it was; a saved "legacy" from the first build reads the same.
-    private func switchOn(year: Int, theme: SeasonalTheme) {
-        store.set(store.value(for: SettingKey.themeID) ?? ThemeDefinition.legacyID, for: SettingKey.noelPreviousThemeID(year: year))
-        store.set(theme.rawValue, for: SettingKey.noelThemeID(year: year))
-        store.set(year, for: SettingKey.noelActiveYear)
+    private func switchOn(_ family: SeasonFamily, year: Int, theme: SeasonalTheme) {
+        store.set(store.value(for: SettingKey.themeID) ?? ThemeDefinition.legacyID, for: family.previousThemeID(year: year))
+        store.set(theme.rawValue, for: family.themeID(year: year))
+        store.set(year, for: family.activeYear)
     }
 
-    /// The Noël theme of `year` that is on: the stored one; none stored (every build before PR 4) or an id this build does not
-    /// know reads as Noël soft.
-    private func onTheme(year: Int) -> SeasonalTheme {
-        store.value(for: SettingKey.noelThemeID(year: year)).flatMap(SeasonalTheme.init(rawValue:)) ?? .noelSoft
+    /// The theme of `family` and season `year` that is on: the stored one; none stored (every build before PR 4) or an id this
+    /// build does not know reads as the family's soft theme.
+    private func onTheme(_ family: SeasonFamily, year: Int) -> SeasonalTheme {
+        let stored = store.value(for: family.themeID(year: year)).flatMap(SeasonalTheme.init(rawValue:))
+        return stored.flatMap { $0.family == family ? $0 : nil } ?? family.defaultTheme
     }
 
     private func refresh() {
         let date = now()
-        let year = NoelCalendar.seasonYear(of: date, in: calendar)
-        let phase = NoelCalendar.phase(of: date, in: calendar)
-        isSelectable = phase.isSelectable
-        pendingAlert = phase.isSelectable && store.value(for: SettingKey.noelArrivalPending(year: year)) ? .noelArrival(year: year) : nil
-        // Outside the window a theme left on is about to be restored: never draw it, even for the first frame.
-        activeTheme = phase != .outside && isOn(year: year) ? onTheme(year: year) : nil
+        var theme: SeasonalTheme?
+        var alert: Alert?
+        var selectable: SeasonFamily?
+        for family in SeasonFamily.allCases {
+            let year = family.seasonYear(of: date, in: calendar)
+            let phase = family.phase(of: date, in: calendar)
+            if phase.isSelectable {
+                selectable = family
+                if store.value(for: family.arrivalPending(year: year)) { alert = .arrival(of: family, year: year) }
+            }
+            // Outside the window a theme left on is about to be restored: never draw it, even for the first frame.
+            if phase != .outside, isOn(family, year: year) { theme = onTheme(family, year: year) }
+        }
+        selectableFamily = selectable
+        pendingAlert = alert
+        activeTheme = theme
     }
 }

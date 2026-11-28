@@ -19,6 +19,8 @@ private struct SeasonalDecorationsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // The Samain art on the screens' backgrounds fades while the witch sweeps (`SamainBackdrop`).
+            .environment(\.seasonalDecorationsHidden, model.packing.hidesDecorations)
             .overlay {
                 // Drawn until the packing elves have taken it down (PR 3); they fade while the elves play.
                 if model.drawnTheme == .noelSoft {

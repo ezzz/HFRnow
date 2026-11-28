@@ -82,8 +82,8 @@ struct NoelDecorationTests {
         #expect(alpha != CGImageAlphaInfo.none && alpha != .noneSkipLast && alpha != .noneSkipFirst)
     }
 
-    @Test func onlyTheSleighHasAFront() {
-        #expect(NoelCrossingItem.allCases.filter(\.isDirectional) == [.sleigh])
+    @Test func onlyTheSleighAndTheWitchHaveAFront() {
+        #expect(NoelCrossingItem.allCases.filter(\.isDirectional) == [.sleigh, .witch])
         #expect(UIImage(named: "NoelSnowPile") != nil)
     }
 }

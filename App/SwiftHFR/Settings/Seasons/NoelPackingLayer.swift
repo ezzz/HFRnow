@@ -17,8 +17,11 @@ struct NoelPackingLayer: View {
     var body: some View {
         GeometryReader { proxy in
             if packing.isPlaying(in: scene) {
-                NoelElves(area: proxy.size, windowHeight: window.window?.bounds.height ?? proxy.size.height) {
-                    packing.finish()
+                let windowHeight = window.window?.bounds.height ?? proxy.size.height
+                // Noël's elves, or Samain's witch sweeping the decorations away (LOT-191).
+                switch PackingOverlay(theme: packing.current?.theme) {
+                case .witch: WitchSweep(area: proxy.size, windowHeight: windowHeight) { packing.finish() }
+                case .elves: NoelElves(area: proxy.size, windowHeight: windowHeight) { packing.finish() }
                 }
             }
         }
@@ -50,6 +53,7 @@ struct NoelPackingLayer: View {
     /// was cut in its first second and waits to replay.
     private func watch() async {
         while !Task.isCancelled, packing.current != nil {
+            seasonal.dropOverlaysOutOfSeason()
             guard packing.start(for: scene, screen: screen, animationsAllowed: seasonal.animationsAllowed) != nil else {
                 try? await Task.sleep(for: .milliseconds(500))
                 continue

@@ -10,6 +10,8 @@ struct ThemeScreenBackdrop: View {
             fill
             if decorations == SeasonalTheme.noelAbuseDecorations {
                 NoelAbuseBackdrop()
+            } else if let kind = decorations.flatMap(SamainLayout.Kind.init(rawValue:)) {
+                SamainBackdrop(kind: kind)
             }
         }
     }

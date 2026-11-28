@@ -13,7 +13,9 @@ struct SeasonalThemesSection: View {
             Group {
                 Picker("Thème de saison", selection: Binding(get: { model.activeTheme }, set: { model.select($0) })) {
                     Text("Thème habituel").tag(SeasonalTheme?.none)
-                    ForEach(SeasonalTheme.allCases) { Text($0.title).tag(SeasonalTheme?.some($0)) }
+                    ForEach(SeasonalTheme.allCases.filter { $0.family == model.selectableFamily }) {
+                        Text($0.title).tag(SeasonalTheme?.some($0))
+                    }
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
@@ -24,14 +26,20 @@ struct SeasonalThemesSection: View {
             Text("Thèmes de saison").themedSectionHeader()
         } footer: {
             Group {
-                Text(
-                    "Noël soft : neige légère et accent rouge sur le thème Legacy (un thème de la galerie garde son accent). "
-                        + "Noël abusé : vert sapin, guirlande, sapin et cadeaux, identique en clair et en sombre. "
-                        + "Jusqu’au 26 décembre ; ton thème revient ensuite. Sans animations, la neige ne tombe plus."
-                )
+                Text(model.selectableFamily == .samain ? Self.samainFooter : Self.noelFooter)
             }.themedSectionHeader()
         }
     }
+
+    private static let noelFooter = "Noël soft : neige légère et accent rouge sur le thème Legacy "
+        + "(un thème de la galerie garde son accent). "
+        + "Noël abusé : vert sapin, guirlande, sapin et cadeaux, identique en clair et en sombre. "
+        + "Jusqu’au 26 décembre ; ton thème revient ensuite. Sans animations, la neige ne tombe plus."
+
+    private static let samainFooter = "Spooktober soft : clair et sombre, un peu de toile, un chandelier et une petite chauve-souris ; "
+        + "un fantôme, une sorcière ou un éclair traversent l’écran de temps en temps. "
+        + "Spooktober abusé : orange, noir et violet, identique en clair et en sombre. "
+        + "Jusqu’au 31 octobre ; ton thème revient ensuite. Sans animations, plus rien ne traverse l’écran."
 }
 
 #Preview("Thèmes de saison") {

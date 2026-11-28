@@ -38,6 +38,8 @@ struct CrossingPath: Equatable, Sendable {
     var mirrored: Bool
     /// The turn, in radians, applied after the mirror (clockwise on screen), so the art faces where it goes.
     var rotation: Double
+    /// The art is drawn facing the leading edge (the witch), not the trailing one (the sleigh).
+    var facesLeading = false
 
     /// The longest crossing (THEMES.md §4 rule 4).
     static let maxDuration: TimeInterval = 3
@@ -48,9 +50,11 @@ struct CrossingPath: Equatable, Sendable {
         return CGPoint(x: start.x + (end.x - start.x) * clamped, y: start.y + (end.y - start.y) * clamped)
     }
 
-    /// The unit vector the art faces once mirrored and turned; for art drawn facing the trailing edge (the sleigh's renders).
+    /// The unit vector the art faces once mirrored and turned: its render faces the trailing edge (the sleigh's), or the leading
+    /// one when `facesLeading` (the witch's).
     var facing: CGVector {
-        let sign: Double = mirrored ? -1 : 1
+        var sign: Double = mirrored ? -1 : 1
+        if facesLeading { sign = -sign }
         return CGVector(dx: sign * cos(rotation), dy: sign * sin(rotation))
     }
 
@@ -60,6 +64,8 @@ struct CrossingPath: Equatable, Sendable {
         var size: CGSize
         /// Art drawn facing the trailing edge faces its travel; other art stays upright.
         var directional: Bool
+        /// The render of a directional art faces the leading edge (the witch), not the trailing one (the sleigh).
+        var facesLeading = false
         /// It enters by a side only (the sleigh).
         var horizontalOnly: Bool
         /// The largest angle to the crossing axis, in radians.
@@ -96,9 +102,13 @@ struct CrossingPath: Equatable, Sendable {
         let start = forward ? from : target
         let end = forward ? target : from
         let entry: Edge = horizontal ? (forward ? .leading : .trailing) : (forward ? .top : .bottom)
-        let (mirrored, rotation) = orientation(from: start, to: end, directional: directional)
+        // Art facing the leading edge is the same case along the reversed line.
+        let (mirrored, rotation) = traits.facesLeading
+            ? orientation(from: end, to: start, directional: directional)
+            : orientation(from: start, to: end, directional: directional)
         return CrossingPath(
-            start: start, end: end, duration: min(duration, maxDuration), entry: entry, mirrored: mirrored, rotation: rotation
+            start: start, end: end, duration: min(duration, maxDuration), entry: entry, mirrored: mirrored, rotation: rotation,
+            facesLeading: traits.facesLeading && directional
         )
     }
 

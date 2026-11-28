@@ -3,7 +3,8 @@ import Foundation
 import Observation
 import UIKit
 
-/// The objects that cross the screen in Noël soft and the arrival sleigh (THEMES.md §4 rule 4, §5), one for the app. It counts
+/// The objects that cross the screen in Noël soft and Spooktober soft and the arrival item (the sleigh; a witch, a ghost, a bat or
+/// a vampire for Samain) (THEMES.md §4 rule 4, §5), one for the app. It counts
 /// foreground time, draws the next gap (20–90 min, never less than 20), and hands one crossing at a time to one scene, only on a
 /// clear screen and with animations allowed; each crossing starts with a light haptic through `HapticFeedback`.
 @MainActor
@@ -16,8 +17,10 @@ final class NoelCrossingModel {
         /// The art's size, in points.
         let size: CGSize
         let path: CrossingPath
-        /// The arrival sleigh (1/4 of the window height, ≤ 240 pt), played before the arrival alert.
+        /// The arrival item (1/4 of the window height, ≤ 240 pt), played before the arrival alert.
         let isArrival: Bool
+        /// The lightning's five flashes; empty for an object that travels.
+        var flashes: [LightningFlash] = []
         /// The scene that shows it.
         let scene: UUID
     }
@@ -30,10 +33,19 @@ final class NoelCrossingModel {
     /// The arrival sleigh: a quarter of the window height, at most 240 pt.
     static func arrivalHeight(window: CGFloat) -> CGFloat { min(max(window, 0) / 4, 240) }
 
+    /// The arrival item's size: the same height, and for art wider than tall (a bat, a witch) no wider than 80 % of the area.
+    static func arrivalSize(of item: NoelCrossingItem, window: CGFloat, areaWidth: CGFloat) -> CGSize {
+        let height = arrivalHeight(window: window)
+        guard item != .sleigh, areaWidth > 0 else { return item.size(height: height) }
+        return item.size(height: min(height, areaWidth * 0.8 / item.aspectRatio))
+    }
+
     /// The crossing on screen, in `Crossing.scene`.
     private(set) var current: Crossing?
-    /// The arrival sleigh is due: it plays before the alert, which waits for it.
+    /// The arrival item is due: it plays before the alert, which waits for it.
     private(set) var arrivalPending = false
+    /// What may play as the arrival: one of these, at random (the sleigh by default).
+    @ObservationIgnored private var arrivalItems: [NoelCrossingItem] = [.sleigh]
 
     @ObservationIgnored private let now: @MainActor () -> Date
     @ObservationIgnored private let random: any SeasonalRandom
@@ -82,10 +94,17 @@ final class NoelCrossingModel {
         }
     }
 
-    /// The first launch of a window with animations allowed: the sleigh crosses before the alert.
-    func queueArrival() {
+    /// The first launch of a window with animations allowed: one of `items` crosses before the alert.
+    func queueArrival(items: [NoelCrossingItem] = [.sleigh]) {
+        arrivalItems = items.isEmpty ? [.sleigh] : items
         arrivalPending = true
         arrivalFirstStart = nil
+    }
+
+    /// A queued arrival whose season window closed while it waited (midnight behind a keyboard or a sheet) is dropped; only when
+    /// it is the one `items` queued, so another family's arrival is never lost.
+    func dropArrival(ifItems items: [NoelCrossingItem]) {
+        if arrivalPending, arrivalItems == items { arrivalPending = false }
     }
 
     /// How long after its first start a cut arrival sleigh is played again: a bound in time, not a count, so the many sizes of
@@ -96,18 +115,20 @@ final class NoelCrossingModel {
     /// `scene`'s layer watches for crossings: Noël soft is on, the sleigh is due, or `scene`'s crossing is playing. The last
     /// one keeps the arrival sleigh going on 25–26/12 (or with automatic themes off), when nothing else is on once it started.
     func shouldWatch(scene: UUID, theme: SeasonalTheme?) -> Bool {
-        theme == .noelSoft || arrivalPending || current?.scene == scene
+        theme?.hasCrossings == true || arrivalPending || current?.scene == scene
     }
 
     /// Where a scene's crossings play: the band between the bars, in a window `windowHeight` high.
     struct Stage: Equatable {
         var area: CGSize
         var windowHeight: CGFloat
+        /// What may cross while the theme's crossings are on (Noël soft's by default, Spooktober soft's for LOT-191).
+        var items: [NoelCrossingItem] = NoelCrossingItem.crossing
     }
 
-    /// The crossing `scene` may start now on `stage`: the arrival sleigh when due, else an object once the gap is spent while
-    /// `crossingsOn` (Noël soft). Nothing while the screen is not clear (THEMES.md §4 rule 5), while another crossing plays, or
-    /// without animations (the arrival is then dropped, so the alert comes alone).
+    /// The crossing `scene` may start now on `stage`: the arrival item when due, else one of `stage.items` once the gap is spent while
+    /// `crossingsOn` (Noël soft, Spooktober soft). Nothing while the screen is not clear (THEMES.md §4 rule 5), while another
+    /// crossing plays, or without animations (the arrival is then dropped, so the alert comes alone).
     func crossing(
         for scene: UUID, on stage: Stage, screen: SeasonalThemeModel.ScreenState, animationsAllowed: Bool, crossingsOn: Bool
     ) -> Crossing? {
@@ -118,17 +139,23 @@ final class NoelCrossingModel {
         }
         guard screen.allowsAlert, activeScenes.contains(scene) else { return nil }
         if arrivalPending {
-            let size = NoelCrossingItem.sleigh.size(height: Self.arrivalHeight(window: stage.windowHeight))
+            let item = pick(from: arrivalItems)
+            let size = Self.arrivalSize(of: item, window: stage.windowHeight, areaWidth: stage.area.width)
             // Kept pending until it starts: a layer not laid out yet (empty area) must not lose it.
-            let sleigh = start(.sleigh, size: size, area: stage.area, scene: scene, duration: CrossingPath.maxDuration)
-            if sleigh != nil { arrivalPending = false }
-            return sleigh
+            let launch = Launch(item: item, size: size, duration: CrossingPath.maxDuration, isArrival: true)
+            let arrival = start(launch, area: stage.area, scene: scene)
+            if arrival != nil { arrivalPending = false }
+            return arrival
         }
-        guard crossingsOn, foregroundTime >= nextGap else { return nil }
-        let items = NoelCrossingItem.crossing
-        let item = items[min(Int(random.unit() * Double(items.count)), items.count - 1)]
+        guard crossingsOn, !stage.items.isEmpty, foregroundTime >= nextGap else { return nil }
+        let item = pick(from: stage.items)
         let duration = 2.2 + 0.8 * random.unit()
-        return start(item, size: item.size(height: Self.itemHeight), area: stage.area, scene: scene, duration: duration)
+        let height = item == .lightning ? LightningStrike.flashHeight : Self.itemHeight
+        return start(Launch(item: item, size: item.size(height: height), duration: duration), area: stage.area, scene: scene)
+    }
+
+    private func pick(from items: [NoelCrossingItem]) -> NoelCrossingItem {
+        items[min(Int(random.unit() * Double(items.count)), items.count - 1)]
     }
 
     /// `scene`'s screen changed: a crossing stops as soon as the keyboard, a sheet, an alert or the lock comes up.
@@ -157,14 +184,20 @@ final class NoelCrossingModel {
         sceneChanged(scene, active: false)
     }
 
-    /// Starts `item` across `area`; the arrival is the sleigh at full length (`CrossingPath.maxDuration`).
-    private func start(_ item: NoelCrossingItem, size: CGSize, area: CGSize, scene: UUID, duration: TimeInterval) -> Crossing? {
-        let arrival = arrivalPending && item == .sleigh
-        let traits = CrossingPath.Traits(
-            size: size, directional: item.isDirectional, horizontalOnly: item == .sleigh,
-            maxTilt: item == .sleigh ? .pi / 12 : .pi / 6, duration: duration
-        )
-        guard let path = CrossingPath.random(in: area, for: traits, random: random) else { return nil }
+    /// What starts: `item` at `size`, for `duration` (the arrival at full length, `CrossingPath.maxDuration`).
+    private struct Launch {
+        var item: NoelCrossingItem
+        var size: CGSize
+        var duration: TimeInterval
+        var isArrival = false
+    }
+
+    /// Starts `launch` across `area`.
+    private func start(_ launch: Launch, area: CGSize, scene: UUID) -> Crossing? {
+        let item = launch.item
+        let size = launch.size
+        let arrival = launch.isArrival
+        guard let shape = shape(of: launch, area: area) else { return nil }
         // The gap restarts with the crossing: the next one waits at least 20 minutes of foreground time.
         let date = now()
         foregroundBefore = 0
@@ -172,9 +205,38 @@ final class NoelCrossingModel {
         nextGap = Self.minGap + random.unit() * (Self.maxGap - Self.minGap)
         lastID += 1
         if arrival, arrivalFirstStart == nil { arrivalFirstStart = date }
-        let crossing = Crossing(id: lastID, item: item, size: size, path: path, isArrival: arrival, scene: scene)
+        let crossing = Crossing(
+            id: lastID, item: item, size: size, path: shape.path, isArrival: arrival, flashes: shape.flashes, scene: scene
+        )
         current = crossing
         haptics.impact(.light)
         return crossing
+    }
+
+    /// The line `item` follows, or for lightning the five flashes (it does not travel: its path stays at the middle of the area).
+    private func shape(of launch: Launch, area: CGSize) -> Shape? {
+        let item = launch.item
+        let size = launch.size
+        if item == .lightning {
+            let flashes = LightningStrike.flashes(in: area, size: size, random: random)
+            guard !flashes.isEmpty else { return nil }
+            let middle = CGPoint(x: area.width / 2, y: area.height / 2)
+            let still = CrossingPath(
+                start: middle, end: middle, duration: LightningStrike.window, entry: .leading, mirrored: false, rotation: 0
+            )
+            return Shape(path: still, flashes: flashes)
+        }
+        let horizontalOnly = item == .sleigh || launch.isArrival
+        let traits = CrossingPath.Traits(
+            size: size, directional: item.isDirectional, facesLeading: item.facesLeading, horizontalOnly: horizontalOnly,
+            maxTilt: horizontalOnly ? .pi / 12 : .pi / 6, duration: launch.duration
+        )
+        return CrossingPath.random(in: area, for: traits, random: random).map { Shape(path: $0, flashes: []) }
+    }
+
+    /// How a crossing plays: a line, or flashes.
+    private struct Shape {
+        var path: CrossingPath
+        var flashes: [LightningFlash]
     }
 }

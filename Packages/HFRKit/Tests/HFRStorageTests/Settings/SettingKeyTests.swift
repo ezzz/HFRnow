@@ -37,7 +37,7 @@ import Testing
             "HFRswiftGlobalTopicListFlag",
             "icon_previous", "icon_revert_asked",
             // LOT-166: the two seasonal toggles, new.
-            "season.automatic", "season.animations", "season.noel.activeYear",
+            "season.automatic", "season.animations", "season.noel.activeYear", "season.samain.activeYear",
             // #903: the Réglages › Expérimental switches, new.
             "experimental.modernComposer", "experimental.searchTab", "experimental.mpDarkTopic",
             "experimental.denseRows", "experimental.imageLoadingChoice",

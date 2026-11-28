@@ -1,7 +1,8 @@
 // Derives the app's Noël soft images (LOT-166) from the operator's validated renders in docs/assets/themes/renders/
 // (2026-11-10): trims the transparent margin, scales so the longest side is at most the given size, writes a transparent PNG.
 // No pixel is drawn here. Usage, from the repository root (macOS):
-//   swift tooling/art/noel-crossings/derive.swift
+//   swift tooling/art/noel-crossings/derive.swift          (Noël, into Assets.xcassets/Noel)
+//   swift tooling/art/noel-crossings/derive.swift samain   (LOT-191, into Assets.xcassets/Samain)
 import AppKit
 import CoreGraphics
 import Foundation
@@ -23,7 +24,26 @@ let jobs: [(String, String, Int)] = [
     ("noel_garland", "NoelGarland", 1200) // Noël abusé's garland: the render's own size
 ]
 
-func trimmedBounds(_ image: CGImage) -> CGRect {
+/// LOT-191: the Samain renders (Spooktober soft and abusé, the arrival and crossing items, the witch's sweep).
+let samainJobs: [(String, String, Int)] = [
+    ("samain_bat", "SamainBat", 900), // arrival up to 80 % of the width; a small bat in Spooktober soft
+    ("samain_ghost", "SamainGhost", 720), // up to 240 pt high
+    ("samain_witch", "SamainWitch", 900), // the witch on her broom, facing the leading edge
+    ("samain_vampire", "SamainVampire", 720),
+    ("samain_lightning", "SamainLightning", 480), // flashes, up to 160 pt high
+    ("samain_web", "SamainWeb", 450), // corner webs
+    ("samain_candelabra", "SamainCandelabra", 450),
+    ("samain_moon", "SamainMoon", 450), // Spooktober abusé
+    ("samain_pumpkin", "SamainPumpkin", 300),
+    ("samain_pumpkin_plain", "SamainPumpkinPlain", 300),
+    ("samain_witch_sweep", "SamainWitchSweep", 660) // the packing: up to 220 pt high
+]
+let group = CommandLine.arguments.dropFirst().first ?? "noel"
+let folderName = group == "samain" ? "Samain" : "Noel"
+
+/// `topDown`: the bitmap rows already run top to bottom, so the box starts at `minY` (Samain, LOT-191). Noël keeps its former
+/// crop (a flip that keeps transparent top rows and may cut the bottom: follow-up issue), so its images are unchanged.
+func trimmedBounds(_ image: CGImage, topDown: Bool) -> CGRect {
     let width = image.width, height = image.height
     var pixels = [UInt8](repeating: 0, count: width * height * 4)
     let context = CGContext(
@@ -38,15 +58,15 @@ func trimmedBounds(_ image: CGImage) -> CGRect {
         }
     }
     // Rows of the bitmap context run bottom-up from CGImage's top-down rows: flip back.
-    return CGRect(x: minX, y: height - 1 - maxY, width: maxX - minX + 1, height: maxY - minY + 1)
+    return CGRect(x: minX, y: topDown ? minY : height - 1 - maxY, width: maxX - minX + 1, height: maxY - minY + 1)
 }
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-for (render, set, longest) in jobs {
+for (render, set, longest) in group == "samain" ? samainJobs : jobs {
     let source = root.appendingPathComponent("docs/assets/themes/renders/\(render).png")
     guard let input = CGImageSourceCreateWithURL(source as CFURL, nil),
           let image = CGImageSourceCreateImageAtIndex(input, 0, nil) else { fatalError("cannot read \(source.path)") }
-    let bounds = trimmedBounds(image)
+    let bounds = trimmedBounds(image, topDown: group == "samain")
     guard let cropped = image.cropping(to: bounds) else { fatalError("cannot crop \(render)") }
     let scale = min(1, Double(longest) / Double(max(cropped.width, cropped.height)))
     let width = Int((Double(cropped.width) * scale).rounded()), height = Int((Double(cropped.height) * scale).rounded())
@@ -56,7 +76,7 @@ for (render, set, longest) in jobs {
     )!
     context.interpolationQuality = .high
     context.draw(cropped, in: CGRect(x: 0, y: 0, width: width, height: height))
-    let folder = root.appendingPathComponent("App/SwiftHFR/Assets.xcassets/Noel/\(set).imageset")
+    let folder = root.appendingPathComponent("App/SwiftHFR/Assets.xcassets/\(folderName)/\(set).imageset")
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     let file = folder.appendingPathComponent("\(render).png")
     guard let output = CGImageDestinationCreateWithURL(file as CFURL, UTType.png.identifier as CFString, 1, nil) else {

@@ -31,6 +31,7 @@ import Testing
         "icon_previous": .device, "icon_revert_asked": .device,
         // LOT-166: seasonal themes are a presentation of this device, like the dark style (THEMES.md §5).
         "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device,
+        "season.samain.activeYear": .device,
         // #903: the Expérimental switches try a presentation on this device.
         "experimental.modernComposer": .device, "experimental.searchTab": .device, "experimental.mpDarkTopic": .device,
         "experimental.denseRows": .device, "experimental.imageLoadingChoice": .device,
@@ -61,6 +62,18 @@ import Testing
         ])
         #expect(keys.allSatisfy { $0.scope == .device })
         #expect(SettingKey.syncedKeys.isDisjoint(with: keys.map(\.key)))
+    }
+
+    /// LOT-191: the Samain keys follow the same rule, and name the season by the year of its October.
+    @Test func theSamainSeasonKeysStayOnTheDevice() {
+        let keys = SettingKey.samainSeason(year: 2027)
+        #expect(keys.map(\.key) == [
+            "season.samain.2027.arrivalShown", "season.samain.2027.arrivalPending", "season.samain.2027.optedOut",
+            "season.samain.2027.previousThemeID", "season.samain.2027.packingShown", "season.samain.2027.themeID"
+        ])
+        #expect(keys.allSatisfy { $0.scope == .device })
+        #expect(SettingKey.syncedKeys.isDisjoint(with: keys.map(\.key)))
+        #expect(SettingKey.samainActiveYear.key == "season.samain.activeYear")
     }
 
     @Test func theSevenThemeKeysSyncUnchanged() {
