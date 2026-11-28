@@ -6,7 +6,9 @@ import Synchronization
 public enum AccountSyncChange: Sendable, Hashable {
     /// An explicit login or re-login: new credentials and a new consent to share the account.
     case login(pseudo: String)
-    /// Cookies, token or avatar refreshed without a login.
+    /// Cookies, token or avatar refreshed without a login. Shared only when the login cookies' values changed, or when the
+    /// copy's expiries lag far behind this device's (#1390); this device's cookies then beat the copy's, so it is reported
+    /// only after the forum confirmed them (a valid session check).
     case refresh(pseudo: String)
     /// The account was removed from this device.
     case removal(pseudo: String)
@@ -95,28 +97,17 @@ public final class AccountSync: Sendable {
         try lock.withLock { _ in
             var state = try loadState()
             let now = clock()
+            // One read of the copy for the stamps and the push below: the push compares against these very bytes. A failed
+            // read is thrown by the push, after the state is saved, as before.
+            let read: Result<Data?, any Error>? = state.isOn ? Result { try item.read() } : nil
+            let raw = try? read?.get()
             // Any change of the device-only accounts means this device held some: never a bootstrap source again.
             state.hadLocalAccounts = true
-            switch change {
-            case .login(let pseudo):
-                let key = AccountKey.make(pseudo)
-                state.stamps[key] = AccountStamp(credentialsAt: now, consentAt: now)
-                // Entered on this device: never dropped by a provisional switch-off (spec D8); the other imported
-                // accounts stay lent until the confirming read.
-                state.imported.remove(key)
-            case .refresh(let pseudo):
-                let key = AccountKey.make(pseudo)
-                state.stamps[key] = AccountStamp(credentialsAt: now, consentAt: state.stamps[key]?.consentAt ?? .distantPast)
-            case .removal(let pseudo):
-                let key = AccountKey.make(pseudo)
-                state.stamps[key] = nil
-                state.imported.remove(key)
-                if state.isOn { state.removed[key] = now }
-            }
+            Self.record(change, at: now, in: &state, copy: raw)
             try saveState(state)
             // The push of a local change is not a confirming read: the provisional window lasts until the next launch or
             // foreground (ADR 0013 §6 *Bootstrap*).
-            return state.isOn ? try reconcileLocked(confirming: false) : AccountSyncReport()
+            return state.isOn ? try reconcileLocked(confirming: false, read: read?.get()) : AccountSyncReport()
         }
     }
 
@@ -159,10 +150,11 @@ public final class AccountSync: Sendable {
 // MARK: - Rules
 
 extension AccountSync {
-    private func reconcileLocked(confirming: Bool) throws -> AccountSyncReport {
+    /// With `read`, the bytes the caller already read from the item stand for the item's read.
+    private func reconcileLocked(confirming: Bool, read: Data?? = nil) throws -> AccountSyncReport {
         var state = try loadState()
         try noteLocalAccounts(&state)
-        guard let raw = try item.read() else { return AccountSyncReport() }
+        guard let raw = try read ?? item.read() else { return AccountSyncReport() }
         let envelope = try AccountSyncEnvelope.decode(raw)
         if state.isOn, let enabledAt = state.enabledAt {
             return try reconcileOn(&state, enabledAt: enabledAt, raw: raw, envelope: envelope, confirming: confirming)
