@@ -113,18 +113,14 @@ struct ThemeEngineTests {
         #expect(retro.fontDesign == .monospaced)
     }
 
-    /// LOT-193: OG clair and OG gris are bundled in the OG Web family; each one is a single variant that shows in the appearance
-    /// its background reads as, whatever the picker says (both light: black text contrasts more with #FFFFFF and #D5D5D5).
-    @Test func ogClairAndOgGrisAreInTheBundledGallery() throws {
+    /// LOT-193: OG clair is bundled in the OG Web family; a single variant that shows in the light appearance whatever the picker
+    /// says (black text contrasts more with its #FFFFFF background).
+    @Test func ogClairIsInTheBundledGallery() throws {
         let catalog = ThemeCatalog.bundled
         let clair = try #require(catalog.themes.first { $0.id == "og-clair" })
-        let gris = try #require(catalog.themes.first { $0.id == "og-gris" })
         let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
         model.mode = .dark
         model.select(clair)
-        #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
-        model.mode = .dark
-        model.select(gris)
         #expect(model.appearance.forcedColorScheme == .light && model.preferredColorScheme == .light)
     }
 

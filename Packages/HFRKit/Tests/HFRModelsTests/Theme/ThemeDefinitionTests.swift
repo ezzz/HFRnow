@@ -93,22 +93,22 @@ import Testing
         #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro", "OG Web"])
     }
 
-    /// LOT-193: OG clair and OG gris (family OG Web, one variant each) ship with the optional table tokens (header band,
-    /// alternate cell, meta, page bar and the text on both bars).
-    @Test func ogClairAndOgGrisAreBundledWithTheirTableTokens() throws {
+    /// LOT-193: OG clair (family OG Web, one variant, credited « par le forum HFR (thème web) ») ships with the optional table
+    /// tokens (header band, alternate cell, meta, page bar and the text on both bars).
+    @Test func ogClairIsBundledWithItsTableTokens() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles())
-        for (id, name) in [("og-clair", "OG clair"), ("og-gris", "OG gris")] {
-            let theme = try #require(catalog.themes.first { $0.id == id })
-            #expect(theme.name == name && theme.family == "OG Web" && theme.fontDesign == .default)
-            guard case .single(let tokens)? = theme.variants else {
-                Issue.record("\(name) is a single variant")
-                continue
-            }
-            #expect(tokens.resolvedHeaderBand == ThemeRGB(hex: id == "og-clair" ? "#001932" : "#202530"))
-            #expect(tokens.alternateCell != nil && tokens.meta != nil && tokens.pageBar != nil)
-            #expect(tokens.onHeaderBand != nil && tokens.onPageBar != nil)
+        let theme = try #require(catalog.themes.first { $0.id == "og-clair" })
+        #expect(theme.name == "OG clair" && theme.family == "OG Web" && theme.fontDesign == .default)
+        // The gallery prints « par <author> »: the author reads after it.
+        #expect(theme.author == "le forum HFR (thème web)")
+        guard case .single(let tokens)? = theme.variants else {
+            Issue.record("OG clair is a single variant")
+            return
         }
-        #expect(catalog.galleryFamilies.first { $0.family == "OG Web" }?.themes.map(\.id) == ["og-clair", "og-gris"])
+        #expect(tokens.resolvedHeaderBand == ThemeRGB(hex: "#001932"))
+        #expect(tokens.alternateCell != nil && tokens.meta != nil && tokens.pageBar != nil)
+        #expect(tokens.onHeaderBand != nil && tokens.onPageBar != nil)
+        #expect(catalog.galleryFamilies.first { $0.family == "OG Web" }?.themes.map(\.id) == ["og-clair"])
     }
 
     /// The text of a band falls back to `textPrimary`, and the rule follows it.
