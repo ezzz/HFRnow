@@ -15,15 +15,25 @@ struct FavoritesPresentationTests {
 
     @Test func categoriesOnDemandGroupAFlatListAndShowEveryFoldedSection() {
         let flat = FavoritesLayoutOptions(groupedByCategory: false, showsCollapsedSections: false, showsEmptySections: false)
-        let onDemand = FavoritesPresentation.effectiveLayout(of: flat, categoriesOnDemand: true)
+        let onDemand = FavoritesPresentation.effectiveLayout(of: flat, categoriesOnDemand: true, emptySectionsAllowed: false)
         #expect(onDemand.groupedByCategory && onDemand.showsCollapsedSections)
-        #expect(FavoritesPresentation.effectiveLayout(of: flat, categoriesOnDemand: false) == flat)
+        #expect(FavoritesPresentation.effectiveLayout(of: flat, categoriesOnDemand: false, emptySectionsAllowed: true) == flat)
         let groups = FavoritesPresentation.groups(of: page(), options: onDemand, collapsed: ["cat:1"], superFavorites: [])
         #expect(ids(groups) == ["cat:1", "cat:3"])
     }
 
+    @Test func categoriesOnDemandListEmptyCategoriesOnlyWhereTheListKindAllowsIt() {
+        let flat = FavoritesLayoutOptions(groupedByCategory: false, showsCollapsedSections: false, showsEmptySections: false)
+        let allowed = FavoritesPresentation.effectiveLayout(of: flat, categoriesOnDemand: true, emptySectionsAllowed: true)
+        let refused = FavoritesPresentation.effectiveLayout(of: flat, categoriesOnDemand: true, emptySectionsAllowed: false)
+        let withEmpty = FavoritesPresentation.groups(of: page(), options: allowed, collapsed: [], superFavorites: [])
+        let without = FavoritesPresentation.groups(of: page(), options: refused, collapsed: [], superFavorites: [])
+        #expect(ids(withEmpty) == ["cat:1", "cat:2", "cat:3"])
+        #expect(ids(without) == ["cat:1", "cat:3"])
+    }
+
     @Test func categoriesOnDemandChangeNothingInTheGroupedSort() {
-        #expect(FavoritesPresentation.effectiveLayout(of: grouped, categoriesOnDemand: true) == grouped)
+        #expect(FavoritesPresentation.effectiveLayout(of: grouped, categoriesOnDemand: true, emptySectionsAllowed: true) == grouped)
     }
 
     private func ids(_ groups: [TopicGroup]) -> [String] { groups.map(\.id) }

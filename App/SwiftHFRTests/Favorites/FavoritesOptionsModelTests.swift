@@ -55,6 +55,9 @@ struct FavoritesOptionsModelTests {
         #expect(options.showsCategoriesOnDemand && options.layout.groupedByCategory && options.layout.showsCollapsedSections)
         #expect(store.rawValue(forKey: "sujets_avec_cat") == .bool(false))
         #expect(store.rawValue(forKey: "FavoritesShowCollapsedSections") == nil)
+        #expect(options.layout.showsEmptySections)
+        options.mode = .favoritesOnly
+        #expect(!options.layout.showsEmptySections)
         options.groupedByCategory = true
         #expect(!options.showsCategoriesOnDemand)
         options.groupedByCategory = false

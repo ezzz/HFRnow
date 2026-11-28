@@ -119,12 +119,15 @@ final class FavoritesOptionsModel {
                 groupedByCategory: groupedByCategory, showsCollapsedSections: showsCollapsedSections,
                 showsEmptySections: showsEmptySections, unreadOnly: unreadOnly
             ),
-            categoriesOnDemand: showsCategoriesOnDemand
+            categoriesOnDemand: showsCategoriesOnDemand, emptySectionsAllowed: mode == .flagsAndFavorites
         )
     }
 
     /// The toolbar button in the flat sort: shows the categories for the moment, or goes back to the flat list.
-    func toggleCategoriesOnDemand() { showsCategoriesOnDemand.toggle() }
+    func toggleCategoriesOnDemand() {
+        haptics.impact(.light)
+        showsCategoriesOnDemand.toggle()
+    }
 
     /// The groups of `page` under the current options, folded sections and super-favourites.
     func groups(for page: FavoritesPage) -> [TopicGroup] {
