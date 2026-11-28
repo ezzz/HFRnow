@@ -103,8 +103,8 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         let host: UIViewController
         let root: RootModel
         let messages: FakePrivateMessages
-        /// Messages list loads run to their end: `ledgerSeen` is the last step of a page-1 load, after it kept or closed the
-        /// open conversation (`MessageListModel.load`, `recordReadState`).
+        /// Messages list loads that got past their selection decision: `ledgerSeen` runs right after a page-1 load kept or
+        /// closed the open conversation (`MessageListModel.load`, `recordReadState`); only `advanceWhileSegmentEmpty` follows.
         let listLoadsEnded: ReaderCallCounter
         let environment: AppEnvironment
     }
@@ -223,6 +223,20 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         split(in: window)?.viewController(for: .secondary)?.viewIfLoaded?.window != nil && stacksAreIdle(in: window)
     }
 
+    /// A negative check, after the end-state wait: `shown` is watched with a layout pass each poll for `duration` (the former
+    /// sleep, 500 ms) and fails the moment it holds. A negative has no end state of its own; a slow Mac only lengthens the watch.
+    func staysAway(_ window: UIWindow, for duration: Duration = .milliseconds(500), _ shown: () -> Bool) async -> Bool {
+        let clock = ContinuousClock()
+        let end = clock.now + duration
+        repeat {
+            window.layoutIfNeeded()
+            if shown() { return false }
+            try? await Task.sleep(for: .milliseconds(20))
+        } while clock.now < end
+        window.layoutIfNeeded()
+        return !shown()
+    }
+
     func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
         await until({
             window.layoutIfNeeded()
@@ -299,7 +313,8 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         // would be on screen by then (#1201; a fixed delay only guessed it).
         let settled = await settle(window) { !hasTabBar(window) && unfoldedDetailShown(in: window) && !list.loader.isLoading }
         #expect(settled, "unfolded: \(stacks(in: window)), loading \(list.loader.isLoading)")
-        #expect(!shows("Sujet 1 p1", in: window), "the closed topic came back: \(stacks(in: window))")
+        let away = await staysAway(window) { shows("Sujet 1 p1", in: window) || root.favorites.selectedTopic != nil }
+        #expect(away, "the closed topic came back: \(stacks(in: window))")
         #expect(root.favorites.selectedTopic == nil)
     }
 
@@ -335,7 +350,9 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         // The cover screen's list loads again when it appears: the conversation outlives that load, not only the frames before it.
         // `isLoading` drops one main-actor hop before `load()` decides about the selection: a fixed delay only guessed that hop,
         // so wait for the end of `load()` itself (#1201).
-        let coverLoad = await settle(window) { hosted.messages.requests.count > loads && ended.calls > endedBefore }
+        let coverLoad = await settle(window) {
+            hosted.messages.requests.count > loads && ended.calls > endedBefore && !root.messages.loader.isLoading
+        }
         #expect(coverLoad, "the folded list's load did not end: requests \(hosted.messages.requests), ended \(ended.calls)")
         #expect(root.messages.selected?.id == messageThread(7).id, "the folded list's load closed the conversation")
         window.layoutIfNeeded()

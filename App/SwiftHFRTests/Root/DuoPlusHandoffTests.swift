@@ -62,8 +62,8 @@ extension DuoLayoutHostedTests {
         // Bookmarks logged out loads nothing: the rebuilt split, its detail column on screen and no stack moving, is the end of
         // what the unfold started (#1201; a fixed delay only guessed it).
         #expect(await settle(window) { !hasTabBar(window) && unfoldedDetailShown(in: window) }, "\(stacks(in: window))")
-        #expect(!shows("Sujet 5 p1", in: window), "the closed topic came back: \(stacks(in: window))")
-        #expect(root.detailReaders[.bookmarks] == nil)
+        let away = await staysAway(window) { shows("Sujet 5 p1", in: window) || root.detailReaders[.bookmarks] != nil }
+        #expect(away, "the closed topic came back: \(stacks(in: window))")
     }
 
     /// A topic opened from a Plus list on the cover screen is the entry's detail reader: the cover pushes it on the Plus stack, and
@@ -140,6 +140,11 @@ extension DuoLayoutHostedTests {
             !hasTabBar(window) && unfoldedDetailShown(in: window) && bookmarkRow("Carafe", in: window) != nil
         }
         #expect(unfolded, "\(stacks(in: window))")
+        let away = await staysAway(window) {
+            bookmarkRow("Carafe", in: window)?.accessibilityTraits.contains(.selected) == true || root.bookmarkSelection.id != nil
+                || root.detailReaders[.bookmarks] != nil || stacks(in: window).contains { $0.last?.hasPrefix("Sujet") == true }
+        }
+        #expect(away, "the closed bookmark came back: \(stacks(in: window))")
         let unfoldedRow = try #require(bookmarkRow("Carafe", in: window), "\(stacks(in: window))")
         #expect(!unfoldedRow.accessibilityTraits.contains(.selected), "the closed bookmark's row is still selected")
         #expect(root.bookmarkSelection.id == nil)
@@ -176,6 +181,7 @@ extension DuoLayoutHostedTests {
         root.plusEntry = .bookmarks
         // The list on top with no push in flight: a topic carried back over it would be on its way already (#1201).
         #expect(await settle(window) { shows("Bookmarks", in: window) && stacksAreIdle(in: window) }, "\(stacks(in: window))")
-        #expect(!shows("Sujet 5 p1", in: window), "the old topic came back over the list: \(stacks(in: window))")
+        let away = await staysAway(window) { shows("Sujet 5 p1", in: window) || root.detailReaders[.bookmarks] != nil }
+        #expect(away, "the old topic came back over the list: \(stacks(in: window))")
     }
 }
