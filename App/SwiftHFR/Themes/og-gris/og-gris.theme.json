@@ -2,9 +2,10 @@
   "id": "og-gris",
   "name": "OG gris",
   "family": "OG Web",
-  "author": "d'après le forum HFR (thème web)",
+  "credit": "d'après le forum HFR (thème web)",
   "fontDesign": "default",
   "decorations": null,
+  "listStyle": "ogTable",
   "variants": {
     "any": {
       "background": "#D5D5D5",

@@ -960,7 +960,7 @@ Changes forced by the rules: 1. `selection` `#C2C3F4` → `#C9CAF5` (the app's e
 | `alternateCell` | l.14 `#BBBBBB` | `#BBBBBB` | `#E8E8E8` | `textPrimary` 17.14 | decision (a); derived |
 | `title`, `sectionHeader` | l.4 `.cBackHeader` `#202530` (the draft's `#FFFFFF` was for the dark page; l.10 `.fondForumSupercat` `#888888` is 1.62:1 on `#666666`) | `#FFFFFF` | `#202530` | on `background` 10.45 | the forum's header colour on the light page |
 | `surfaceRaised`, `headerBand` | l.4 `.cBackHeader` | `#202530` | `#202530` | n/a | captured |
-| `onHeaderBand` | l.5 `.cHeader` `#888888` | `#8B8B8B` | `#8E8E8E` | on `headerBand` 4.68 (captured value 4.33) | raised, the only text colour that moved on the band |
+| `onHeaderBand` | l.5 `.cHeader` `#888888` | `#8B8B8B` | `#8E8E8E` | on `headerBand` 4.68 (captured value 4.33) | captured `#888888` fails (4.33); the draft `#8B8B8B` passes by 0.003 (4.503), too thin a margin for a rounding of the ratio, so `#8E8E8E` (the draft is not wrong, #1436 said it stays: this is the margin call) |
 | `textPrimary`, `spoilerText`, `onAccent`, `codeText` | l.19-23 `color: #000000` | `#000000` | `#000000` | on `selection` 13.25 | captured |
 | `textSecondary`, `meta` | l.26 `.cFondu` `#4f5258` | `#3C3F45` | `#4F5258` | on `surface` 5.71, `selection` 4.94 | the captured value passes on the light rows (the draft's `#3C3F45` was for the mid-grey) |
 | `counter` | l.9 `.cCatTopicVIP` `#0000FF` | `#0000B0` | `#0000FF` | on `surface` 6.27, `alternateCell` 7.01 | the captured value passes (the draft's `#0000B0` was for the mid-grey) |
@@ -973,7 +973,6 @@ Changes forced by the rules: 1. `selection` `#C2C3F4` → `#C9CAF5` (the app's e
 | `codeBackground` | `R728b` l.86-89 `.fixed, .code` `#FFF` | `#FFFFFF` | `#FFFFFF` | n/a | captured |
 | `unread`, `onUnread` | `R728b` l.43 `.red` `#FF0000` + white (4.0:1) | `#CC0000`, `#FFFFFF` | `#CC0000`, `#FFFFFF` | 5.89 | raised (as OG clair) |
 | `accent` | logo bitmap (« Forum logo colour »), a fill only | `#F18F18` | `#F18F18` | n/a | captured |
-
 
 ### `aq.super-h.fr`: server source (secondary, not a capture)
 

@@ -93,13 +93,13 @@ import Testing
         #expect(catalog.galleryFamilies.map(\.family) == ["Classiques", "Rétro", "OG Web"])
     }
 
-    /// LOT-193: OG clair (family OG Web, one variant, credited « par le forum HFR (thème web) ») ships with the optional table
+    /// LOT-193: OG clair (family OG Web, one variant, credited « d'après le forum HFR (thème web) ») ships with the optional table
     /// tokens (header band, alternate cell, meta, page bar and the text on both bars).
     @Test func ogClairIsBundledWithItsTableTokens() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles())
         let theme = try #require(catalog.themes.first { $0.id == "og-clair" })
         #expect(theme.name == "OG clair" && theme.family == "OG Web" && theme.fontDesign == .default)
-        #expect(theme.author == "d'après le forum HFR (thème web)")
+        #expect(theme.author == nil && theme.credit == "d'après le forum HFR (thème web)")
         guard case .single(let tokens)? = theme.variants else {
             Issue.record("OG clair is a single variant")
             return
@@ -115,7 +115,7 @@ import Testing
     @Test func ogGrisIsTheAccessibleLightGrey() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles())
         let theme = try #require(catalog.themes.first { $0.id == "og-gris" })
-        #expect(theme.name == "OG gris" && theme.family == "OG Web" && theme.author == "d'après le forum HFR (thème web)")
+        #expect(theme.name == "OG gris" && theme.family == "OG Web" && theme.credit == "d'après le forum HFR (thème web)")
         guard case .single(let tokens)? = theme.variants else {
             Issue.record("OG gris is a single variant")
             return
@@ -125,16 +125,6 @@ import Testing
         #expect(tokens.title == ThemeRGB(hex: "#202530") && tokens.sectionHeader == ThemeRGB(hex: "#202530"))
         // The forum's captured values (R728c l.26 `.cFondu`, l.9 `.cCatTopicVIP`) pass on these rows, so they are kept.
         #expect(tokens.resolvedMeta == ThemeRGB(hex: "#4F5258") && tokens.resolvedCounter == ThemeRGB(hex: "#0000FF"))
-    }
-
-    /// The gallery credit: a plain author reads « par <author> », a credit that starts with « d'après » is the whole line.
-    @Test func theCreditLineSkipsParForADerivedCredit() throws {
-        let catalog = ThemeCatalog(files: try Self.bundledFiles())
-        func line(_ id: String) -> String? { catalog.themes.first { $0.id == id }?.creditLine }
-        #expect(line("og-clair") == "d'après le forum HFR (thème web)")
-        #expect(line("og-gris") == "d'après le forum HFR (thème web)")
-        #expect(line("legacy") == "par Ezzz")
-        #expect(line("swift") == nil)
     }
 
     /// The text of a band falls back to `textPrimary`, and the rule follows it.
