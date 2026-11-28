@@ -1,0 +1,15 @@
+{
+  "id": "T1280d",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/medium/self/5a73eb06fa49bd3e8c7be1ff1776f63905684517.jpg",
+  "url": "https://reho.st/medium/self/5a73eb06fa49bd3e8c7be1ff1776f63905684517.jpg",
+  "final_url": "https://reho.st/medium/self/5a73eb06fa49bd3e8c7be1ff1776f63905684517.jpg",
+  "status": 200,
+  "content_type": "image/jpeg",
+  "date": "Fri, 27 Nov 2026 22:47:55 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "reho.st path shape (#1280); Referer: https://forum.hardware.fr/",
+  "private": false
+}

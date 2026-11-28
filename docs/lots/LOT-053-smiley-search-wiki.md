@@ -34,9 +34,9 @@ ezzz/HFRnow at `2440d79` (an ancestor of `origin/master`).
 ## Requests sent and captured
 | Call | Request sent | Captured request | Same answer? |
 |---|---|---|---|
-| `search("chat")` | `findsmilies=chat` | `R53b`: `findsmilies=+chat` | not captured (*pending*) |
-| `search("chat noir")` | `findsmilies=chat%20noir` (= legacy live, LOT-005 oracle) | `R53c`: `findsmilies=+chat+noir` | not captured (*pending*) |
-| `search("chat noir", requireAll: true)` | `findsmilies=%2Bchat%20%2Bnoir` (= legacy "all keywords") | none | not captured (*pending*) |
+| `search("chat")` | `findsmilies=chat` | `R53b`: `findsmilies=+chat`; `R360a`: `findsmilies=chat` | yes (same count, 657; HFR-PROTOCOL §6c LOT-053) |
+| `search("chat noir")` | `findsmilies=chat%20noir` (= legacy live, LOT-005 oracle) | `R53c`: `findsmilies=+chat+noir`; `R360b`: `findsmilies=chat%20noir` | yes (same count, 1010) |
+| `search("chat noir", requireAll: true)` | `findsmilies=%2Bchat%20%2Bnoir` (= legacy "all keywords") | `R360c` | an exact AND: the intersection of the `chat` and `noir` sets (run observation of 2026-11-27) |
 | `wiki(code: "[:user3]")` | `detail=%5B%3Auser3%5D` | `R54`: the same URL | yes |
 
 The capture tool sent the search value with raw `+` (the protocol table's `+w1+w2` template); the flow sends LOT-041's encoding, which is legacy's (LOT-005 oracle `live.requests`). The differential test therefore feeds the captured answers to the flow and compares the result with the legacy oracle; the request is compared with the legacy one.
@@ -45,7 +45,7 @@ The capture tool sent the search value with raw `+` (the protocol table's `+w1+w
 - Inner spaces count towards the 3 characters (`"a b"` is sent), as legacy (`SmileySearchService.swift:18-19`).
 - A full page served instead of the fragment (maintenance, a login wall) holds no `[:…]` image and no "no result" sentence: `page(.missingElement)`, never "no smiley".
 - A wiki redirect is followed (cookie-less GET); legacy did not follow it (`SmileyAlertView.m:154`). No redirect is captured (`R54` answers 200 in place).
-- **Pending capture** ([#360](https://github.com/ezzz/HFRnow/issues/360); never hand-built, LESSONS 35-36): a search sent as the flow sends it (`chat`, `chat%20noir`, `%2Bchat%20%2Bnoir`), a search with accents or special characters, a search returning standard (non-personal) smileys, a logged-out search, and the wiki page of an unknown code.
+- **Captured** ([#360](https://github.com/ezzz/HFRnow/issues/360), `R360a`-`R360i`, HFR-PROTOCOL §6c LOT-053): the searches as the flow sends them, accents, a logged-out search, the wiki of an unknown code and logged in. A search returning standard (non-personal) smileys was not found (`love`, `pt1cable`: personal only): the search looks personal-only. **Pending**: the LOT-005 `smiley-search` oracles of these captures (`run-oracle.sh`, Mac).
 
 ## Fixtures
 | Fixture | Covers |
