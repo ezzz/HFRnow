@@ -121,6 +121,23 @@ import Testing
         #expect(rules.contains { $0.foreground == "link" && $0.background == "alternateCell" })
     }
 
+    /// #1456: a theme whose card does not stand out from the page (Rétro 5250) ships a `groupOutline` that reaches 3:1 on the
+    /// page; one whose card stands out (Swift) needs none, and the token falls back to `separator`.
+    @Test func theGroupOutlineIsCheckedOnlyWhereTheCardDoesNotStandOut() throws {
+        let catalog = ThemeCatalog(files: try Self.bundledFiles())
+        let retro = try #require(catalog.themes.first { $0.id == "retro-5250" })
+        guard case .single(let flat)? = retro.variants else {
+            Issue.record("Rétro 5250 is a single variant")
+            return
+        }
+        #expect(!flat.cardStandsOut && flat.groupOutline != nil)
+        #expect(flat.resolvedGroupOutline.contrast(with: flat.background) >= ThemeTokens.groupOutlineMinimumContrast)
+        #expect(flat.contrastViolations(inLight: false).isEmpty)
+        let swift = try #require(catalog.themes.first { $0.id == "swift" }?.variants?.light)
+        #expect(swift.cardStandsOut && swift.groupOutline == nil && swift.resolvedGroupOutline == swift.separator)
+        #expect(ThemeTokens.optionalNames.contains("groupOutline"))
+    }
+
     /// The contrast test fails on a broken bundled theme: the same check, given the broken fixture among the bundled files.
     @Test func theBundledCheckFailsWhenABrokenThemeIsAdded() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles() + [("broken-theme.theme.json", Self.fixture("broken-theme"))])

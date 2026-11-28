@@ -86,11 +86,21 @@ private struct ThemedListRow: ViewModifier {
         if let colors = appearance.listColors {
             let separator = Color(uiColor: colors.separator)
             content
-                .listRowBackground(Self.background(colors, isSelected: isSelected, look: look))
+                .listRowBackground(rowBackground(colors))
                 .listRowSeparatorTint(separator)
                 .listSectionSeparatorTint(separator)
         } else {
             content
+        }
+    }
+
+    /// The row's fill, with the group outline (#1456) in the classic look, where a card exists to be outlined.
+    @ViewBuilder private func rowBackground(_ colors: ThemedListColors) -> some View {
+        let fill = Self.background(colors, isSelected: isSelected, look: look)
+        if look == .classic, let outline = appearance.groupOutlineColor {
+            GroupOutlineRowBackground(fill: fill, outline: Color(uiColor: outline))
+        } else {
+            fill
         }
     }
 
