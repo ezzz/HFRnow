@@ -202,7 +202,7 @@ final class RootModel {
                 dataSource: dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
                 topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
                 filteredPosts: environment.filteredPosts, startupSource: startup, favorites: favorites,
-                flagActions: environment.flagActions, topicFilter: topicFilter
+                superFavorites: options, flagActions: environment.flagActions, topicFilter: topicFilter
             )
         }
         // The Favoris tab opens on the list the favourites mode names (legacy default: "Drapeaux & Favoris").

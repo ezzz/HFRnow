@@ -104,6 +104,9 @@ final class TopicListModel {
 
     /// Layout options, collapsed sections and super-favourites of the favourites lists (LOT-124); nil for forum lists.
     let favorites: FavoritesOptionsModel?
+    /// The super-favourites of the current account, in every list (#869): on a forum list they offer the swipe and the menu
+    /// entry but leave the row's look as legacy's (`isSuperFavorite` reads `favorites`).
+    let superFavoriteOptions: FavoritesOptionsModel?
     /// The flag writes of the current account (LOT-125); nil when logged out, which hides "Supprimer".
     let flagActions: TopicFlagActions?
 
@@ -136,17 +139,19 @@ final class TopicListModel {
     private let dataSource: any ForumDataSource
     private let isLoggedIn: @Sendable () async -> Bool
 
-    /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` applies to the flags and favourites sources only,
-    /// `topicFilter` to a category's list.
+    /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` lays out the flags and favourites sources only
+    /// (and gives the super-favourites when `superFavorites` is nil), `topicFilter` applies to a category's list.
     init(
         source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @Sendable () async -> Bool = { false },
-        favorites: FavoritesOptionsModel? = nil, flagActions: TopicFlagActions? = nil, topicFilter: TopicFilterModel? = nil
+        favorites: FavoritesOptionsModel? = nil, superFavorites: FavoritesOptionsModel? = nil, flagActions: TopicFlagActions? = nil,
+        topicFilter: TopicFilterModel? = nil
     ) {
         self.source = source
         self.dataSource = dataSource
         self.isLoggedIn = isLoggedIn
         self.topicFilter = source.supportsFlagFilter ? topicFilter : nil
         self.favorites = source.isFavoritesList ? favorites : nil
+        self.superFavoriteOptions = superFavorites ?? favorites
         self.flagActions = flagActions
     }
 
@@ -276,7 +281,8 @@ final class TopicListModel {
     /// Favourites refresh on their own only with "Actualisation automatique" (`favorites_auto_refresh`, legacy default off):
     /// otherwise the list is refreshed by pull or by the refresh action.
     func onAppear() async {
-        await favorites?.reload()
+        // The super-favourites too on a forum list (#869): its swipe label reads them.
+        await superFavoriteOptions?.reload()
         if loader.value == nil {
             await loadIfNeeded()
         } else if pageSessionChanges != sessionChanges {

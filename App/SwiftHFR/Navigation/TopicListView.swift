@@ -180,35 +180,53 @@ struct TopicListView: View {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }
                     }
                 }
+                // #869: the first button (at the edge) is the favourite, then the super favourite, labelled by the row's state.
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if model.canRemoveFlag(topic) { removeButton(topic) }
+                    if model.canToggleSuperFavorite(topic) { superFavoriteButton(topic) }
                 }
                 .accessibilityActions {
-                    // The swipes, for VoiceOver (a swipe is not reachable there).
+                    // The swipes, for VoiceOver (a swipe is not reachable there; HIG › Context menus, #866 note on #869).
                     if model.canMarkRead(topic) { Button("Lu") { model.markRead(topic) } }
                     if model.canRemoveFlag(topic), !model.isRemovingFlag(topic) {
-                        Button("Supprimer") { Task { await model.removeFlag(topic) } }
+                        Button(model.removeFlagTitle(topic)) { Task { await model.removeFlag(topic) } }
+                    }
+                    if model.canToggleSuperFavorite(topic) {
+                        Button(model.superFavoriteTitle(topic)) { Task { await model.toggleSuperFavorite(topic) } }
                     }
                 }
-                .contextMenu { menu(topic, isSuper: isSuper) }
+                .contextMenu { menu(topic) }
         }
     }
 
-    /// "Supprimer" (legacy trailing swipe and menu entry): "Suppression…" and disabled while the removal is in flight.
+    /// "Supprimer", « Retirer des favoris » on a favourite (legacy trailing swipe and menu entry, #869): "Suppression…" and
+    /// disabled while the removal is in flight.
     private func removeButton(_ topic: TopicSummary) -> some View {
         let removing = model.isRemovingFlag(topic)
+        let icon = model.isFavorite(topic) ? "star.slash" : "trash"
         return Button(role: .destructive) {
             Task { await model.removeFlag(topic) }
         } label: {
-            Label(removing ? "Suppression…" : "Supprimer", systemImage: removing ? "hourglass" : "trash")
+            Label(removing ? "Suppression…" : model.removeFlagTitle(topic), systemImage: removing ? "hourglass" : icon)
         }
         .disabled(removing)
+    }
+
+    /// « Ajouter aux / Retirer des super favoris » (#869; legacy had it in the Favoris row menu only, `Favorites.swift:1150-1158`
+    /// @ 87fe0d1c).
+    private func superFavoriteButton(_ topic: TopicSummary) -> some View {
+        Button {
+            Task { await model.toggleSuperFavorite(topic) }
+        } label: {
+            Label(model.superFavoriteTitle(topic), systemImage: model.isMarkedSuperFavorite(topic) ? "star.slash" : "star.circle")
+        }
+        .tint(.orange)
     }
 
     /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter. What cannot run
     /// now is left out, not dimmed (HIG › Context menus, #1162).
     @ViewBuilder
-    private func menu(_ topic: TopicSummary, isSuper: Bool) -> some View {
+    private func menu(_ topic: TopicSummary) -> some View {
         if let open {
             if let opening = TopicQuickActions.firstPage(of: topic) {
                 Button("Première page", systemImage: "backward.end") { open(topic, opening) }
@@ -234,10 +252,8 @@ struct TopicListView: View {
         if model.canMarkRead(topic) {
             Button("Lu", systemImage: "checkmark") { model.markRead(topic) }
         }
-        if let favorites = model.favorites, favorites.canMarkSuperFavorites, topic.topicID != nil {
-            Button(isSuper ? "Retirer des super favoris" : "Ajouter aux super favoris", systemImage: "star.circle") {
-                Task { await favorites.toggleSuperFavorite(topic) }
-            }
+        if model.canToggleSuperFavorite(topic) {
+            Button(model.superFavoriteTitle(topic), systemImage: "star.circle") { Task { await model.toggleSuperFavorite(topic) } }
         }
         if model.menuOffersRemove(topic) { removeButton(topic) }
         if let filtering, model.menuOffersFilter(topic, filterIsBusy: filtering.isBusy) {

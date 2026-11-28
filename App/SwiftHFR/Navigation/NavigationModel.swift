@@ -20,6 +20,8 @@ final class NavigationModel {
     }
     /// Options of the favourites lists (LOT-124); nil on the Catégories tab.
     let favorites: FavoritesOptionsModel?
+    /// The account's super-favourites for every list's swipe and menu (#869), the Catégories tab included; `favorites` when nil.
+    let superFavorites: FavoritesOptionsModel?
     /// The Tous / Favoris / Suivis / Lus choice of the category lists; nil where the tab has none (Favoris).
     let topicFilter: TopicFilterModel?
     /// Favoris: the category a section title pushed on the favourites list (legacy pushed `ForumTopicsListView` in the Favoris
@@ -62,10 +64,12 @@ final class NavigationModel {
         filteredPosts: FilteredPostsServices = .unavailable,
         startupSource: TopicSource? = nil,
         favorites: FavoritesOptionsModel? = nil,
+        superFavorites: FavoritesOptionsModel? = nil,
         flagActions: TopicFlagActions? = nil,
         topicFilter: TopicFilterModel? = nil
     ) {
         self.favorites = favorites
+        self.superFavorites = superFavorites ?? favorites
         self.topicFilter = topicFilter
         self.flagActions = flagActions
         filtering = FilteredPostsModel(services: filteredPosts)
@@ -108,7 +112,7 @@ final class NavigationModel {
         if let existing = topicLists[source] { return existing }
         let model = TopicListModel(
             source: source, dataSource: dataSource, isLoggedIn: { [weak self] in await self?.isLoggedIn() ?? false },
-            favorites: favorites, flagActions: flagActions, topicFilter: topicFilter
+            favorites: favorites, superFavorites: superFavorites, flagActions: flagActions, topicFilter: topicFilter
         )
         topicLists[source] = model
         return model
