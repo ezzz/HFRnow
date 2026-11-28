@@ -28,14 +28,14 @@ struct VideoPlayerSheet: View {
                 } else {
                     ContentUnavailableView(
                         "Vidéo indisponible", systemImage: "play.slash",
-                        description: Text("Le lecteur ne peut pas être chargé ici. Ouvrez le lien de la vidéo.")
+                        description: Text("Le lecteur ne peut pas être chargé ici. Ouvre le lien de la vidéo.")
                     )
                 }
             }
             .navigationTitle("Vidéo \(TopicHTMLBuilder.providerName(embed.provider))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
                 if let link = VideoPlayerSheet.fallbackURL(for: embed) {
                     ToolbarItem(placement: .primaryAction) {
                         Button("Ouvrir le lien", systemImage: "safari") { openURL(link) }

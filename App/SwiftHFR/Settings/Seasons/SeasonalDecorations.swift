@@ -1,8 +1,8 @@
 import SwiftUI
 
 // Port of Classes/HFRNavigationController.m (userThemeDidChange, refreshTheme: the animated "snow" image behind the navigation
-// bar, `:85-90, 134-139`) and Classes/HFRplusAppDelegate.m (setTheme `:382-388`) @ 87fe0d1c. Differences (GAP-147): procedural
-// snow falling over the content, not frames in the bar.
+// bar, `:85-90, 134-139`) and Classes/HFRplusAppDelegate.m (setTheme `:363-388`, the snow block at 382-388) @ 87fe0d1c.
+// Differences (GAP-147): procedural snow falling over the content, not frames in the bar.
 extension View {
     /// The seasonal layer of the app root (LOT-166): the active theme's decorations over the content, and the arrival alert
     /// once nothing stands in its way (`isCovered`: the app lock; sheets and the keyboard are checked here, THEMES.md §4 rule 5).
@@ -33,6 +33,8 @@ private struct SeasonalDecorationsModifier: ViewModifier {
             // The sleigh crosses on any theme (25–26/12, automatic themes off); the small objects in Noël soft only.
             .overlay { NoelBand { NoelCrossingLayer(seasonal: model, isCovered: isCovered) } }
             .overlay { NoelBand { NoelPackingLayer(seasonal: model, isCovered: isCovered) } }
+            // 14 July, on any theme (LOT-194).
+            .overlay { NoelBand { FeteNationaleLayer(seasonal: model, isCovered: isCovered) } }
     }
 }
 

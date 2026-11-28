@@ -48,7 +48,7 @@ extension AccountRow {
 }
 
 /// Which account a login is for.
-enum LoginTarget: Sendable, Equatable, Identifiable {
+enum LoginTarget: Sendable, Hashable, Identifiable {
     /// A new account, or a known one typed again (it is refreshed in place).
     case newAccount
     /// A known account whose session must be renewed; credentials of another account are refused.

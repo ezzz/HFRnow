@@ -45,8 +45,11 @@ struct TabBarReselectionObserver: UIViewControllerRepresentable {
 
     /// The tab bar controller's delegate: a tap on the selected tab is a re-selection. The delegate that was there (SwiftUI's) is kept
     /// and asked first, for `shouldSelectTab` and `didSelectTab`, and every other delegate call goes to it (`forwardingTarget`).
-    @MainActor
-    final class Coordinator: NSObject, UITabBarControllerDelegate {
+    ///
+    /// Not main-actor isolated as a type: `responds(to:)` and `forwardingTarget(for:)` are `NSObject` overrides, nonisolated by
+    /// declaration, and read `previousDelegate`. The delegate methods and everything that touches UIKit state are `@MainActor`
+    /// one by one (UIKit sends them on the main thread); the two lookups only read the weak reference (#1364).
+    nonisolated final class Coordinator: NSObject, UITabBarControllerDelegate {
         var onReselect: @MainActor (Int) -> Void
         var onSelect: @MainActor (Int) -> Void
         private weak var tabBarController: UITabBarController?
@@ -60,7 +63,7 @@ struct TabBarReselectionObserver: UIViewControllerRepresentable {
         }
 
         /// Installs itself as the delegate, again when SwiftUI put another one back on the same controller.
-        func attach(from host: UIViewController) {
+        @MainActor func attach(from host: UIViewController) {
             let found = host.tabBarController ?? Self.tabBarController(in: host.view.window?.rootViewController)
             guard let found, found.delegate !== self else { return }
             let current = found.delegate
@@ -77,7 +80,7 @@ struct TabBarReselectionObserver: UIViewControllerRepresentable {
             previousDelegate?.responds(to: selector) == true ? previousDelegate : super.forwardingTarget(for: selector)
         }
 
-        func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
+        @MainActor func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
             let allowed = previousDelegate?.tabBarController?(tabBarController, shouldSelectTab: tab) ?? true
             if allowed, let tapped = Self.index(of: tab, in: tabBarController), tapped == tabBarController.selectedIndex {
                 onReselect(tapped)
@@ -85,16 +88,16 @@ struct TabBarReselectionObserver: UIViewControllerRepresentable {
             return allowed
         }
 
-        func tabBarController(_ tabBarController: UITabBarController, didSelectTab selectedTab: UITab, previousTab: UITab?) {
+        @MainActor func tabBarController(_ tabBarController: UITabBarController, didSelectTab selectedTab: UITab, previousTab: UITab?) {
             previousDelegate?.tabBarController?(tabBarController, didSelectTab: selectedTab, previousTab: previousTab)
             if let index = Self.index(of: selectedTab, in: tabBarController) { onSelect(index) }
         }
 
-        private static func index(of tab: UITab, in tabBarController: UITabBarController) -> Int? {
+        @MainActor private static func index(of tab: UITab, in tabBarController: UITabBarController) -> Int? {
             tabBarController.tabs.firstIndex { $0 === tab || $0.identifier == tab.identifier }
         }
 
-        private static func tabBarController(in root: UIViewController?) -> UITabBarController? {
+        @MainActor private static func tabBarController(in root: UIViewController?) -> UITabBarController? {
             guard let root else { return nil }
             if let found = root as? UITabBarController { return found }
             for child in root.children {

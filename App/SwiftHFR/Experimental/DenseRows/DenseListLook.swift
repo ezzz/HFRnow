@@ -14,9 +14,6 @@ enum DenseListLook {
     /// grouped grey (operator's screenshot, decided by mac/M1 on #1117).
     static let plainBackground = Color(uiColor: .systemBackground)
 
-    /// A selected row's background: the clear row would hide the list's own selection (iPad columns), as `BookmarksView` does.
-    static let selectedRowBackground = Color.accentColor.opacity(0.15)
-
     /// Catégories (#1107): the vertical inset of a category row, tighter than the system's (about 11 pt).
     static let categoryRowVerticalInset: CGFloat = 5
 
@@ -29,12 +26,15 @@ enum DenseListLook {
 }
 
 /// EXPERIMENTAL(denseRows, #1107): the large-title row in the dense look: no band behind it, the title on the list's background.
-/// The classic look keeps today's row as it is: nil leaves the system's card behind the title.
+/// The classic look keeps today's row as it is: nil leaves the system's card behind the title. Under a gallery theme the row is
+/// clear in both looks (#1125): the title is drawn on the screen's `background`, the only pair its contrast rule checks, never
+/// on the card or on `surface` that `listLookRows()` paints the other rows.
 private struct DenseTitleRow: ViewModifier {
     @Environment(\.listLook) private var look
+    @Environment(\.themeAppearance) private var appearance
 
     func body(content: Content) -> some View {
-        content.listRowBackground(look == .dense ? DenseListLook.rowBackground : nil)
+        content.listRowBackground(look == .dense || appearance.listColors != nil ? DenseListLook.rowBackground : nil)
     }
 }
 

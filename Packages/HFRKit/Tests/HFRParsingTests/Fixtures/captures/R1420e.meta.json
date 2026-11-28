@@ -1,0 +1,16 @@
+{
+  "id": "R1420e",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/hfr/profil-{id}.htm",
+  "url": "https://forum.hardware.fr/hfr/profil-900001.htm",
+  "final_url": "https://forum.hardware.fr/hfr/profil-900001.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 22:40:51 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "another member's profile, jar with md_id only (no md_user, no md_passs)",
+  "file": "R1420e-profile-other-md-id-only.html",
+  "private": false
+}

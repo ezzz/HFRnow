@@ -175,7 +175,7 @@ byte. `check` accepts X only as a raw alias `userN` and a signature only as one 
 around the braces, a second paragraph, a quote block or any other content raises `MPStorageDocumentError` and fails `check`.
 **Never feed anonymized output back to `anonymize.py`**: aliases are not recognised (`user3` becomes `text1`); `publish.py` and
 `flows.py` read raw captures, `check` only reads. A document that is not
-JSON or holds a duplicate key raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
+JSON or holds a duplicate key raises `MPStorageDocumentError` (fail closed). A storage-subject thread whose first post holds no `{` (another member's MP with the subject, `R1203b`, #1203) is no document: the post is replaced by the private placeholder like any other body. On the storage thread's form pages the copies of the
 document (`content_form`, the review cell after `td.messCase1bis`) are rewritten the same way. `check --private`
 (its own rules in `anonymize.py`, no import of `mpstorage_doc`, its own first-paragraph scope) accepts that body only on a page whose `<title>` names
 the thread and whose every key is a format word or an alias key, every string `0.1`, `iOS`, a category under `cat` or an

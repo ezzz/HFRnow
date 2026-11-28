@@ -150,6 +150,7 @@ struct ThemeAppearance: Equatable, Sendable {
         [("--app-action-light", dayAccent.cssRGB), ("--app-action-dark", nightAccent.cssRGB)]
             + readerSurfaces.map { ($0.variable, $0.color.cssRGB) }
             + lightSurfaces.map { ($0.variable, $0.color.cssRGB) }
+            + readerLinkVariables
             + readerThemeVariables
     }
 

@@ -1,0 +1,22 @@
+{
+  "id": "R1203a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 07:51:37 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "MP list of user1 holding the storage-subject row user2 sent (#1203 step 2), before opening it",
+  "file": "R1203a-mp-list-foreign-storage-row-unread.html",
+  "private": true
+}

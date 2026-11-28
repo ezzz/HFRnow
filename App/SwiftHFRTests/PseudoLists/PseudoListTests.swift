@@ -175,6 +175,7 @@ struct PseudoListEditorModelTests {
         model.draft = "troll"
         await model.add()
         #expect(model.errorMessage == "troll est déjà dans la liste.")
+        #expect(model.errorTitle == "Pseudo déjà dans la liste")
         #expect(await store.blocklist(for: "moi").count == 1)
     }
 

@@ -1,0 +1,22 @@
+{
+  "id": "R1233a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=3",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=3",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=3",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 22:42:38 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "Favoris filter as the app sends it (#1233)",
+  "file": "R1233a-list-cat13-favoris-app-url.html",
+  "private": false
+}

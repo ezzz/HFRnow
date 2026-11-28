@@ -1,0 +1,21 @@
+{
+  "id": "R1315a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=prive&post={post}&page=2",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3207461&page=2",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3207461&page=2",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 07:25:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "#1315: page 2 of a 4-page one-to-one MP thread of user1, URL as HFREndpoint.topicPage builds it (Page numero, #1314)",
+  "file": "R1315a-mp-thread-page-2-of-4.html",
+  "private": true
+}

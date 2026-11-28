@@ -70,7 +70,7 @@ struct EmptyListView: View {
     private var message: String? {
         switch reason {
         case .nothing: nil
-        case .signInRequired(let notice): notice ?? "Connectez-vous pour voir cette liste."
+        case .signInRequired(let notice): notice ?? "Connecte-toi pour voir cette liste."
         case .notice(let notice): notice
         }
     }

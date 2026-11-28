@@ -1,0 +1,21 @@
+{
+  "id": "R1271b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=prive&post=3103750&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=1980672090&quote_only=1&new=0&nojs=0",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3103750&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=1980672090&quote_only=1&new=0&nojs=0",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3103750&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=1980672090&quote_only=1&new=0&nojs=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 22:45:35 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "quote_only=1 on a private thread, a message quoted by later posts of its page, which print no quote count (#1271)",
+  "file": "R1271b-quote-only-view-private-thread.html",
+  "private": true
+}

@@ -11,14 +11,19 @@ import FoundationNetworking
 public struct AnonymousTransport: HTTPTransport {
     private let transport: URLSessionTransport
 
-    /// Creates a transport on its own ephemeral, cookie-less `URLSession`.
+    /// The app-wide cookie-less transport: every anonymous page, prefetch and API call shares its `URLSession`, so its
+    /// connections, instead of one session per fetcher (#1398). It holds no state but open connections.
+    public static let shared = AnonymousTransport()
+
+    /// Creates a transport on its own ephemeral, cookie-less `URLSession`; prefer `shared` unless a separate connection
+    /// pool is wanted.
     public init() {
         self.init(configuration: .ephemeral)
     }
 
     /// Same, from a base configuration (tests use one without proxy); its cookie settings are always overridden.
     init(configuration: URLSessionConfiguration) {
-        transport = URLSessionTransport(session: URLSession(configuration: Self.cookieless(configuration)))
+        transport = URLSessionTransport(ownedSession: URLSession(configuration: Self.cookieless(configuration)))
     }
 
     /// Sends `request` without any cookie.

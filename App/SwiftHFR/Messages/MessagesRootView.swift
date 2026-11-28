@@ -75,7 +75,7 @@ struct MessageReaderColumn: View {
                     if phase != .active { model.flushMovedFlags() }
                 }
         } else {
-            ContentUnavailableView("Choisissez une conversation", systemImage: "envelope")
+            ContentUnavailableView("Choisis une conversation", systemImage: "envelope")
         }
     }
 }

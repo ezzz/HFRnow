@@ -25,7 +25,7 @@ public struct RehostClient: Sendable {
     /// Creates a client. The closures are injection points for tests; the defaults are the production behaviour.
     public init(
         configuration: RehostConfiguration,
-        transport: any HTTPTransport = AnonymousTransport(),
+        transport: any HTTPTransport = AnonymousTransport.shared,
         now: @escaping @Sendable () -> Date = { Date() },
         makeFilename: @escaping @Sendable () -> String = { "snapshot_\(Int.random(in: 1...Int.max)).jpg" },
         makeBoundary: @escaping @Sendable () -> String = { "Boundary-\(UUID().uuidString)" }

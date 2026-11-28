@@ -8,18 +8,24 @@ struct ReaderStateOverlay: View {
     let refresh: @MainActor () async -> Void
 
     var body: some View {
-        ZStack {
-            content
+        // A base that always exists and fills the space with no minimum: over a shown page `content` builds no view, and the
+        // icons need something to hang on. It takes no touch, so the page under it keeps them.
+        Color.clear
+            .allowsHitTesting(false)
+            .overlay { content }
             // The pulls past the page's top and end (#1207): the end's above the floating bar, never in the way of a touch.
-            PullRefreshIcon(progress: model.pullTop, isRefreshing: model.pulledEdge == .top)
-                .padding(.top, 8)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .allowsHitTesting(false)
-            PullRefreshIcon(progress: model.pullBottom, isRefreshing: model.pulledEdge == .bottom)
-                .padding(.bottom, 96)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .allowsHitTesting(false)
-        }
+            // Overlays, so they never size the page: stacked beside it, the end's 96 pt gave the reader a minimum height of
+            // about 135 pt, which pushed the docked composer behind the keyboard and the page under the bars (#1285, #1286).
+            .overlay(alignment: .top) {
+                PullRefreshIcon(progress: model.pullTop, isRefreshing: model.pulledEdge == .top)
+                    .padding(.top, 8)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .bottom) {
+                PullRefreshIcon(progress: model.pullBottom, isRefreshing: model.pulledEdge == .bottom)
+                    .padding(.bottom, 96)
+                    .allowsHitTesting(false)
+            }
     }
 
     @ViewBuilder

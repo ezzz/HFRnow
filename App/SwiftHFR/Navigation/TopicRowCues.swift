@@ -34,6 +34,13 @@ enum TopicRowCues {
         return "⚑\(topic.isPoll ? " \u{2263}" : "") \(current) / \(topic.pageCount)"
     }
 
+    /// Spoken form of `pageFooter`: "Sondage, page 3 sur 12" (the glyphs "⚑" and "≣" have no spoken name, #1161).
+    static func spokenPageFooter(_ topic: TopicSummary) -> String? {
+        guard pageFooter(topic) != nil, let current = topic.currentPage else { return nil }
+        let page = "page \(current) sur \(topic.pageCount)"
+        return topic.isPoll ? "Sondage, \(page)" : page.prefix(1).uppercased() + page.dropFirst()
+    }
+
     /// Spoken name of a flag colour, for the row that shows it only as a tint (the dense row's icon said the same words).
     static func flagLabel(_ flag: TopicFlag?) -> String? {
         switch flag {
@@ -60,9 +67,9 @@ enum TopicRowCues {
         (label: title, hint: "Ouvrir le forum")
     }
 
-    /// The row accent; the super favourite wins over the flag, and the selected row has none (the iPad selection stays visible).
-    static func accent(flag: TopicFlag?, isSuperFavorite: Bool, isSelected: Bool) -> Accent? {
-        guard !isSelected else { return nil }
+    /// The row accent; the super favourite wins over the flag, and the selected row keeps its accent over the light selection
+    /// tint (#1073; the solid fill that hid it is gone).
+    static func accent(flag: TopicFlag?, isSuperFavorite: Bool) -> Accent? {
         if isSuperFavorite { return .superFavorite }
         switch flag {
         case .yellow: return .yellowFlag

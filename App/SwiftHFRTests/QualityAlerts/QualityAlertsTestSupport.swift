@@ -36,10 +36,11 @@ enum QualityAlertsTestSupport {
     @MainActor
     static func model(
         source: (any QualityAlertsSource)?, store: InMemorySettingsStore = InMemorySettingsStore(),
-        accountName: String? = nil, isLoggedIn: Bool = false
+        accountName: String? = nil, isLoggedIn: Bool = false, launchFeed: QualityAlertsLaunchFeed = QualityAlertsLaunchFeed()
     ) -> QualityAlertsModel {
         QualityAlertsModel(
-            source: source, isLoggedIn: { isLoggedIn }, accountName: { accountName }, store: store, now: { shownAt }
+            source: source, isLoggedIn: { isLoggedIn }, accountName: { accountName }, store: store, now: { shownAt },
+            launchFeed: launchFeed
         )
     }
 }

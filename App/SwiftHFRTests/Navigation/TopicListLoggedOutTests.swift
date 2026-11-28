@@ -25,8 +25,8 @@ struct TopicListLoggedOutTests {
         let list = model(source, loggedIn: false, dataSource: dataSource)
         await list.loadIfNeeded()
         #expect(list.signInPrompt(current: nil) == SignInPrompt(
-            title: "Connectez-vous pour accéder aux favoris",
-            message: "Ajoutez un pseudo pour charger vos favoris et vos drapeaux.",
+            title: "Connecte-toi pour accéder aux favoris",
+            message: "Ajoute un pseudo pour charger tes favoris et tes drapeaux.",
             systemImage: "star.slash",
             action: "Ajouter un pseudo",
             target: .newAccount
@@ -43,7 +43,7 @@ struct TopicListLoggedOutTests {
         let prompt = list.signInPrompt(current: row(.expired))
         #expect(prompt?.action == "Se reconnecter")
         #expect(prompt?.target == .existing(id: "user1", displayName: "User1"))
-        #expect(prompt?.message == "Votre session a expiré : reconnectez-vous pour charger vos favoris et vos drapeaux.")
+        #expect(prompt?.message == "Ta session a expiré : reconnecte-toi pour charger tes favoris et tes drapeaux.")
     }
 
     @Test(arguments: [
@@ -55,7 +55,7 @@ struct TopicListLoggedOutTests {
         let prompt = list.signInPrompt(current: row(status))
         #expect(prompt?.action == "Se reconnecter")
         #expect(prompt?.target == .existing(id: "user1", displayName: "User1"))
-        #expect(prompt?.message == "Reconnectez-vous pour charger vos favoris et vos drapeaux.")
+        #expect(prompt?.message == "Reconnecte-toi pour charger tes favoris et tes drapeaux.")
     }
 
     @Test func noAccountAtAllAddsOne() async {
@@ -82,7 +82,7 @@ struct TopicListLoggedOutTests {
         await list.loadIfNeeded()
         #expect(list.filterNote == FilterNote(
             title: "Connexion requise pour Favoris, Suivis et Lus",
-            subtitle: "Vous pouvez consulter \"Tous\" sans compte.",
+            subtitle: "Tu peux consulter \"Tous\" sans compte.",
             systemImage: "person.crop.circle.badge.exclamationmark"
         ))
     }

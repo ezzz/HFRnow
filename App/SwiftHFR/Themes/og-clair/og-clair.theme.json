@@ -1,0 +1,39 @@
+{
+  "id": "og-clair",
+  "name": "OG clair",
+  "family": "OG Web",
+  "author": "le forum HFR (thème web)",
+  "fontDesign": "default",
+  "decorations": null,
+  "variants": {
+    "any": {
+      "background": "#FFFFFF",
+      "surface": "#F7F7F7",
+      "surfaceRaised": "#001932",
+      "title": "#001932",
+      "textPrimary": "#000000",
+      "textSecondary": "#4B5762",
+      "sectionHeader": "#000080",
+      "accent": "#F18F18",
+      "accentText": "#000080",
+      "onAccent": "#000000",
+      "separator": "#C0C0C0",
+      "link": "#000080",
+      "quoteBackground": "#FFFFFF",
+      "quoteBorder": "#C0C0C0",
+      "codeBackground": "#FFFFFF",
+      "codeText": "#000000",
+      "unread": "#CC0000",
+      "onUnread": "#FFFFFF",
+      "spoilerBackground": "#FFFFFF",
+      "spoilerText": "#000000",
+      "selection": "#C9CAF5",
+      "headerBand": "#001932",
+      "onHeaderBand": "#FFFFFF",
+      "alternateCell": "#DEDFDF",
+      "meta": "#4B5762",
+      "pageBar": "#C2C3F4",
+      "onPageBar": "#000080"
+    }
+  }
+}

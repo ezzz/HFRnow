@@ -1,0 +1,32 @@
+{
+  "id": "retro-5250",
+  "name": "Rétro 5250",
+  "family": "Rétro",
+  "fontDesign": "monospaced",
+  "decorations": null,
+  "variants": {
+    "any": {
+      "background": "#000000",
+      "surface": "#000000",
+      "surfaceRaised": "#000000",
+      "title": "#33FF33",
+      "textPrimary": "#33FF33",
+      "textSecondary": "#1FB81F",
+      "sectionHeader": "#FFFFFF",
+      "accent": "#33FF33",
+      "accentText": "#33FF33",
+      "onAccent": "#000000",
+      "separator": "#1A7A1A",
+      "link": "#40E0D0",
+      "quoteBackground": "#001A00",
+      "quoteBorder": "#33FF33",
+      "codeBackground": "#001A00",
+      "codeText": "#FFFF55",
+      "unread": "#FFFF55",
+      "onUnread": "#000000",
+      "spoilerBackground": "#0F4A0F",
+      "spoilerText": "#33FF33",
+      "selection": "#0B330B"
+    }
+  }
+}

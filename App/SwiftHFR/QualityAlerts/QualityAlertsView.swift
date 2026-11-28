@@ -5,7 +5,7 @@ import SwiftUI
 // follow the list look of every Plus list (#1107, #842) and are `Button`s opening the reader at the message's page and anchor
 // (issues #105, #106) as the entry's reader, on the Plus stack (`PlusStackReader`) or in the detail column of the iPad split
 // (`openTopicInDetail`, #685), not the legacy topic row view; a failed load keeps the rows and shows a retry; the list is a plain
-// `List`, not the topic row styles (no flag cues).
+// `List`, not the topic row styles (no flag cues); a new row is also spoken as « Nouvelle » (legacy has no accessibility text, #1160).
 /// The Alertes Qualitay list: one row per report, bold while new, opening the reported message.
 struct QualityAlertsView: View {
     let model: QualityAlertsModel
@@ -82,7 +82,7 @@ private struct QualityAlertsPlaceholder: View {
     }
 }
 
-private struct QualityAlertRow: View {
+struct QualityAlertRow: View {
     let row: QualityAlertsModel.Row
     let now: Date
     let open: () -> Void
@@ -99,7 +99,7 @@ private struct QualityAlertRow: View {
     private var content: some View {
         VStack(alignment: .leading) {
             Text(row.title)
-                .scaledFont(.headline)
+                .scaledFont(row.titleStyle)
                 .bold(row.isNew)
                 .foregroundStyle(row.isNew ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             HStack {
@@ -114,5 +114,12 @@ private struct QualityAlertRow: View {
         // #842: the row's text under a gallery theme (`textPrimary`, `textSecondary`); the row itself is `listLookRows()`'s.
         .themedRowText()
         .accessibilityElement(children: .combine)
+        .accessibilityValue(row.accessibilityState)
     }
+}
+
+extension QualityAlertsModel.Row {
+    /// The title's text style: a seen alert is regular, a new one bold (legacy `titleWeight`, `AQPlusView.swift:405-407` @ 87fe0d1c);
+    /// body and headline share their size, headline alone is semibold.
+    var titleStyle: Font.TextStyle { isNew ? .headline : .body }
 }

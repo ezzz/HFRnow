@@ -43,7 +43,7 @@ struct PagerToolbar {
     }
 
     /// The system bottom-bar items, for the iPad sidebar root (no tab bar, nothing to overlap).
-    @ToolbarContentBuilder
+    @MainActor @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
         // « page x / y »: the pill on the left, then ‹ and › (first and last are in its menu); any other status keeps the
         // classic order. Same five items either way, so the content varies, never the structure.
@@ -81,7 +81,7 @@ struct PagerToolbar {
         if case .pageOf = status { true } else { false }
     }
 
-    @ViewBuilder
+    @MainActor @ViewBuilder
     private func statusView(in placement: PagerPlacement) -> some View {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
@@ -96,7 +96,7 @@ struct PagerToolbar {
 
     /// The same controls as a strip, for the layouts with a tab bar. The full row (first/last included) falls back to previous,
     /// status, next when it does not fit (Slide Over, accessibility sizes).
-    fileprivate var strip: some View {
+    @MainActor fileprivate var strip: some View {
         ViewThatFits(in: .horizontal) {
             stripRow(full: true)
             stripRow(full: false)
@@ -106,7 +106,7 @@ struct PagerToolbar {
         .padding(.horizontal)
     }
 
-    @ViewBuilder
+    @MainActor @ViewBuilder
     private func stripRow(full: Bool) -> some View {
         if usesPageMenu {
             // The menu carries first and last: the pill on the left, then the two arrow pills.
@@ -136,7 +136,7 @@ struct PagerToolbar {
         }
     }
 
-    private func classicRow(full: Bool) -> some View {
+    @MainActor private func classicRow(full: Bool) -> some View {
         HStack {
             if full { stripArrow("Première page", "backward.end", first) }
             stripArrow("Page précédente", "chevron.left", previous)

@@ -62,14 +62,14 @@ enum ListLoadError: Error, Equatable, Sendable {
     /// One-line explanation; never contains a URL, a cookie or a token.
     var detail: String {
         switch self {
-        case .offline: "Vérifiez votre connexion puis réessayez."
-        case .timedOut: "Réessayez dans un instant."
+        case .offline: "Vérifie ta connexion puis réessaie."
+        case .timedOut: "Réessaie dans un instant."
         case .server(let status): "Le serveur a répondu avec le code \(status)."
         case .maintenance(let message), .notAuthenticated(let message): message
         case .unreadable: "HFR a renvoyé une page inattendue."
         case .notSaved: "Cette page n’a pas été enregistrée pour la lecture hors ligne."
-        case .savedPageUnreadable: "Supprimez ce sujet dans la liste hors ligne (Réglages), puis enregistrez-le de nouveau."
-        case .cancelled, .other: "Réessayez."
+        case .savedPageUnreadable: "Supprime ce sujet dans la liste hors ligne (Réglages), puis enregistre-le de nouveau."
+        case .cancelled, .other: "Réessaie."
         }
     }
 

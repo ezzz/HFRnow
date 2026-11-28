@@ -65,6 +65,12 @@ extension View {
     /// Legacy: nothing.
     func themedSectionHeader() -> some View { modifier(ThemedListText(role: .sectionHeader)) }
 
+    /// A destructive `Button` that is a row of a themed list (#1121): under a theme its label takes `AccessibleColors.errorText`
+    /// (the system red measures 3.75:1 on some themes' `surface`). The system still dims it when disabled, explicit style
+    /// included (CI render of #1350: errorText at about 0.5 over `surface`), so no opacity is added here. Never on a `.plain`
+    /// button (the role's red does not reach its glyph), an alert, a dialog, a swipe action or a toolbar. Legacy: nothing.
+    func themedDestructive() -> some View { modifier(ThemedDestructive()) }
+
     /// A screen's large title under the theme (#842): `title`, which holds 4.5:1 on `background`. Legacy: nothing.
     func themedTitle() -> some View { modifier(ThemedListText(role: .title)) }
 }
@@ -116,6 +122,18 @@ private struct ThemedListText: ViewModifier {
         case .rowText: (colors.text, colors.secondaryText)
         case .sectionHeader: (colors.sectionHeader, colors.sectionHeader)
         case .title: (colors.title, colors.title)
+        }
+    }
+}
+
+private struct ThemedDestructive: ViewModifier {
+    @Environment(\.themeAppearance) private var appearance
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if appearance.listColors != nil {
+            content.foregroundStyle(AccessibleColors.errorText)
+        } else {
+            content
         }
     }
 }

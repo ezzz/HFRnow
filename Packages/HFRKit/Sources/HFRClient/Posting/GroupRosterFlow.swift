@@ -98,7 +98,8 @@ public struct GroupRosterFlow: Sendable {
     }
 
     /// The change is confirmed whatever this read gives: a failure leaves the roster unknown, not the write undone.
+    /// The roster re-read is a background check after a confirmed write: it keeps a list load's limit (#1375).
     private func reloadedMembers(of form: PostingForm) async -> [String]? {
-        try? await flow.loadForm(at: form.pageURL, through: form.session).groupMembers
+        try? await flow.loadForm(at: form.pageURL, through: form.session, timeout: RequestTimeout.standard).groupMembers
     }
 }

@@ -11,6 +11,9 @@ final class ContentLoader<Value: Sendable> {
     private(set) var isLoading = false
     /// Failure of the latest load; cleared by the next success.
     private(set) var error: ListLoadError?
+    /// The last load was stopped by `suspend()` (its window went away, #1404) and nothing loaded since: the list asks for it
+    /// again on return. Kept here, with the list's model, so a screen rebuilt meanwhile (a root swap) still knows.
+    private(set) var wasSuspended = false
 
     private var generation = 0
     private var task: Task<Bool, Never>?
@@ -27,6 +30,7 @@ final class ContentLoader<Value: Sendable> {
     ) async -> Bool {
         task?.cancel()
         generation += 1
+        wasSuspended = false
         let mine = generation
         isLoading = true
         let task = Task { [weak self] in
@@ -53,6 +57,14 @@ final class ContentLoader<Value: Sendable> {
         task = nil
         generation += 1
         isLoading = false
+    }
+
+    /// Stops the load in flight as `cancel()` does and remembers it (`wasSuspended`); true when there was one.
+    func suspend() -> Bool {
+        guard isLoading else { return false }
+        cancel()
+        wasSuspended = true
+        return true
     }
 
     /// Stops the load in flight and forgets the value and the failure (a new query must not show the previous one's rows).

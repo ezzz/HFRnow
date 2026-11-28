@@ -1,0 +1,13 @@
+// The internal-TestFlight variant of the app (LOT-161 step 1, operator decision of 2026-11-27 on #251): configuration `Beta`,
+// scheme `SwiftHFR Beta`. Its own App ID and App Store Connect record, so a beta never replaces nor shares data with
+// `hfrplus.red.super` (Debug and Release keep that id). Same pattern as legacy's separate `hfrplus-legacy.red.super`
+// (SuperHFRplus.xcodeproj/project.pbxproj:6345,6410 @ 87fe0d1c).
+// The target's Beta configuration sets neither PRODUCT_BUNDLE_IDENTIFIER nor INFOPLIST_KEY_CFBundleDisplayName, so these
+// values apply (a target setting would win over this file). CURRENT_PROJECT_VERSION and MARKETING_VERSION come from
+// scripts/release-testflight.sh --beta as build-time overrides.
+#include "Shared.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = hfrplus-swift.red.super
+INFOPLIST_KEY_CFBundleDisplayName = SwiftHFR β
+DEVELOPMENT_TEAM = QMG83DG7YP
+CODE_SIGN_STYLE = Automatic

@@ -27,7 +27,7 @@ struct ArchivedDraftsView: View {
             .navigationTitle("Brouillons")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Vider", role: .destructive) { clearing.request() }
                         .disabled(model.archivedDrafts.isEmpty || model.isMovingDrafts)

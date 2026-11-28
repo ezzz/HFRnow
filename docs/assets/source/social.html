@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- GitHub social preview, ":o" (#1380): the forum's smiley code set as a two-ink poster. Type only; 1280×640, with the
+     wordmark and the smiley inside the central area a small card keeps. -->
+<link rel="stylesheet" href="fonts.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body { background: #f3eee4; color: #16130f; font-family: Inter, sans-serif; position: relative; }
+  .block { position: absolute; left: 0; top: 0; bottom: 0; width: 640px; background: #f2691c; overflow: hidden; }
+  .glyph { position: absolute; left: 22px; top: -36px; font: 800 560px/1 'JetBrains Mono', monospace; letter-spacing: -.13em; color: #16130f; }
+  .tag { position: absolute; font: 600 14px 'JetBrains Mono', monospace; letter-spacing: .04em; }
+  .tag.tl { left: 40px; top: 34px; color: #16130f; }
+  .tag.bl { left: 40px; bottom: 34px; color: #16130f; }
+  .right { position: absolute; left: 700px; top: 0; bottom: 0; right: 56px; }
+  .kicker { position: absolute; top: 36px; left: 0; right: 0; display: flex; justify-content: space-between;
+    font: 600 14px 'JetBrains Mono', monospace; letter-spacing: .04em; border-bottom: 2px solid #16130f; padding-bottom: 12px; }
+  h1 { position: absolute; top: 112px; left: -6px; font: 900 160px/.86 Inter, sans-serif; letter-spacing: -.055em; }
+  h1 em { font-style: normal; color: #f2691c; }
+  .lede { position: absolute; top: 428px; left: 0; font-size: 25px; font-weight: 500; line-height: 1.28; letter-spacing: -.01em; max-width: 520px; }
+  .lede b { font-weight: 800; }
+  .code { position: absolute; bottom: 34px; left: 0; right: 0; border-top: 2px solid #16130f; padding-top: 12px;
+    display: flex; justify-content: space-between; font: 600 14px 'JetBrains Mono', monospace; letter-spacing: .02em; }
+  .code i { font-style: normal; color: #c2500c; }
+</style></head>
+<body>
+<div class="block">
+  <div class="glyph">:o</div>
+  <div class="tag tl">smiley code</div><div class="tag bl">U+003A U+006F</div>
+</div>
+<div class="right">
+  <div class="kicker"><span>forum.hardware.fr</span><span>iOS 27 · Swift 6.2</span></div>
+  <h1>Swift<br><em>HFR</em></h1>
+  <p class="lede">A forum from <b>1997</b>. An app from <b>2026</b>.<br>Rebuilt native in Swift &amp; SwiftUI.</p>
+  <div class="code"><span><i>[quote]</i>le forum<i>[/quote]</i></span><svg width="22" height="12" viewBox="0 0 22 12" fill="none" stroke="#16130f" stroke-width="2"><path d="M0 6h20M15 1l5 5-5 5"/></svg><span><i>struct</i> Forum: <i>View</i></span></div>
+</div>
+</body></html>

@@ -9,8 +9,8 @@ enum MPDarkTopic {
 
     /// What it does, shown under the switch (no ⓘ, operator 2026-11-17) and read as its hint. Says the switch-off path and what
     /// MP storage adds (the option works without it, #858).
-    static let explanation = "Lit les MP multiples comme un sujet : la liste montre la page où vous en étiez (⚑ page / pages), "
-        + "garde la conversation non lue tant que vous n'avez pas atteint sa dernière page, et la rouvre à cet endroit. "
+    static let explanation = "Lit les MP multiples comme un sujet : la liste montre la page où tu en étais (⚑ page / pages), "
+        + "garde la conversation non lue tant que tu n'as pas atteint sa dernière page, et la rouvre à cet endroit. "
         + "La position est gardée dans l'application ; avec Réglages › Stockage MP activé, elle est aussi lue et écrite dans le "
         + "MP de stockage, comme les autres applications HFR+. Désactivé : rien n'est lu ni écrit ; rien n'est supprimé."
 

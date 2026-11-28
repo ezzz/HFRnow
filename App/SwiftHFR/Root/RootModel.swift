@@ -170,6 +170,11 @@ final class RootModel {
                 { @Sendable (summary: NotificationSummary) async in
                     await MPNotificationLedger.recordSeen(summary, account: account)
                 }
+            },
+            ledgerThread: environment.currentAccountName.map { account in
+                { @Sendable (topic: Int, unread: UnreadThreadMark?) async in
+                    await MPNotificationLedger.recordThread(topic, unread: unread, account: account)
+                }
             }
         )
     }
@@ -222,7 +227,7 @@ final class RootModel {
             qualityAlerts: QualityAlertsModel(
                 source: environment.qualityAlertsSource,
                 visibility: environment.visibility, isLoggedIn: environment.isLoggedIn, accountName: environment.accountName,
-                store: store
+                store: store, launchFeed: environment.qualityAlertsFeed ?? QualityAlertsLaunchFeed()
             )
         )
     }

@@ -1,0 +1,15 @@
+{
+  "id": "T1280g",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/preview/self/31c7fccad020eece5a3346b2aae27be93799ce2a",
+  "url": "https://reho.st/preview/self/31c7fccad020eece5a3346b2aae27be93799ce2a",
+  "final_url": "https://reho.st/preview/self/31c7fccad020eece5a3346b2aae27be93799ce2a",
+  "status": 403,
+  "content_type": "text/html",
+  "date": "Fri, 27 Nov 2026 22:48:03 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "reho.st path shape (#1280)",
+  "private": false
+}

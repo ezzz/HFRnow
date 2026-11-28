@@ -1,0 +1,21 @@
+{
+  "id": "R1271a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=13&subcat=432&post=96614&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=75465521&quote_only=1&new=0&nojs=0",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=432&post=96614&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=75465521&quote_only=1&new=0&nojs=0",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=432&post=96614&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=75465521&quote_only=1&new=0&nojs=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 22:43:56 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "quote_only=1 view of a message as a logged-in reader (#1271)",
+  "file": "R1271a-quote-only-view-logged-in.html",
+  "private": false
+}

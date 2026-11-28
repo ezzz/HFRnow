@@ -33,11 +33,11 @@ enum ModeratorAlertMessages {
     static func submit(_ error: ModeratorAlertError) -> SubmitFailure {
         switch error {
         case .emptyReason:
-            .keep("Décrivez le problème avant d’envoyer.")
+            .keep("Décris le problème avant d’envoyer.")
         case .unsupportedCharacters(let characters):
             .keep(
                 "Le forum ne peut pas enregistrer ces caractères : \(characters.map(String.init).joined(separator: " ")). "
-                    + "Retirez-les puis envoyez."
+                    + "Retire-les puis envoie."
             )
         case .rejected(let message):
             .keep(message ?? "Le forum a refusé l’alerte : rien n’a été envoyé.")
@@ -54,15 +54,15 @@ enum ModeratorAlertMessages {
     private static func closed(_ error: ModeratorAlertError) -> String {
         switch error {
         case .notLoggedIn:
-            "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis alertez à nouveau."
+            "Ta session a expiré : rien n’a été envoyé. Reconnecte-toi depuis le menu Comptes, puis alerte à nouveau."
         case .sessionChanged:
-            "Le compte connecté a changé depuis l’ouverture de l’alerte : rien n’a été envoyé. Alertez à nouveau."
+            "Le compte connecté a changé depuis l’ouverture de l’alerte : rien n’a été envoyé. Alerte à nouveau."
         case .invalidLink:
             "Le lien d’alerte de ce message ne mène pas au forum : rien n’a été envoyé."
         case .formUnavailable(let message?):
             message
         default:
-            "Le formulaire d’alerte du forum n’est pas pris en charge : rien n’a été envoyé. Actualisez le sujet puis réessayez."
+            "Le formulaire d’alerte du forum n’est pas pris en charge : rien n’a été envoyé. Actualise le sujet puis réessaie."
         }
     }
 
@@ -81,15 +81,15 @@ enum ModeratorAlertMessages {
     private static func network(_ error: NetworkError) -> String {
         switch error {
         case .offline:
-            "Pas de connexion à internet : rien n’a été envoyé. Réessayez une fois connecté."
+            "Pas de connexion à internet : rien n’a été envoyé. Réessaie une fois connecté."
         case .timedOut:
-            "Le forum ne répond pas : rien n’a été envoyé. Réessayez dans quelques instants."
+            "Le forum ne répond pas : rien n’a été envoyé. Réessaie dans quelques instants."
         case .cancelled:
             "Alerte annulée : rien n’a été envoyé."
         case .httpStatus(let code, _):
-            "Le forum a renvoyé l’erreur \(code) : rien n’a été envoyé. Réessayez plus tard."
+            "Le forum a renvoyé l’erreur \(code) : rien n’a été envoyé. Réessaie plus tard."
         case .invalidRequest, .invalidResponse, .transport, .unscripted:
-            "La connexion au forum a échoué : rien n’a été envoyé. Réessayez."
+            "La connexion au forum a échoué : rien n’a été envoyé. Réessaie."
         }
     }
 }

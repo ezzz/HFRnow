@@ -43,7 +43,7 @@ final class MPStorageSyncModel {
     }
 
     /// The legacy question (`MPStorage.m:91`), asked before the thread is created.
-    static let creationQuestion = "Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?"
+    static let creationQuestion = "Le MP de stockage n'a pas été trouvé. Veux-tu qu'il soit créé ?"
     /// How long a search that found no thread is trusted before `start()` searches again: the search walks the MP list.
     static let searchInterval: TimeInterval = 86_400
 
@@ -166,7 +166,7 @@ final class MPStorageSyncModel {
             return
         }
         guard await isLoggedIn() else {
-            status = .failed("Connectez-vous pour activer le stockage MP.")
+            status = .failed("Connecte-toi pour activer le stockage MP.")
             return
         }
         await run { [self] () async throws(MPStorageSyncError) in
@@ -368,7 +368,7 @@ final class MPStorageSyncModel {
         case .posting(.unconfirmed), .notVerified:
             "Écriture non confirmée : elle sera vérifiée à la prochaine synchronisation."
         case .posting(.notLoggedIn), .list(.notAuthenticated):
-            "Connectez-vous pour synchroniser le stockage MP."
+            "Connecte-toi pour synchroniser le stockage MP."
         default:
             "La synchronisation du stockage MP a échoué."
         }

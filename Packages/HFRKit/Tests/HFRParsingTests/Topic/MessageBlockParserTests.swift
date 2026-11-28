@@ -59,7 +59,7 @@ struct MessageBlockParserTests {
     }
 
     @Test(
-        "Page 1, single pages and MP threads have no continuation block",
+        "Page 1, single pages and single-page MP threads have no continuation block",
         arguments: ["R20-topic-p1-anon", "R23-topic-single-page-anon", "R31-topic-locked-anon", "RA4-mp-thread-both-accounts"]
     )
     func noContinuation(capture: String) throws {

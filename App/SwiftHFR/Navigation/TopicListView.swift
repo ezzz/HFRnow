@@ -126,9 +126,10 @@ struct TopicListView: View {
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
         .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
-        .task(id: model.wantedFilter) { await model.onAppear() }
+        .sceneAwareListLoad(model, id: model.wantedFilter)
         .alert(
-            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
+            AlertTitles.flagRemoveFailed,
+            isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
         ) {
             // The row is captured here: the alert clears the model's state before a button's action runs (LOT-087).
             if let topic = model.retryableRemoval {
@@ -146,14 +147,15 @@ struct TopicListView: View {
     /// Whether a flagged row is a pill: not in Favoris and Drapeaux, legacy's one Favoris view (`Favorites.swift:1134` @ 87fe0d1c).
     static func flagPills(for source: TopicSource) -> Bool { !source.isFavoritesList }
 
-    /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
+    /// The tint of a row: the super favourite's orange or the flag's colour, nil when nothing is highlighted. The selected row keeps
+    /// its pill over the selection tint (#1073).
     /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
     /// @ 87fe0d1c); the default row shows no flag colour there.
     static func rowTint(
-        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, flagPills: Bool = true
+        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, flagPills: Bool = true
     ) -> RowTint? {
         let flag = showsFlag && flagPills ? topic.flag : nil
-        guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
+        guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite) else {
             return nil
         }
         return RowTint(tint: accent.color, weight: accent.weight)
@@ -170,7 +172,7 @@ struct TopicListView: View {
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(
-                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
+                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper,
                         flagPills: TopicListView.flagPills(for: model.source)
                     ),
                     isSuperFavorite: isSuper

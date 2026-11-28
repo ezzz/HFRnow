@@ -64,9 +64,9 @@ struct UserProfileParserTests {
         #expect(profile.sections.flatMap(\.fields).first { $0.title == "Citation personnelle associée au pseudo" }?.isPlaceholder == true)
     }
 
-    static let captures = ["R56a-profile-operator-anon", "R56b-profile-other-member-anon"]
+    static let captures = ["R56a-profile-operator-anon", "R56b-profile-other-member-anon", "R1363b-profile-own-user1"]
 
-    @Test("every URL of both captures is absolute https on the forum or its image host", arguments: captures)
+    @Test("every URL of every capture is absolute https on the forum or its image host", arguments: captures)
     func urlsAreWebURLs(capture: String) throws {
         let profile = try UserProfileParser.parse(html: Fixture.capture(capture))
         let urls = [profile.avatarURL].compactMap { $0 }
@@ -78,7 +78,7 @@ struct UserProfileParserTests {
         }
     }
 
-    @Test("ids are unique within each list of both captures", arguments: captures)
+    @Test("ids are unique within each list of every capture", arguments: captures)
     func idsAreUnique(capture: String) throws {
         let profile = try UserProfileParser.parse(html: Fixture.capture(capture))
         for ids in [profile.actions.map(\.id), profile.personalSmilies.map(\.id), profile.sections.map(\.id)] {

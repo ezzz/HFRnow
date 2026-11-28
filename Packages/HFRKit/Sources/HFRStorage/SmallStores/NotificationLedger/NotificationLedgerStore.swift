@@ -62,6 +62,16 @@ public actor NotificationLedgerStore {
         return try update(account) { ledger in ledger.record(summary) }
     }
 
+    /// Applies one conversation read here (`mark` nil) or marked unread here to the account's recorded set, in one step
+    /// (`NotificationLedger.setThread`, #1006): the rest of the set stays as the background check left it. Returns false when
+    /// nothing changed.
+    @discardableResult
+    public func setThread(_ topic: Int, unread mark: UnreadThreadMark?, account: String) throws(SmallStoreError) -> Bool {
+        if topic <= 0 { throw .invalidValue(reason: "thread number \(topic)") }
+        if let mark, mark.topic != topic || mark.repliesCount < 0 { throw .invalidValue(reason: "thread mark \(mark.topic)") }
+        return try update(account) { ledger in ledger.setThread(topic, unread: mark) }
+    }
+
     /// Records a check of the account at `date` (`NotificationLedger.markChecked`). Returns false when nothing changed.
     @discardableResult
     public func markChecked(account: String, at date: Date = .now) throws(SmallStoreError) -> Bool {

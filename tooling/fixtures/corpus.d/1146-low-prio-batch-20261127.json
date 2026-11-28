@@ -1,0 +1,17 @@
+{"captures": [
+  {"raw": "R1146a", "id": "R1146a", "slug": "list-cat32-past-last-page-anon", "ext": "html", "private": false},
+  {"raw": "R1146b", "id": "R1146b", "slug": "list-cat32-past-last-page-logged-in", "ext": "html", "private": false},
+  {"raw": "R1146c", "id": "R1146c", "slug": "subforum-list-past-last-page-anon", "ext": "html", "private": false},
+  {"raw": "R1146d", "id": "R1146d", "slug": "subforum-list-past-last-page-logged-in", "ext": "html", "private": false},
+  {"raw": "R1233a", "id": "R1233a", "slug": "list-cat13-favoris-app-url", "ext": "html", "private": false},
+  {"raw": "R1233b", "id": "R1233b", "slug": "list-cat13-suivis-app-url", "ext": "html", "private": false},
+  {"raw": "R1271a", "id": "R1271a", "slug": "quote-only-view-logged-in", "ext": "html", "private": false},
+  {"raw": "R1271b", "id": "R1271b", "slug": "quote-only-view-private-thread", "ext": "html", "private": true},
+  {"raw": "T1280a", "id": "T1280a", "slug": "", "ext": null, "private": false},
+  {"raw": "T1280c", "id": "T1280c", "slug": "", "ext": null, "private": false},
+  {"raw": "T1280d", "id": "T1280d", "slug": "", "ext": null, "private": false},
+  {"raw": "T1280e", "id": "T1280e", "slug": "", "ext": null, "private": false},
+  {"raw": "T1280f", "id": "T1280f", "slug": "", "ext": null, "private": false},
+  {"raw": "T1280g", "id": "T1280g", "slug": "", "ext": null, "private": false},
+  {"raw": "XP13-51522", "id": "R111a", "slug": "poll-multi-choice-vote-form-anon", "ext": "html", "private": false}
+]}

@@ -63,6 +63,14 @@ import Testing
         #expect(SettingKey.syncedKeys.isDisjoint(with: keys.map(\.key)))
     }
 
+    /// LOT-194: the 14 July overlay's per-year key never syncs (each device plays it once).
+    @Test func theFeteNationaleKeyStaysOnTheDevice() {
+        let key = SettingKey.feteNationaleShown(year: 2027)
+        #expect(key.key == "event.fete-nationale.2027")
+        #expect(key.scope == .device)
+        #expect(!SettingKey.syncedKeys.contains(key.key))
+    }
+
     @Test func theSevenThemeKeysSyncUnchanged() {
         let theme = [
             "theme_day_color_action", "theme_night_color_action", "theme_day_color_love", "theme_night_color_love",

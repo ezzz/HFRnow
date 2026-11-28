@@ -59,7 +59,7 @@ struct SmileyPickerView: View {
             .navigationTitle("Smileys")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                SheetCloseToolbarItem { dismiss() }
             }
             .overlay(alignment: .top) { noticeBanner }
             // Pushed, not a third sheet over the composer (#1177; HIG › Sheets: one sheet at a time): the back button and
@@ -123,11 +123,11 @@ struct SmileyPickerView: View {
         case .loading:
             ProgressView("Recherche…").frame(maxWidth: .infinity).padding(.top, 80)
         case .empty:
-            searchMessage("Aucun smiley trouvé", detail: "Essayez avec un autre mot-clé.", icon: "questionmark.bubble", search: search)
+            searchMessage("Aucun smiley trouvé", detail: "Essaie avec un autre mot-clé.", icon: "questionmark.bubble", search: search)
         case .tooShort:
             searchMessage(
                 "Recherche trop courte",
-                detail: "Saisissez au moins \(SmileySearchModel.minimumLength) caractères pour lancer une recherche.",
+                detail: "Saisis au moins \(SmileySearchModel.minimumLength) caractères pour lancer une recherche.",
                 icon: "text.magnifyingglass", search: search
             )
         case .failed(let reason):

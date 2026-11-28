@@ -35,12 +35,12 @@ struct MessageListView: View {
                     ForEach(model.visibleThreads) { thread in
                         // EXPERIMENTAL(mpDarkTopic, #858): `showsUnread` replaces `isUnread` (a group left before its last page).
                         MessageRowView(
-                            thread: thread, isUnread: model.showsUnread(thread), isSelected: model.selected == thread,
+                            thread: thread, isUnread: model.showsUnread(thread),
                             flagLabel: model.flagLabel(for: thread)
                         )
                         .themedRowText()
                         // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
-                        .rowPill(MessageRowView.rowTint(isUnread: model.showsUnread(thread), isSelected: model.selected == thread))
+                        .rowPill(MessageRowView.rowTint(isUnread: model.showsUnread(thread)))
                         .listLookRow(isSelected: model.selected == thread)
                         .tag(thread)
                         // The legacy quick actions, then (#676) "Marquer non lu" and "Supprimer" after a divider.
@@ -99,11 +99,12 @@ struct MessageListView: View {
             if let thread = loader.value?.threads.first(where: { $0.summary.id == topic.id }) { model.open(thread, at: opening) }
         })
         .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
-        .task { await model.onAppear() }
+        .sceneAwareListLoad(model, id: 0)
         // Separate from the list's load, which never waits for MPStorage (LOT-130): the flags appear when the copy is read.
         .task { await model.mpStorage?.start() }
         .alert(
-            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
+            AlertTitles.markUnreadFailed,
+            isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
         ) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -165,7 +166,7 @@ private struct EmptyMessagesView: View {
     private var message: String? {
         switch reason {
         case .nothing: nil
-        case .signInRequired(let notice): notice ?? "Connectez-vous pour lire vos messages privés."
+        case .signInRequired(let notice): notice ?? "Connecte-toi pour lire tes messages privés."
         case .notice(let notice): notice
         }
     }
