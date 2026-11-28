@@ -87,7 +87,8 @@ struct TopicHTMLBuilderTests {
         trailed.quotedByCount = 3
         trailed.avatarURL = url("https://forum-images.hardware.fr/a.png")
         let html = TopicHTMLBuilder.document(for: page([trailed]), token: 1)
-        #expect(html.contains("Message édité par auteur le 27-10-2026"))
+        #expect(html.contains("<p>édité par auteur le 27-10-2026</p>"))
+        #expect(!html.contains("Message édité"))
         #expect(html.contains("<span class=\"quoted-bubble\" role=\"img\" aria-label=\"Message cité 3 fois\">3</span>"))
         // The count is a bubble now (#1039): the text line of before is gone.
         #expect(!html.contains("<p>Message cité"))
