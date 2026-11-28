@@ -29,19 +29,65 @@ struct ForumScopeBar: View {
     }
 
     private func subforumRow(_ section: ForumSection) -> some View {
-        LabeledContent("Sous-forum") {
-            Picker("Sous-forum", selection: Binding(get: { model.source }, set: scope.select)) {
-                Text("Tous les sous-forums").tag(section.source)
-                ForEach(section.rows.dropFirst()) { Text($0.title).tag($0.source) }
+        SubforumPickerRow(section: section, selection: Binding(get: { model.source }, set: scope.select)).densityRowMargin()
+    }
+}
+
+/// The « Sous-forum » menu of a category's list (legacy's picker, `MainWindow.swift:662-680` @ 87fe0d1c): label and menu side by side.
+struct SubforumPickerRow: View {
+    let section: ForumSection
+    @Binding var selection: TopicSource
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                // #1439: at these sizes a `.menu` picker in a list row is taller than the cell the list gives it (measured: 151.7 pt
+                // of content in a 135.7 pt cell, centred, so the label sat 8 pt above the card's top edge), and at its ideal height
+                // its own two-line title is cut. A menu whose label is plain text sizes like any text. The label goes above the
+                // menu with the row's whole width (HIG: stack at accessibility sizes).
+                VStack(alignment: .leading, spacing: 4) {
+                    // The menu says « Sous-forum » to VoiceOver itself: the visible label is not read twice.
+                    Text("Sous-forum").accessibilityHidden(true)
+                    Menu {
+                        options.pickerStyle(.inline)
+                    } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(selectedTitle).multilineTextAlignment(.leading)
+                            Image(systemName: "chevron.up.chevron.down").imageScale(.small)
+                        }
+                        .foregroundStyle(.tint) // as the menu picker's value, not the row's secondary label colour
+                    }
+                    .accessibilityLabel("Sous-forum")
+                    .accessibilityValue(selectedTitle)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                LabeledContent("Sous-forum") { options.pickerStyle(.menu) }
             }
-            .pickerStyle(.menu)
-            .labelsHidden()
         }
         .font(.footnote)
         .foregroundStyle(.secondary)
-        .densityRowMargin()
     }
 
+    private var options: some View {
+        Picker("Sous-forum", selection: $selection) {
+            Text(Self.allTitle).tag(section.source)
+            ForEach(section.rows.dropFirst()) { Text($0.title).tag($0.source) }
+        }
+        .labelsHidden()
+    }
+
+    private static let allTitle = "Tous les sous-forums"
+
+    /// The chosen entry's title, as the menu shows it.
+    var selectedTitle: String {
+        guard selection != section.source else { return Self.allTitle }
+        return section.rows.first { $0.source == selection }?.title ?? Self.allTitle
+    }
+}
+
+extension ForumScopeBar {
     /// Why Favoris, Suivis and Lus cannot be chosen (`TopicListModel.filterNote`): legacy's icon, bold title and subtitle when logged
     /// out (`MainWindow.swift:699-706` @ 87fe0d1c), or a list that names no `subcat`.
     @ViewBuilder
