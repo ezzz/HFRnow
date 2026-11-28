@@ -5,7 +5,8 @@ import SwiftUI
 // the title (`MessageRowInfoLine`, #900; legacy `MPListView.swift:775-793`, laid out by `TopicRowView`'s bottom row); the former
 // three-line meta block became the experimental dense row, one line (`DenseRowFormat`, #905, #973); unread from the member's icon state
 // (GAP-111); accent tint on unread rows (GAP-227); a stronger secondary colour for read titles in light (#651, GAP-227);
-// "non lu" capsule for the correspondent's state (GAP-111); capsule at 4.5:1, outlined at half strength (LOT-162, #646).
+// "non lu" capsule for the correspondent's state (GAP-111); capsule at 4.5:1, outlined at half strength (LOT-162, #646); at
+// accessibility sizes the avatar and marker sit on a line above the text and the capsule above the title (#1439).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
 struct MessageRowView: View {
     let thread: PrivateMessageThread
@@ -21,37 +22,70 @@ struct MessageRowView: View {
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
 
     var body: some View {
-        HStack(spacing: scale.scaled(dynamicType * (density == .compact ? 8 : 12))) {
-            let avatar = Self.avatarSubject(of: thread)
-            MessageAvatarView(pseudo: avatar.pseudo, isGroup: avatar.isGroup)
-                .frame(width: avatarSide, height: avatarSide)
-            VStack(alignment: .leading, spacing: density.lineSpacing) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    if let label = MessageRowView.unreadByLabel(thread) {
-                        // The correspondent's state, not the member's: legacy's leading badge (`MPListView.swift:430-436, 470` @ 2440d79),
-                        // at half strength once the member has viewed the thread (legacy line 435).
-                        // Outlined instead of half-strength once the member has viewed it: the half-strength fill measured 1.7:1 (#646).
-                        BadgeCapsule(text: "non lu", isOutlined: !isUnread)
-                            .accessibilityLabel(label)
+        let spacing = scale.scaled(dynamicType * (density == .compact ? 8 : 12))
+        Group {
+            // HIG (Typography): at accessibility sizes, content laid out side by side is stacked, so the title takes the row's
+            // whole width instead of the column the avatar and the marker leave it (#1439: one word per line).
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: density.lineSpacing) {
+                    HStack(spacing: spacing) {
+                        avatar
+                        Spacer(minLength: 0)
+                        // Read after the text, as in the side-by-side row: the combined label keeps one order at every size.
+                        unreadMarker.accessibilitySortPriority(-1)
                     }
-                    Text(thread.summary.displayTitle)
-                        .scaledFont(density.titleStyle)
-                        .fontWeight(titleTone.weight)
-                        .foregroundStyle(titleTone.style)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
+                    textColumn
                 }
-                // EXPERIMENTAL(denseRows, #905, #973): replaces legacy's two-sided info line by one dense line (`DenseRowFormat`).
-                if usesDenseRows { denseInfo } else { infoLine }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if isUnread {
-                let marker = scale.scaled(dynamicType * (density.markerSize + 2))
-                Circle().fill(.tint).frame(width: marker, height: marker).accessibilityLabel("Non lu")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(spacing: spacing) {
+                    avatar
+                    textColumn.frame(maxWidth: .infinity, alignment: .leading)
+                    unreadMarker
+                }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityValue(Self.accessibilityValue(of: thread))
         .listRowInsets(density.rowInsets)
+    }
+
+    private var avatar: some View {
+        let subject = Self.avatarSubject(of: thread)
+        return MessageAvatarView(pseudo: subject.pseudo, isGroup: subject.isGroup).frame(width: avatarSide, height: avatarSide)
+    }
+
+    @ViewBuilder private var unreadMarker: some View {
+        if isUnread {
+            let marker = scale.scaled(dynamicType * (density.markerSize + 2))
+            Circle().fill(.tint).frame(width: marker, height: marker).accessibilityLabel("Non lu")
+        }
+    }
+
+    /// The title with the capsule before it, on one line; at accessibility sizes the capsule sits above the title (it alone took
+    /// a third of the width there).
+    private var textColumn: some View {
+        let titleLine = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: density.lineSpacing))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 6))
+        return VStack(alignment: .leading, spacing: density.lineSpacing) {
+            titleLine {
+                if let label = MessageRowView.unreadByLabel(thread) {
+                    // The correspondent's state, not the member's: legacy's leading badge (`MPListView.swift:430-436, 470` @ 2440d79),
+                    // at half strength once the member has viewed the thread (legacy line 435).
+                    // Outlined instead of half-strength once the member has viewed it: the half-strength fill measured 1.7:1 (#646).
+                    BadgeCapsule(text: "non lu", isOutlined: !isUnread)
+                        .accessibilityLabel(label)
+                }
+                Text(thread.summary.displayTitle)
+                    .scaledFont(density.titleStyle)
+                    .fontWeight(titleTone.weight)
+                    .foregroundStyle(titleTone.style)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
+            }
+            // EXPERIMENTAL(denseRows, #905, #973): replaces legacy's two-sided info line by one dense line (`DenseRowFormat`).
+            if usesDenseRows { denseInfo } else { infoLine }
+        }
     }
 
     /// The default is legacy's one info line; Réglages › Expérimental › « Lignes denses » flips this.
