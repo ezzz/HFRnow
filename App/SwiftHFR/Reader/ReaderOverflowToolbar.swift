@@ -1,16 +1,26 @@
+import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (the toolbar `Menu`, :5575-5604) @ 87fe0d1c. Differences: legacy's menu is Rechercher,
 // Répondre, a divider, the page items; SwiftHFR's overflow also holds Hors ligne and Filtrer (secondary actions of the system
-// overflow), and Répondre is not in it: it is a bottom-bar button (`ReaderPageControls`). GAP rows unchanged.
+// overflow). Répondre is a bottom-bar button (`ReaderPageControls`, LOT-186 D2), so it is in the overflow only when « Bouton + »
+// is « Pas d'icône » and the bar has none (#1452, operator decision 2026-11-28): the one plain reply path then. GAP-102.
 /// What the reader's system "…" overflow holds and in which order: legacy puts Rechercher first and the page items last.
 enum ReaderOverflow {
-    enum Entry: Hashable, Sendable { case search, offline, filter, pages }
+    enum Entry: Hashable, Sendable { case search, reply, offline, filter, pages }
 
-    /// The present entries, in menu order (#645). Pure so the order is pinned by a test.
-    static func entries(search: Bool, offline: Bool, filter: Bool, pages: Bool) -> [Entry] {
-        let order: [(Entry, Bool)] = [(.search, search), (.offline, offline), (.filter, filter), (.pages, pages)]
+    /// The present entries, in menu order (#645, #1452): Rechercher, Répondre, then the rest. Pure so the order is pinned by a test.
+    static func entries(search: Bool, reply: Bool = false, offline: Bool, filter: Bool, pages: Bool) -> [Entry] {
+        let order: [(Entry, Bool)] = [
+            (.search, search), (.reply, reply), (.offline, offline), (.filter, filter), (.pages, pages)
+        ]
         return order.filter(\.1).map(\.0)
+    }
+
+    /// « Répondre » is in the overflow only when the bottom bar has no reply button (« Bouton + » = « Pas d'icône »), and then
+    /// only with an account and an answer form, as the bar's button (`replySymbol`), and not under an open composer.
+    static func offersReply(behavior: ReplyButtonBehavior, hasComposer: Bool, hasReplyTarget: Bool, suspended: Bool) -> Bool {
+        behavior == .hidden && hasComposer && hasReplyTarget && !suspended
     }
 }
 
@@ -19,6 +29,7 @@ enum ReaderOverflow {
 struct ReaderOverflowToolbar: ToolbarContent {
     let entries: [ReaderOverflow.Entry]
     let search: () -> Void
+    let reply: () -> Void
     let offline: AnyView
     let filter: () -> Void
     let filterIsBusy: Bool
@@ -31,6 +42,10 @@ struct ReaderOverflowToolbar: ToolbarContent {
             case .search:
                 ToolbarItem(placement: .secondaryAction) {
                     Button(action: search) { Label("Rechercher dans le sujet", systemImage: "magnifyingglass") }
+                }
+            case .reply:
+                ToolbarItem(placement: .secondaryAction) {
+                    Button(action: reply) { Label("Répondre", systemImage: "square.and.pencil") }
                 }
             case .offline:
                 ToolbarItem(placement: .secondaryAction) { offline }

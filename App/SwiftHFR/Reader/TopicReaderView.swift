@@ -197,6 +197,9 @@ struct TopicReaderView: View {
         ReaderOverflowToolbar(
             entries: ReaderOverflow.entries(
                 search: ReaderSearchFlow.isOffered(model: model, composer: composer, services: services),
+                reply: ReaderOverflow.offersReply(
+                    behavior: settings.replyButton, hasComposer: composer != nil, hasReplyTarget: model.replyTarget != nil,
+                    suspended: !offered),
                 offline: ReaderOfflineSave.isOffered(model: model, saver: saver),
                 filter: onFilterPosts != nil && offered,
                 pages: pages && offered),
@@ -207,6 +210,7 @@ struct TopicReaderView: View {
                 case nil: break
                 }
             },
+            reply: { Task { await model.requestReply() } },
             offline: AnyView(Group {
                 if let saver, let page { ReaderOfflineMenuItems(saver: saver, model: model, page: page) }
             }),
