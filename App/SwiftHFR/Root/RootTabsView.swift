@@ -118,6 +118,8 @@ struct FavoritesTabView: View {
     }
 }
 
+// Port of HFRswift/Swift/Favorites.swift (toolbar button, :808-846; `showsCategoriesOnDemand`, :462, :488-494, :796-798) @ 87fe0d1c.
+// Differences: GAP-1450 (a menu item of « Options », not a toolbar button of its own; the grouped sort keeps its « sections repliées » toggle).
 /// The Favoris tab's menu: which list it shows (legacy lists both there, setting `AppSettingsView.swift:130-131`) and the
 /// favourites options of LOT-124, so they are reachable from the screen and not only from Réglages.
 struct FavoritesSourceMenu: View {
@@ -148,6 +150,12 @@ private struct FavoritesOptionsMenuItems: View {
         Section {
             Toggle("Trier par catégorie", isOn: $options.groupedByCategory)
             Toggle("Afficher les sections repliées", isOn: $options.showsCollapsedSections)
+            if !options.groupedByCategory {
+                Button(
+                    options.showsCategoriesOnDemand ? "Masquer les catégories" : "Afficher toutes les catégories",
+                    systemImage: options.showsCategoriesOnDemand ? "list.bullet.circle.fill" : "list.bullet.circle"
+                ) { options.toggleCategoriesOnDemand() }
+            }
             Toggle("Actualisation automatique des favoris", isOn: $options.autoRefresh)
         }
         Section {
@@ -156,7 +164,7 @@ private struct FavoritesOptionsMenuItems: View {
             }
             .disabled(page.map { !options.canCollapseMore(in: $0) } ?? true)
             Button("Tout déplier", systemImage: "rectangle.expand.vertical") { Task { await options.expandAll() } }
-                .disabled(!options.groupedByCategory || options.collapsedSections.isEmpty)
+                .disabled(!options.layout.groupedByCategory || options.collapsedSections.isEmpty)
         }
     }
 }
