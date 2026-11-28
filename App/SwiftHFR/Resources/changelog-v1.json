@@ -818,5 +818,10 @@
   "id": 1389,
   "section": "UX",
   "summary": "Lecteur : les liens et les mots-clés de code d'un message prennent une couleur dérivée de l'accent, assombrie (thème clair) ou éclaircie (thème sombre) jusqu'à 4,5:1 ; avec l'accent par défaut, ils étaient à 1,5:1 sur fond blanc."
+ },
+ {
+  "id": 1427,
+  "section": "T",
+  "summary": "Profil d'un membre : sans le cookie md_id (posé à la seule connexion, pour 30 jours), HFR refuse les profils ; un compte qui ne l'a pas (importé de l'app d'origine, ou connexion de plus de 30 jours) n'envoie plus de requête et affiche « Le forum demande désormais une nouvelle connexion pour afficher les profils », avec « Se reconnecter », comme l'app d'origine depuis sa correction (#1349) qui demande de supprimer puis rajouter le compte. La synchronisation iCloud des comptes ne retire plus le md_id d'un appareil quand un autre appareil, qui ne l'a pas, envoie une copie plus récente de la même connexion."
  }
 ]
