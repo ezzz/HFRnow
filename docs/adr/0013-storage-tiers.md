@@ -44,7 +44,7 @@ An item has exactly one authoritative store and at most one local copy:
 
 | Store | Policy | Why |
 |---|---|---|
-| MPStorage | per-item three-way merge of LOT-062 (`base`, `ours`, `theirs`), ours wins when both changed, tombstones off until other writers are known to keep them | already decided (LOT-062, Q-6) |
+| MPStorage | per-item three-way merge of LOT-062 (`base`, `ours`, `theirs`), ours wins when both changed (a read position in `mpFlags`: the further one, #858), tombstones off until other writers are known to keep them | already decided (LOT-062, Q-6) |
 | iCloud KVS, scalar preferences | **last writer wins per key**, as the store does; on the initial sync (`NSUbiquitousKeyValueStoreInitialSyncChange`) the cloud value wins over the local one | the only conflict is the same setting changed on two devices while offline; the later tap is the user's intent |
 | iCloud KVS, lists (allowlist, super-favourites, smiley favourites) | **last writer wins on the whole list**, each list one key holding `{version, items:[{id, addedAt}]}`; a union merge with tombstones is the documented upgrade if users report lost adds | simplification: these lists change a few times a month; a merge layer would duplicate LOT-062 for three tiny lists |
 | iCloud KVS, rehost upload history | **merge by id** with removals, the 100 newest uploads (Amendment 4) | adds made on two devices must both survive (#966) |

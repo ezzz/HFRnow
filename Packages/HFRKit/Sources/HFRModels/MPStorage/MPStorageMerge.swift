@@ -160,12 +160,18 @@ public enum MPStorageMerge {
             switch (copies.mine, copies.other) {
             case let (mine?, other?):
                 if mine == other { return mine }
+                if baseKnown, mine == original { return other }
+                if baseKnown, other == original { return mine }
+                // An item with its own rule (a read position keeps the further one, #858) decides a real conflict itself.
+                if let winner = Item.conflictWinner(mine: mine, other: other) {
+                    let kind: MPStorageConflict.Kind = !baseKnown ? .divergentWithoutBase : original == nil ? .bothAdded : .bothChanged
+                    record(location, key, kind, winner == mine ? .keptOurs : .keptTheirs)
+                    return winner
+                }
                 guard baseKnown else {
                     record(location, key, .divergentWithoutBase, .keptTheirs)
                     return other
                 }
-                if mine == original { return other }
-                if other == original { return mine }
                 record(location, key, original == nil ? .bothAdded : .bothChanged, .keptOurs)
                 return mine
             case let (mine?, nil):

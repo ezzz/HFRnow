@@ -128,6 +128,53 @@ struct MPDarkTopicPositionTests {
         #expect(await fixture.storage.remote.calls.filter { $0 == .save }.count == savesBefore + 1)
     }
 
+    /// The reader's page loads are recorded in the background; leaving at once still sends the last one (Fable round 1, 2).
+    @Test func leavingRightAfterAPageLoadStillSendsItsFlag() async throws {
+        let fixture = try await Self.make(state: .on)
+        let thread = messageThread(31, group: true, pages: 12)
+        let savesBefore = await fixture.storage.remote.calls.filter { $0 == .save }.count
+        fixture.list.selected = thread
+        fixture.list.noteReached(MPReachedMessage(page: 2, lastMessage: 240), in: thread)
+        fixture.list.noteReached(MPReachedMessage(page: 3, lastMessage: 340), in: thread)
+        fixture.list.selected = nil
+        await fixture.list.darkTopic.flagSend?.value
+        #expect(await fixture.storage.remote.calls.filter { $0 == .save }.count == savesBefore + 1)
+        let written = try MPStorageCodec.decode(await fixture.storage.remote.text)
+        #expect(MPStorageSync.flag(forThread: 31, in: written)?.href == "t340")
+        #expect(fixture.list.flagLabel(for: thread) == "⚑ 3 / 12")
+    }
+
+    /// A row that stays selected (iPad) sends when its reader leaves the screen (Fable round 1, 3).
+    @Test func aFlushWithoutLeavingTheConversationSendsTheFlags() async throws {
+        let fixture = try await Self.make(state: .on)
+        let thread = messageThread(31, group: true, pages: 12)
+        let savesBefore = await fixture.storage.remote.calls.filter { $0 == .save }.count
+        fixture.list.selected = thread
+        fixture.list.noteReached(MPReachedMessage(page: 3, lastMessage: 340), in: thread)
+        fixture.list.flushMovedFlags()
+        await fixture.list.darkTopic.flagSend?.value
+        #expect(await fixture.storage.remote.calls.filter { $0 == .save }.count == savesBefore + 1)
+        #expect(fixture.list.selected == thread)
+    }
+
+    /// The forum's flag moved further by another client than this device's copy knows: the page read here never takes it back
+    /// (Fable round 1, 1; the transport merges as LOT-052's does).
+    @Test func aStaleCopyNeverMovesTheForumFlagBack() async throws {
+        let text = try Base.flagged([MPStorageMPFlag(topic: 31, pValue: "1", href: "t240", page: 2)])
+        let fixture = try await Self.make(state: .on, text: text)
+        await fixture.storage.remote.mergeOnSave()
+        let newer = try Base.flagged([MPStorageMPFlag(topic: 31, pValue: "1", href: "t800", page: 8)])
+        await fixture.storage.remote.replaceText(newer)
+        let thread = messageThread(31, group: true, pages: 12)
+        fixture.list.selected = thread
+        fixture.list.noteReached(MPReachedMessage(page: 3, lastMessage: 340), in: thread)
+        fixture.list.selected = nil
+        await fixture.list.darkTopic.flagSend?.value
+        let written = try MPStorageCodec.decode(await fixture.storage.remote.text)
+        #expect(MPStorageSync.flag(forThread: 31, in: written)?.page == 8)
+        #expect(fixture.list.flagLabel(for: thread) == "⚑ 8 / 12")
+    }
+
     @Test func aFlagAnotherClientMovedFurtherIsHonoured() async throws {
         let text = try Base.flagged([MPStorageMPFlag(topic: 31, pValue: "1", href: "t800", page: 8)])
         let fixture = try await Self.make(state: .on, text: text)

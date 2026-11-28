@@ -6,6 +6,13 @@ public protocol MPStorageItem: Sendable, Hashable, Codable {
     var storageKey: String { get }
     /// Creation date when the wire shape has one; compared with tombstone dates.
     var storageDate: Date? { get }
+    /// The copy a merge keeps when both sides changed the item differently, or nil for the default rule.
+    static func conflictWinner(mine: Self, other: Self) -> Self?
+}
+
+extension MPStorageItem {
+    /// No rule of its own: the merge's default applies.
+    public static func conflictWinner(mine: Self, other: Self) -> Self? { nil }
 }
 
 extension MPStorageBlocklistEntry: MPStorageItem {
@@ -27,4 +34,11 @@ extension MPStorageMPFlag: MPStorageItem {
     public var storageKey: String { String(topic) }
     /// Flags carry no date in v0.1.
     public var storageDate: Date? { nil }
+
+    /// The further position (page, then message; `mine` on a tie): a read position only moves forward (legacy
+    /// `pageToSave >= currentStoredPage`, `MessagesView.swift:3589-3590` @ 87fe0d1c), so a flag another client moved further is
+    /// never taken back by an earlier page read here with a stale copy (#858).
+    public static func conflictWinner(mine: MPStorageMPFlag, other: MPStorageMPFlag) -> MPStorageMPFlag? {
+        (other.page ?? -1, other.messageNumber ?? 0) > (mine.page ?? -1, mine.messageNumber ?? 0) ? other : mine
+    }
 }

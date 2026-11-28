@@ -53,6 +53,16 @@ extension MessageListModel {
         await mpStorage?.moveFlag(of: thread, to: reached)
     }
 
+    /// Records `reached` once the ones before it are recorded (the reader's page loads, in order), so a send on leaving waits
+    /// for every page shown (#858, Fable round 1).
+    func noteReached(_ reached: MPReachedMessage, in thread: PrivateMessageThread) {
+        let previous = darkTopic.reaching
+        darkTopic.reaching = Task {
+            await previous?.value
+            await self.reached(reached, in: thread)
+        }
+    }
+
     /// Reads the app's positions again (after a list load: another window or device may have moved them).
     func reloadPositions() async {
         guard darkTopicIsOn, let readingPositions = darkTopic.store else { return }
@@ -63,8 +73,19 @@ extension MessageListModel {
 
     /// The conversation `previous` was left for `current`: the flags moved while reading it are sent, in one write.
     func conversationChanged(from previous: PrivateMessageThread?, to current: PrivateMessageThread?) {
-        guard let previous, previous.id != current?.id, let mpStorage else { return }
-        darkTopic.flagSend = Task { await mpStorage.sendMovedFlags() }
+        guard let previous, previous.id != current?.id else { return }
+        flushMovedFlags()
+    }
+
+    /// Sends the flags moved so far, once the pages already shown are recorded: on leaving a conversation, and when its reader
+    /// goes off screen or the app leaves the foreground while the row stays selected (iPad).
+    func flushMovedFlags() {
+        guard let mpStorage else { return }
+        let pending = darkTopic.reaching
+        darkTopic.flagSend = Task {
+            await pending?.value
+            await mpStorage.sendMovedFlags()
+        }
     }
 
     /// The opening of a row that has a position: its page, at its message (legacy opens at the flag's link whenever there is one).
@@ -86,6 +107,8 @@ final class MPDarkTopicPositions {
     var positions: [TopicID: ReadingPosition] = [:]
     /// The send of the flags moved in the conversation just left (tests await it).
     @ObservationIgnored var flagSend: Task<Void, Never>?
+    /// The last page shown being recorded (`noteReached(_:in:)`); the next one and the send wait for it.
+    @ObservationIgnored var reaching: Task<Void, Never>?
 
     /// The state over `store`, empty until the list loads.
     init(store: MPReadingPositions?) {
