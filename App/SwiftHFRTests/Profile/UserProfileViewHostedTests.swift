@@ -8,10 +8,10 @@ import UIKit
 /// list carries no refresh control; the toolbar's « Actualiser » and the error's « Réessayer » stay the ways to reload.
 @MainActor
 struct UserProfileViewHostedTests {
-    private func scrollViews(in view: UIView) -> [UIScrollView] {
-        var found = (view as? UIScrollView).map { [$0] } ?? []
-        for child in view.subviews { found += scrollViews(in: child) }
-        return found
+    /// The `List`'s own collection view, as `ListDensityLayoutTests` finds it.
+    private func collectionView(in view: UIView) -> UICollectionView? {
+        if let collection = view as? UICollectionView { return collection }
+        return view.subviews.lazy.compactMap { collectionView(in: $0) }.first
     }
 
     @Test func theProfileListHasNoPullToRefresh() async throws {
@@ -31,14 +31,13 @@ struct UserProfileViewHostedTests {
         window.rootViewController = controller
         window.isHidden = false
         defer { window.isHidden = true }
-        for _ in 0..<100 where model.profile == nil || scrollViews(in: controller.view).isEmpty {
+        for _ in 0..<100 where model.profile == nil || collectionView(in: controller.view) == nil {
             controller.view.layoutIfNeeded()
             try await Task.sleep(for: .milliseconds(100))
         }
         controller.view.layoutIfNeeded()
-        let lists = scrollViews(in: controller.view)
         #expect(model.profile != nil)
-        #expect(!lists.isEmpty)
-        #expect(lists.allSatisfy { $0.refreshControl == nil })
+        let list = try #require(collectionView(in: controller.view))
+        #expect(list.refreshControl == nil)
     }
 }
