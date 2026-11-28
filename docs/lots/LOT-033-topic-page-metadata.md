@@ -79,8 +79,8 @@ pages for parser rules that no capture exercises (foreign answer link, trailing 
 checkbox). Those inline pages state our parsing rules, not facts about HFR.
 
 Pending capture (no fixture, nothing hand-built): a topic page with a **checked** `filter` box in the search form (search result page
-of `transsearch.php`; R52a is a 302 without body), a **locked topic seen by a logged-in account** (does it keep `hop`?), a pager whose current page sits between two ellipses with a
-trailing text node, a poll **results** page (R33, LOT-026).
+of `transsearch.php`; R52a is a 302 without body), a **locked topic seen by a logged-in account** (does it keep `hop`?), a pager with a
+trailing text node (the current page between two ellipses is `R22a`; no pager of the corpus or of the 2026-11-27 batch has text after its last link, #277), a poll **results** page (R33, LOT-026).
 
 ## Intentional differences from legacy
 1. **`maxPage` is the highest number of the pager, not the number in its last child.** Same value on all 21 oracles; a trailing node that

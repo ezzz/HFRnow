@@ -193,6 +193,8 @@ struct TopicsColumn: View {
                     composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: category),
                     showsAccountMenu: true
                 )
+                // The picker replaces `openedCategory` while this list is shown: a new view per category (#1403).
+                .id(category)
                 .appScreenBackground()
             }
         } else {

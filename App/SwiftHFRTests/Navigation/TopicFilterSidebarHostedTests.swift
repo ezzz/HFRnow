@@ -81,4 +81,59 @@ extension TopicFilterListHostedTests {
         }
         if filter == .read { #expect(!page.topics.isEmpty) }
     }
+
+    /// #1403: a sub-forum picked in the « Sous-forum » menu replaces the selected source while its list is on screen; the column
+    /// must load it (the `TopicListView` it shows has to be a new one per source, as the iPhone `TopicsColumn`'s is).
+    @Test("On the iPad sidebar a source chosen while a list is shown loads its topics (#1403)", arguments: [
+        TopicSource.forum(.forum(14), title: "Sous-forum"),
+        TopicSource.subforum(path: "/hfr/Discussions/sub/liste_sujet-1.htm", title: "Sous-forum")
+    ])
+    func aSourceChosenInThePickerLoads(chosen: TopicSource) async throws {
+        let data = FakeDataSource()
+        let topicFilter = TopicFilterModel(settings: InMemorySettingsStore())
+        let forums = ForumListModel(dataSource: data)
+        let root = RootModel(
+            forums: forums,
+            categories: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicFilter: topicFilter),
+            favorites: NavigationModel(
+                dataSource: data, forums: forums, sessionIsLoggedIn: { true }, startupSource: TopicSource(mode: .flagsAndFavorites)
+            ),
+            messages: MessageListModel(source: FakePrivateMessages()),
+            store: InMemorySettingsStore(), initial: .tab(.categories)
+        )
+        let view = RootSidebarView(model: root, environment: environment(data: data))
+            .environment(makeModel(store: InMemoryCredentialStore()))
+            .environment(ExperimentalSettings(store: InMemorySettingsStore()))
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1366, height: 1024)
+        let host = UIHostingController(rootView: view)
+        host.traitOverrides.horizontalSizeClass = .regular
+        window.rootViewController = host
+        window.isHidden = false
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        root.categories.selectedSource = .forum(.forum(13), title: "Discussions")
+        for _ in 0..<40 {
+            try await Task.sleep(for: .milliseconds(50))
+            window.layoutIfNeeded()
+        }
+        #expect(data.requests.contains("topics:\(CategoryID.forum(13).queryValue):1"), "the first forum did not load")
+        // The picker's `scope.select`: the same entry point, the first list still on screen.
+        let scope = try #require(root.categories.scope(for: .forum(.forum(13), title: "Discussions")))
+        scope.select(chosen)
+        for _ in 0..<40 {
+            try await Task.sleep(for: .milliseconds(50))
+            window.layoutIfNeeded()
+        }
+        let expected: String
+        switch chosen {
+        case .forum(let category, _): expected = "topics:\(category.queryValue):1"
+        case .subforum(let path, _): expected = "path:\(path):1"
+        default: expected = ""
+        }
+        #expect(data.requests.contains(expected), "the chosen source never loaded: \(data.requests)")
+    }
 }

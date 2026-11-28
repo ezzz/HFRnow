@@ -25,6 +25,30 @@ struct PageFetcherLoopbackTests {
         #expect(server.requests.first?.path == "/forum2.php?config=hfr.inc&cat=13&post=148745&page=3")
     }
 
+    /// #1394: HFR's redirect chain as the loopback plays it (R5: `forum2.php` → 301 → canonical page → 200). The first page goes
+    /// through `forum2.php`; the next one, asked from the page served, is one request, not two.
+    @Test func theNextPageFromTheServedOneIsOneRequest() async throws {
+        let canonical = "/hfr/Programmation/Divers-6/hfr-android-sujet_148745_"
+        let server = try LoopbackServer { request in
+            if request.path.hasPrefix("/forum2.php"), let page = request.path.split(separator: "=").last {
+                return ServerReply(status: 301, headers: ["Location": canonical + page + ".htm"])
+            }
+            return ServerReply(headers: ["Content-Type": "text/html; charset=utf-8"], body: Data("ok".utf8))
+        }
+        defer { server.stop() }
+        let transport = RewritingTransport(base: server.baseURL)
+        let fetcher = PageFetcher(session: transport, anonymous: transport)
+        let first = try await fetcher.topicPage(topic: topic, page: 1)
+        #expect(server.requests.count == 2)
+        // The app keeps the served page on the forum origin (`ReaderTarget.forumURL`); the loopback only stands in for it.
+        let served = try #require(URL(string: "https://forum.hardware.fr" + first.page.finalURL.path))
+        let second = try await fetcher.topicPage(topic: topic, page: 2, servedAt: served)
+        #expect(server.requests.count == 3)
+        #expect(server.requests.last?.path == canonical + "2.htm")
+        #expect(second.location == TopicPageLocation(topic: 148_745, page: 2))
+        #expect(second.requestedPage == 2)
+    }
+
     @Test func aPageClampedByTheServerShowsInTheLocation() async throws {
         let server = try LoopbackServer { request in
             request.path.hasPrefix("/forum2.php")

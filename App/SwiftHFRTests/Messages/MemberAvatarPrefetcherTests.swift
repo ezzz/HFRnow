@@ -1,6 +1,7 @@
 import Foundation
 import HFRNetwork
 import HFRParsing
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 
@@ -120,6 +121,53 @@ struct MemberAvatarPrefetcherTests {
         try await Task.sleep(for: .milliseconds(250))
         await prefetcher.prefetch(pseudo: "user2")
         #expect(offers.pseudos == ["user2", "user2"])
+    }
+
+    /// #1397: a correspondent HFR has no avatar for costs two requests once per 24 h, not once per launch (a new prefetcher stands
+    /// for the next launch, over the same persisted misses).
+    @Test func aNoAvatarAnswerHoldsAcrossLaunchesForADay() async throws {
+        let suite = "MemberAvatarPrefetcherTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let clock = Clock(Date(timeIntervalSince1970: 1_000_000))
+        let store = UserDefaultsSettingsStore(defaults: defaults)
+        func launch(_ lookup: ScriptedLookup) -> MemberAvatarPrefetcher {
+            MemberAvatarPrefetcher(
+                lookup: lookup, misses: .persisted(in: store, now: { clock.now }), hasAvatar: { _ in false }, offer: { _, _ in }
+            )
+        }
+        let first = ScriptedLookup { _ in .none }
+        await launch(first).prefetch(pseudo: "User4")
+        #expect(first.pseudos == ["User4"])
+        let second = ScriptedLookup { _ in .none }
+        await launch(second).prefetch(pseudo: "user4")
+        #expect(second.pseudos.isEmpty)
+        clock.advance(by: 24 * 60 * 60 + 1)
+        let third = ScriptedLookup { _ in .none }
+        await launch(third).prefetch(pseudo: "user4")
+        #expect(third.pseudos == ["user4"])
+    }
+
+    /// A failure is not a "no avatar": nothing is remembered across launches, so the next launch asks again.
+    @Test func aFailedLookupIsNotRememberedAcrossLaunches() async throws {
+        let suite = "MemberAvatarPrefetcherTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let lookup = ScriptedLookup { _ in .failed }
+        let misses = MemberAvatarPrefetcher.Misses.persisted(in: UserDefaultsSettingsStore(defaults: defaults))
+        for _ in 0..<2 {
+            await MemberAvatarPrefetcher(lookup: lookup, misses: misses, hasAvatar: { _ in false }, offer: { _, _ in })
+                .prefetch(pseudo: "user5")
+        }
+        #expect(lookup.pseudos == ["user5", "user5"])
+    }
+
+    private final class Clock: @unchecked Sendable {
+        private let lock = NSLock()
+        private var date: Date
+        init(_ date: Date) { self.date = date }
+        var now: Date { lock.withLock { date } }
+        func advance(by seconds: TimeInterval) { lock.withLock { date = date.addingTimeInterval(seconds) } }
     }
 
     @Test func aCachedAvatarOrABlankPseudoIsNotLookedUp() async {

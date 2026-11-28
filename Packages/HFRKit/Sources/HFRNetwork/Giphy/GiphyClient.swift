@@ -20,7 +20,7 @@ public struct GiphyClient: Sendable {
     private let transport: any HTTPTransport
 
     /// Creates a client; the transport defaults to the cookie-less one.
-    public init(configuration: GiphyConfiguration, transport: any HTTPTransport = AnonymousTransport()) {
+    public init(configuration: GiphyConfiguration, transport: any HTTPTransport = AnonymousTransport.shared) {
         self.configuration = configuration
         self.transport = transport
     }

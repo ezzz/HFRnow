@@ -12,7 +12,7 @@ public struct PageFetcher: Sendable {
     private let anonymous: any HTTPTransport
 
     /// Creates a fetcher from the account's session and a cookie-less transport.
-    public init(session: any HTTPTransport, anonymous: any HTTPTransport = AnonymousTransport()) {
+    public init(session: any HTTPTransport, anonymous: any HTTPTransport = AnonymousTransport.shared) {
         self.session = session
         self.anonymous = anonymous
     }
@@ -42,13 +42,14 @@ public struct PageFetcher: Sendable {
         try await fetch({ try HFREndpoint.privateMessages(page: page) }, identity)
     }
 
-    /// R5: one topic page through `forum2.php`; the final URL after the redirect is the canonical page.
+    /// R5: one topic page through `forum2.php`; the final URL after the redirect is the canonical page. With `served`, the
+    /// canonical URL of a page of this topic HFR already served, the page is asked for at its canonical path (#1394).
     ///
     /// Anonymous by default (prefetch). Ask for `.authenticated` only when the user is reading the topic.
     public func topicPage(
-        topic: TopicID, page: Int = 1, as identity: FetchIdentity = .anonymous
+        topic: TopicID, page: Int = 1, servedAt served: URL? = nil, as identity: FetchIdentity = .anonymous
     ) async throws(NetworkError) -> FetchedTopicPage {
-        let raw = try await fetch({ try HFREndpoint.topicPage(topic: topic, page: page) }, identity)
+        let raw = try await fetch({ try HFREndpoint.topicPage(topic: topic, page: page, servedAt: served) }, identity)
         return FetchedTopicPage(page: raw, requestedPage: page)
     }
 

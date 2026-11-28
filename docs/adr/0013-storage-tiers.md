@@ -156,7 +156,7 @@ Decided by the operator (2026-11-16, [#966](https://github.com/ezzz/HFRnow/issue
 
 ## Amendment 5 — 2026-11-28: the account merge keeps `md_id` (#1420)
 
-- The per-account merge of the account sync (LOT-173 "Merge") still keeps the copy with the later `credentialsAt`, with one exception for the cookie `md_id`: when that copy holds no live `md_id` and this device's copy of the **same login** (same `md_user` and `md_passs`) does, the merged account keeps this device's. Only a login sets `md_id` and HFR refuses profiles without it (HFR-PROTOCOL §6c, `R1420c`); without this, a device lacking it (a legacy import, a login past 30 days) took it from every other device at each of its refreshes. The merged entry is written back, so the devices converge.
+- The per-account merge of the account sync (LOT-173 "Merge") never drops the cookie `md_id` of a login: for the **same login** (same `md_user` and `md_passs`), the item's copy and the device's account each get a live `md_id` that either side holds and they lack, whichever copy or account the merge keeps (the newer one, or each side's own under #1390's same-login rule). Only a login sets `md_id` and HFR refuses profiles without it (HFR-PROTOCOL §6c, `R1420c`); without this, a device lacking it (a legacy import, a login past 30 days) took it from the other devices. Once the item holds it, the devices converge.
 
 ## Alternatives rejected
 

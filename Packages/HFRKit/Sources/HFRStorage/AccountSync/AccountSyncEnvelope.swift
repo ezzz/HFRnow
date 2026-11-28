@@ -3,7 +3,8 @@ import HFRModels
 
 /// The dates this app keeps for one account, for the merge of the synchronizable copy (LOT-173).
 public struct AccountStamp: Sendable, Hashable, Codable {
-    /// Last change of the account's credentials on any device (login, re-login, refresh, avatar).
+    /// Last change of the account's login cookies on any device (login, re-login, a refresh that changed their values); a
+    /// refresh of the same login never moves it (#1390).
     public var credentialsAt: Date
     /// Last explicit login of the account on any device; a refresh never moves it.
     public var consentAt: Date
