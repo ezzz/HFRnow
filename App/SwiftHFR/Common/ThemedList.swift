@@ -29,8 +29,9 @@ struct ThemedListColors {
     var table: ThemedTableColors?
 }
 
-/// What `listStyle: ogTable` adds to a list (LOT-193): a section header is a band (`headerBand`, text `onHeaderBand`) and the
-/// rows alternate `surface` and `alternateCell`, as the forum's tables do.
+/// What `listStyle: ogTable` adds to a list (LOT-193): a section header drawn with `themedBandHeader()` is a band (`headerBand`,
+/// text `onHeaderBand`), the rows alternate `surface` and `alternateCell`, and a row's info line and counters are `meta` and
+/// `counter`, as the forum's tables do.
 struct ThemedTableColors {
     /// The section header's band (`headerBand`).
     let headerBand: UIColor
@@ -38,6 +39,10 @@ struct ThemedTableColors {
     let onHeaderBand: UIColor
     /// Every other row (`alternateCell`).
     let alternateCell: UIColor
+    /// The info line of a row (`meta`: last poster and date).
+    let meta: UIColor
+    /// The counters of a row (`counter`: the page count).
+    let counter: UIColor
 }
 
 extension ThemeAppearance {
@@ -52,8 +57,11 @@ extension ThemeAppearance {
             sectionHeader: sectionHeader, title: title
         )
         if themeListStyle == .ogTable, let band = themeColor(\.resolvedHeaderBand), let onBand = themeColor(\.resolvedOnHeaderBand),
-           let alternate = themeColor(\.resolvedAlternateCell) {
-            colors.table = ThemedTableColors(headerBand: band, onHeaderBand: onBand, alternateCell: alternate)
+           let alternate = themeColor(\.resolvedAlternateCell), let meta = themeColor(\.resolvedMeta),
+           let counter = themeColor(\.resolvedCounter) {
+            colors.table = ThemedTableColors(
+                headerBand: band, onHeaderBand: onBand, alternateCell: alternate, meta: meta, counter: counter
+            )
         }
         return colors
     }
@@ -91,6 +99,17 @@ extension View {
     /// included (CI render of #1350: errorText at about 0.5 over `surface`), so no opacity is added here. Never on a `.plain`
     /// button (the role's red does not reach its glyph), an alert, a dialog, a swipe action or a toolbar. Legacy: nothing.
     func themedDestructive() -> some View { modifier(ThemedDestructive()) }
+
+    /// A section **header** (never a footer) of a list under the theme: `themedSectionHeader()`, and in the table look
+    /// (`listStyle: ogTable`, classic look) the forum's band, `headerBand` behind its text in `onHeaderBand` (#734). The band is
+    /// aligned with the card and its text inset; the dense look keeps the plain header. Legacy: nothing.
+    func themedBandHeader() -> some View { modifier(ThemedBandHeader()) }
+
+    /// The info line of a row (the last poster and date) in the table look's `meta`; unchanged otherwise (#734).
+    func themedMeta() -> some View { modifier(ThemedTableText(role: .meta)) }
+
+    /// The counters of a row (the page count) in the table look's `counter`; unchanged otherwise (#734).
+    func themedCounter() -> some View { modifier(ThemedTableText(role: .counter)) }
 
     /// A screen's large title under the theme (#842): `title`, which holds 4.5:1 on `background`. Legacy: nothing.
     func themedTitle() -> some View { modifier(ThemedListText(role: .title)) }
@@ -133,15 +152,7 @@ private struct ThemedListText: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if let colors = appearance.listColors {
             let (primary, secondary) = Self.colors(role, colors)
-            if role == .sectionHeader, let table = colors.table {
-                // The table look: the header is the forum's band, its text on it (the rule `onHeaderBand`/`headerBand`).
-                content.foregroundStyle(Color(uiColor: table.onHeaderBand))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 4)
-                    .background(Color(uiColor: table.headerBand))
-            } else {
-                content.foregroundStyle(Color(uiColor: primary), Color(uiColor: secondary))
-            }
+            content.foregroundStyle(Color(uiColor: primary), Color(uiColor: secondary))
         } else {
             content
         }
@@ -154,6 +165,42 @@ private struct ThemedListText: ViewModifier {
         case .rowText: (colors.text, colors.secondaryText)
         case .sectionHeader: (colors.sectionHeader, colors.sectionHeader)
         case .title: (colors.title, colors.title)
+        }
+    }
+}
+
+/// The header band of the table look (`themedBandHeader()`).
+private struct ThemedBandHeader: ViewModifier {
+    @Environment(\.themeAppearance) private var appearance
+    @Environment(\.listLook) private var look
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let table = appearance.listColors?.table, look == .classic {
+            content
+                .foregroundStyle(Color(uiColor: table.onHeaderBand))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(uiColor: table.headerBand))
+                // No extra inset: the band spans the card below it (the header's own inset is measured from the card's edge).
+                .listRowInsets(EdgeInsets())
+        } else {
+            content.themedSectionHeader()
+        }
+    }
+}
+
+/// A row's `meta` or `counter` text in the table look; the content as is for every other theme and Legacy.
+private struct ThemedTableText: ViewModifier {
+    enum Role { case meta, counter }
+    let role: Role
+    @Environment(\.themeAppearance) private var appearance
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let table = appearance.listColors?.table {
+            content.foregroundStyle(Color(uiColor: role == .meta ? table.meta : table.counter))
+        } else {
+            content
         }
     }
 }
@@ -206,7 +253,7 @@ struct ThemedSection<Content: View>: View {
         Section {
             Group { content }.themedListRow()
         } header: {
-            title.themedSectionHeader()
+            title.themedBandHeader()
         }
     }
 }

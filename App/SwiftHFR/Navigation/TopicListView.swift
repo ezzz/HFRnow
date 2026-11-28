@@ -58,7 +58,7 @@ struct TopicListView: View {
                             Section {
                                 if !group.isCollapsed { rows(group.topics) }
                             } header: {
-                                header(group, title: title).themedSectionHeader()
+                                header(group, title: title).themedBandHeader()
                             }
                         } else {
                             rows(group.topics)

@@ -54,17 +54,49 @@ struct ThemedTableListTests {
 
     private struct TableList: View {
         let model: ThemeSettingsModel
+        /// The text sits in a header (`themedBandHeader`) or in a footer (`themedSectionHeader`, as the app's footers).
+        var footer = false
+        var look = ListLook.classic
         var body: some View {
             List {
                 Section {
                     ForEach(0..<4, id: \.self) { index in
                         Text("").frame(height: 100).themedListRow(isAlternate: index.isMultiple(of: 2) == false)
                     }
-                } header: { Text("Section").themedSectionHeader() }
+                } header: {
+                    if !footer { Text("Section").themedBandHeader() }
+                } footer: {
+                    if footer { Text("Pied de section").themedSectionHeader() }
+                }
             }
             .listStyle(.insetGrouped)
+            .environment(\.listLook, look)
             .appTheme(model)
         }
+    }
+
+    /// A render of the window, read pixel by pixel.
+    private struct Shot {
+        let data: [UInt8]
+        let width: Int
+        let height: Int
+        let scale: CGFloat
+        func color(_ x: Int, _ y: Int) -> [Int] { (0..<3).map { Int(data[(y * width + x) * 4 + $0]) } }
+    }
+
+    private func shot(of window: UIWindow) -> Shot {
+        let image = UIGraphicsImageRenderer(size: window.bounds.size).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        guard let cgImage = image.cgImage else { return Shot(data: [], width: 0, height: 0, scale: 1) }
+        let width = cgImage.width, height = cgImage.height
+        var data = [UInt8](repeating: 0, count: width * height * 4)
+        let context = CGContext(
+            data: &data, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return Shot(data: data, width: width, height: height, scale: image.scale)
     }
 
     /// Every colour of the window along the vertical line at `x`, one render.
@@ -109,6 +141,63 @@ struct ThemedTableListTests {
         let window = try show(TableList(model: try model("og-gris")))
         defer { window.isHidden = true }
         #expect(try await seen([0x202530, 0xDCDCDC, 0xE8E8E8], in: window))
+    }
+
+    /// The band: its text does not touch its left edge, and its left edge is the card's.
+    @Test func theBandIsInsetAndAlignedWithTheCard() async throws {
+        let window = try show(TableList(model: try model("og-gris")))
+        defer { window.isHidden = true }
+        #expect(try await seen([0x202530, 0xDCDCDC], in: window))
+        let shot = shot(of: window)
+        let band = hex(0x202530), card = hex(0xDCDCDC)
+        let centre = Int(150 * shot.scale)
+        let bandYs = (0..<shot.height).filter { near(shot.color(centre, $0), band) }
+        let bandY = try #require(bandYs.dropFirst(bandYs.count / 2).first)
+        let bandLeft = try #require((0..<shot.width).first { near(shot.color($0, bandY), band) })
+        let textLeft = try #require((bandLeft..<shot.width).first { !near(shot.color($0, bandY), band) })
+        #expect(CGFloat(textLeft - bandLeft) / shot.scale >= 8, "text starts \(CGFloat(textLeft - bandLeft) / shot.scale) pt in")
+        let cardY = try #require((0..<shot.height).first { near(shot.color(centre, $0), card) })
+        let cardLeft = try #require((0..<shot.width).first { near(shot.color($0, cardY + Int(30 * shot.scale)), card) })
+        #expect(abs(CGFloat(bandLeft - cardLeft)) / shot.scale <= 2, "band \(bandLeft), card \(cardLeft)")
+    }
+
+    /// A footer is not a header: under the table theme it keeps the plain text, with no band; so does a header in the dense look.
+    @Test func aFooterAndADenseHeaderGetNoBand() async throws {
+        for (label, root) in [("footer", TableList(model: try model("og-gris"), footer: true)),
+                              ("dense", TableList(model: try model("og-gris"), look: .dense))] {
+            let window = try show(root)
+            defer { window.isHidden = true }
+            try await Task.sleep(for: .milliseconds(700))
+            #expect(!column(of: window, x: 150).contains { near($0, hex(0x202530)) }, "\(label)")
+        }
+    }
+
+    /// A topic row in the table look draws its page count in `counter` (#0000FF), its last post in `meta` (#4F5258, which equals
+    /// the theme's `textSecondary` here, so only the counter tells the look apart); under
+    /// another theme neither colour is there (Swift's text colours differ).
+    @Test func aTopicRowDrawsItsCounterAndMetaInTheTableLook() async throws {
+        var topic = TopicSummary(
+            topicID: TopicID(category: .forum(13), topic: 1), title: "Sujet d'exemple", path: "/t1",
+            starterOrInterlocutors: "user1", readState: .read
+        )
+        topic.lastPost = LastPost(author: "user1", path: "/t1#bas", date: Date(timeIntervalSince1970: 1_700_000_000))
+        func list(_ id: String) throws -> some View {
+            let theme = try model(id)
+            return List { TopicRowView(topic: topic).themedRowText().themedListRow() }.listStyle(.insetGrouped).appTheme(theme)
+        }
+        func has(_ window: UIWindow, _ color: Int) -> Bool {
+            let shot = shot(of: window)
+            return (0..<shot.height).contains { y in (0..<shot.width).contains { near(shot.color($0, y), hex(color)) } }
+        }
+        let gris = try show(list("og-gris"))
+        defer { gris.isHidden = true }
+        try await Task.sleep(for: .milliseconds(800))
+        #expect(has(gris, 0x0000FF), "counter")
+        #expect(has(gris, 0x4F5258), "meta")
+        let swift = try show(list("swift"))
+        defer { swift.isHidden = true }
+        try await Task.sleep(for: .milliseconds(800))
+        #expect(!has(swift, 0x0000FF))
     }
 
     @Test func aStandardThemeKeepsOneRowColourAndNoBand() async throws {

@@ -127,6 +127,13 @@ import Testing
         #expect(tokens.resolvedMeta == ThemeRGB(hex: "#4F5258") && tokens.resolvedCounter == ThemeRGB(hex: "#0000FF"))
     }
 
+    /// Rows of a table theme sit on `alternateCell`: every text a row draws is checked on it (it falls back to `surface`).
+    @Test func everyTextOfARowIsCheckedOnTheAlternateCell() {
+        let rules = Set(ThemeTokens.contrastRules.filter { $0.background == "alternateCell" }.map(\.foreground))
+        #expect(rules.isSuperset(of: ["textPrimary", "textSecondary", "link", "meta", "counter", "accentText", "systemText",
+                                      "errorText", "badgeOutline"]), "\(rules.sorted())")
+    }
+
     /// The text of a band falls back to `textPrimary`, and the rule follows it.
     @Test func aBandTextTokenFallsBackToTextPrimaryAndIsChecked() throws {
         let tokens = try #require(ThemeCatalog(files: try Self.bundledFiles()).themes.first { $0.id == "swift" }?.variants?.light)

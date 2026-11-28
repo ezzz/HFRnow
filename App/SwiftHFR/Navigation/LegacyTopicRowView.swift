@@ -42,9 +42,10 @@ struct LegacyTopicRowView: View {
             }
             HStack(spacing: 6) {
                 Text(TopicRowInfoLine.leading(topic, showsFlag: showsFlag))
+                    .themedCounter()
                     .accessibilityLabel(TopicRowInfoLine.spokenLeading(topic, showsFlag: showsFlag))
                 Spacer(minLength: 0)
-                if let trailing = TopicRowInfoLine.trailing(topic) { Text(trailing).lineLimit(1) }
+                if let trailing = TopicRowInfoLine.trailing(topic) { Text(trailing).lineLimit(1).themedMeta() }
             }
             .scaledFont(.caption)
             .foregroundStyle(.secondary)
