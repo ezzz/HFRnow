@@ -43,6 +43,14 @@ nonisolated enum FeteNationaleLayout {
         return min(min(progress / fadeShare, 1), min((1 - progress) / fadeShare, 1))
     }
 
+    /// The widest burst, in points: the render's own size (about 810 px at 3x), so it is never enlarged into blur.
+    static let maxBurstSide: CGFloat = 270
+
+    /// A burst's side: `size` of the band's shorter side (so it is not clipped in landscape), at most `maxBurstSide`.
+    static func burstSide(size: Double, in area: CGSize) -> CGFloat {
+        min(max(min(area.width, area.height), 0) * size, maxBurstSide)
+    }
+
     /// The bust's height: 40 % of the band, at most `maxBustHeight`.
     static func bustHeight(band: CGFloat) -> CGFloat {
         min(max(band, 0) * 0.4, maxBustHeight)

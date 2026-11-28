@@ -66,13 +66,15 @@ struct FeteNationaleLayer: View {
 }
 
 /// The bust and the fireworks over a soft dimming of the screen; redrawn every frame only while it plays (one view per run). A
-/// tap anywhere in the band ends it (THEMES.md §4 rule 3). Decorative: hidden from VoiceOver.
+/// tap anywhere in the band ends it (THEMES.md §4 rule 3). Decorative: hidden from VoiceOver. On a dark scheme the bursts get a
+/// light rim: about half of their opaque pixels (the dark outlines of the art) measure under 3:1 on black (rule 7).
 struct FeteNationaleScene: View {
     let area: CGSize
     let close: () -> Void
     /// The moment drawn, from the start of the run; the previews and the screenshots freeze it.
     var frozenAt: Double?
     @State private var begin = Date()
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         ZStack {
@@ -80,16 +82,18 @@ struct FeteNationaleScene: View {
                 let progress = frozenAt ?? timeline.date.timeIntervalSince(begin) / FeteNationaleModel.duration
                 let presence = FeteNationaleLayout.presence(at: progress)
                 ZStack {
-                    Color.black.opacity(0.35 * presence)
+                    // Dimming helps the light screens; on a dark one it would only darken the strokes (rule 7).
+                    Color.black.opacity((scheme == .dark ? 0 : 0.35) * presence)
                     ForEach(FeteNationaleLayout.bursts, id: \.start) { burst in
                         if let state = FeteNationaleLayout.state(of: burst, at: progress) {
-                            let side = area.width * burst.size
+                            let side = FeteNationaleLayout.burstSide(size: burst.size, in: area)
                             Image(burst.variant.rawValue)
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: side, height: side)
                                 .scaleEffect(state.scale)
                                 .opacity(state.opacity)
+                                .shadow(color: scheme == .dark ? .white.opacity(0.85) : .clear, radius: 1.5)
                                 .position(x: area.width * burst.centre.x, y: area.height * burst.centre.y)
                         }
                     }

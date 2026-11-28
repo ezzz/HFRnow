@@ -154,6 +154,14 @@ struct FeteNationaleTests {
         #expect(model.fete.current == nil)
     }
 
+    /// Waiting behind the keyboard past midnight: it must not play on the 15th (review of #1438).
+    @Test func aWaitingOverlayDoesNotPlayOnceTheDayIsOver() {
+        let (clock, model) = launch(14)
+        clock.move(to: 15, 7, 2027, hour: 0)
+        #expect(play(model) == nil)
+        #expect(model.fete.current == nil)
+    }
+
     /// 3–5 s (THEMES.md §4 rule 3).
     @Test func itLastsBetweenThreeAndFiveSeconds() {
         #expect(FeteNationaleModel.duration >= 3 && FeteNationaleModel.duration <= 5)
@@ -269,6 +277,14 @@ struct FeteNationaleLayoutTests {
         let burst = FeteNationaleLayout.bursts[0]
         let last = FeteNationaleLayout.state(of: burst, at: burst.start + FeteNationaleLayout.burstSpan * 0.99)
         #expect((last?.opacity ?? 1) < 0.05 && (last?.scale ?? 0) > 0.99)
+    }
+
+    /// A burst follows the shorter side of the band (no clipping in landscape) and never exceeds its render (no blur).
+    @Test func aBurstFollowsTheShorterSideAndIsCapped() {
+        #expect(FeteNationaleLayout.burstSide(size: 0.5, in: CGSize(width: 400, height: 600)) == 200)
+        #expect(FeteNationaleLayout.burstSide(size: 0.5, in: CGSize(width: 800, height: 220)) == 110)
+        #expect(FeteNationaleLayout.burstSide(size: 0.5, in: CGSize(width: 1100, height: 900)) == FeteNationaleLayout.maxBurstSide)
+        #expect(FeteNationaleLayout.burstSide(size: 0.5, in: CGSize(width: -1, height: 600)) == 0)
     }
 
     @Test func theBustIsFortyPercentOfTheBandAtMost300Points() {

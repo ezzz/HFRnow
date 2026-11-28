@@ -69,13 +69,12 @@ final class FeteNationaleModel {
     /// A scene became active: the first activation of the 14th, once per year, queues the overlay when animations are allowed.
     /// Any other day drops an overlay still waiting for a clear screen.
     func sceneDidBecomeActive(animationsAllowed: Bool) {
-        let calendar = NoelCalendar.gregorian(in: timeZone())
-        let date = now()
-        guard FeteNationaleCalendar.isFeteNationale(date, in: calendar) else {
+        guard isFeteNationale(now()) else {
             if !isPlaying { current = nil }
             return
         }
-        let year = FeteNationaleCalendar.year(of: date, in: calendar)
+        let calendar = NoelCalendar.gregorian(in: timeZone())
+        let year = FeteNationaleCalendar.year(of: now(), in: calendar)
         guard !store.value(for: SettingKey.feteNationaleShown(year: year)) else { return }
         store.set(true, for: SettingKey.feteNationaleShown(year: year))
         guard animationsAllowed else { return }
@@ -98,6 +97,11 @@ final class FeteNationaleModel {
     /// and no other scene plays it. Animations turned off before it played drop it.
     func start(for scene: UUID, screen: SeasonalThemeModel.ScreenState, animationsAllowed: Bool) -> Show? {
         guard let current else { return nil }
+        // Waiting behind the keyboard past midnight: the day is over, the overlay is dropped (not while it plays).
+        if current.scene == nil, !isFeteNationale(now()) {
+            self.current = nil
+            return nil
+        }
         if let playing = current.scene { return playing == scene ? current : nil }
         guard animationsAllowed else {
             self.current = nil
@@ -132,6 +136,11 @@ final class FeteNationaleModel {
     /// `scene` went away while it played: the overlay stops, as when it leaves.
     func release(scene: UUID) {
         sceneChanged(scene, active: false)
+    }
+
+    /// `date` is the 14th of July in the zone of the moment.
+    private func isFeteNationale(_ date: Date) -> Bool {
+        FeteNationaleCalendar.isFeteNationale(date, in: NoelCalendar.gregorian(in: timeZone()))
     }
 
     private var canReplay: Bool {

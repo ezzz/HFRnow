@@ -10,10 +10,10 @@ import UniformTypeIdentifiers
 
 /// Render name, imageset name, longest side in pixels (3x of the largest size drawn).
 let jobs: [(String, String, Int)] = [
-    ("marianne-1600", "FeteMarianne", 900), // up to 300 pt high
-    ("fete_fireworks", "FeteFireworks", 600), // the bursts: up to 200 pt wide
-    ("fete_fireworks_red", "FeteFireworksRed", 600),
-    ("fete_fireworks_gold", "FeteFireworksGold", 600)
+    ("marianne-1600", "FeteMarianne", 900), // up to 300 pt high, 3x
+    ("fete_fireworks", "FeteFireworks", 900), // the bursts: the render's own size (about 810 px, 270 pt at 3x, FeteNationaleLayout.maxBurstSide)
+    ("fete_fireworks_red", "FeteFireworksRed", 900),
+    ("fete_fireworks_gold", "FeteFireworksGold", 900)
 ]
 
 func trimmedBounds(_ image: CGImage) -> CGRect {
@@ -30,8 +30,8 @@ func trimmedBounds(_ image: CGImage) -> CGRect {
             minX = min(minX, column); maxX = max(maxX, column); minY = min(minY, row); maxY = max(maxY, row)
         }
     }
-    // Rows of the bitmap context run bottom-up from CGImage's top-down rows: flip back.
-    return CGRect(x: minX, y: height - 1 - maxY, width: maxX - minX + 1, height: maxY - minY + 1)
+    // The buffer's rows run top to bottom like the CGImage's: no flip (the first version flipped and lost a row, #1438 review).
+    return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
 }
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
