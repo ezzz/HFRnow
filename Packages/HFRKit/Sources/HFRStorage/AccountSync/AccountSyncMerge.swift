@@ -3,7 +3,8 @@ import HFRModels
 
 /// The per-account merge of the device-only accounts and the synchronizable copy (LOT-173 spec, "Merge"): newest
 /// credentials per account key, a removal marker beats every copy whose last explicit login is not later than it, the
-/// device keeps its own main account. Pure.
+/// device keeps its own main account; for one login held on both sides, each side keeps its own account within the renewal
+/// margin (#1390); the copy and the device's account never lose a live `md_id` the other side holds for that login (#1420). Pure.
 struct AccountSyncMerge {
     /// The merged accounts, local order first, main flag of this device.
     var book: AccountBook
@@ -18,10 +19,11 @@ struct AccountSyncMerge {
     /// Pseudos this device stored and no longer does.
     var dropped: Set<String>
 
-    /// Merges `local` (with this device's `stamps` and `localRemoved`) and the copy's `remote` accounts and markers.
+    /// Merges `local` (with this device's `stamps` and `localRemoved`) and the copy's `remote` accounts and markers; `now` decides
+    /// which `md_id` is live (#1420).
     init(
         local: AccountBook, stamps localStamps: [String: AccountStamp], localRemoved: [String: Date],
-        remote: [SyncedAccount], remoteRemoved: [String: Date]
+        remote: [SyncedAccount], remoteRemoved: [String: Date], now: Date = Date()
     ) {
         // The first entry of each account key.
         let remoteByKey = Dictionary(remote.map { (AccountKey.make($0.account.pseudo), $0) }) { first, _ in first }
@@ -55,6 +57,8 @@ struct AccountSyncMerge {
             if sameLogin, let localEntry, let remoteEntry {
                 (kept.account, account) = Self.sameLoginAccounts(local: localEntry.account, copy: remoteEntry.account)
             }
+            // A live `md_id` one side holds for this login is never lost to the other (#1420): only a login sets it.
+            Self.keepMemberID(&kept.account.cookies, &account.cookies, sides: [localEntry, remoteEntry], now: now)
             account.isMain = key == localMainKey
             merged.append(kept)
             deviceAccounts.append(account)
@@ -86,6 +90,33 @@ struct AccountSyncMerge {
         guard let local else { return remote }
         guard let remote else { return local }
         return local.credentialsAt > remote.credentialsAt ? local : remote
+    }
+
+    /// Gives the copy's and this device's cookies each live `md_id` that one of `sides` holds for the same login (#1420).
+    private static func keepMemberID(
+        _ copy: inout [StoredCookie], _ device: inout [StoredCookie], sides: [SyncedAccount?], now: Date
+    ) {
+        for side in sides.compactMap({ $0?.account.cookies }) {
+            copy = cookies(copy, keepingMemberIDOf: side, now: now)
+            device = cookies(device, keepingMemberIDOf: side, now: now)
+        }
+    }
+
+    /// `cookies` (the copy's or the device's, whichever the merge keeps) with `other`'s live `md_id` when they hold none and
+    /// both are the same login (same `md_user` and `md_passs`, #1385's identity): only a login sets `md_id` and HFR refuses
+    /// profiles without it (`R1420c`), so an account from a device that lacks it (a legacy import, a login past 30 days) never
+    /// takes it from another (#1420). Once the item holds it, the devices converge; another login's cookies are left as they are.
+    static func cookies(_ cookies: [StoredCookie], keepingMemberIDOf other: [StoredCookie], now: Date) -> [StoredCookie] {
+        guard !cookies.contains(where: { $0.isLiveMemberID(at: now) }) else { return cookies }
+        let kept = other.filter { $0.isLiveMemberID(at: now) }
+        let identity = { (cookies: [StoredCookie]) in
+            Set(cookies.filter { ["md_user", "md_passs"].contains($0.name) }.map { "\($0.name)=\($0.value)" })
+        }
+        let login = identity(other)
+        guard !kept.isEmpty, login.contains(where: { $0.hasPrefix("md_user=") }), !login.contains("md_user=deleted"),
+            login == identity(cookies)
+        else { return cookies }
+        return cookies.filter { $0.name != StoredCookie.memberIDName } + kept
     }
 
     /// The cookies that make a login (HFR-PROTOCOL §5, `W03`); HFR re-sends `md_user` and `md_passs` with a new expiry on

@@ -30,7 +30,7 @@ struct MemberAvatarPrefetcherTests {
         func logInAgain() { lock.withLock { generation += 1 } }
 
         func loginState() async -> ProfileLoginState {
-            lock.withLock { ProfileLoginState(isLoggedIn: true, generation: generation) }
+            lock.withLock { ProfileLoginState(isLoggedIn: true, hasMemberID: true, generation: generation) }
         }
 
         func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult {

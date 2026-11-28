@@ -154,6 +154,10 @@ Decided by the operator (2026-11-16, [#966](https://github.com/ezzz/HFRnow/issue
 - **Older builds.** A build before #966 does not know the key (`isListKey` is false for it) and never reads or writes it; its device file reads the history without `removals` (an unknown key) and drops them if it saves, which only lets a removed upload come back from the cloud. Nothing released wrote either before.
 - **Budget, measured.** 100 Chevereto uploads with their three renditions and 100 removals take about 49 KiB; the worst case of Amendment 2 with this key is about 341 KiB in 47 keys. The bound is now **< 360 KiB** and ≤ 60 keys (`SyncedBudgetTests`); Apple's limits stay 1 MB and 1024 keys.
 
+## Amendment 5 — 2026-11-28: the account merge keeps `md_id` (#1420)
+
+- The per-account merge of the account sync (LOT-173 "Merge") never drops the cookie `md_id` of a login: for the **same login** (same `md_user` and `md_passs`), the item's copy and the device's account each get a live `md_id` that either side holds and they lack, whichever copy or account the merge keeps (the newer one, or each side's own under #1390's same-login rule). Only a login sets `md_id` and HFR refuses profiles without it (HFR-PROTOCOL §6c, `R1420c`); without this, a device lacking it (a legacy import, a login past 30 days) took it from the other devices. Once the item holds it, the devices converge.
+
 ## Alternatives rejected
 
 | Option | Why not |

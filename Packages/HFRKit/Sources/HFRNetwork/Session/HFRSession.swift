@@ -262,3 +262,16 @@ public actor HFRSession: HTTPTransport {
         return trimmed
     }
 }
+
+// MARK: - Member id
+
+extension HFRSession {
+    /// Name of the member-id cookie (`StoredCookie.memberIDName`, #1420).
+    public static let memberIDCookieName = StoredCookie.memberIDName
+
+    /// True when the jar holds a live `md_id` (`StoredCookie.isLiveMemberID`): what a profile request needs besides the
+    /// login (#1420).
+    public func holdsMemberID(now: Date = Date()) -> Bool {
+        cookies(now: now).contains { $0.isLiveMemberID(at: now) }
+    }
+}

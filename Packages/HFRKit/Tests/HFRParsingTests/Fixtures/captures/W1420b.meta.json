@@ -1,0 +1,35 @@
+{
+  "id": "W1420b",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "/login_validation.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/login_validation.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/login_validation.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 27 Nov 2026 22:40:07 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_passs",
+    "md_id"
+  ],
+  "request_fields": [
+    "hash_check",
+    "pseudo",
+    "password",
+    "cat",
+    "page",
+    "config",
+    "p",
+    "sondage",
+    "owntopic",
+    "post",
+    "referer",
+    "Valider"
+  ],
+  "note": "login.php form fields (#1420)",
+  "request_body": "hash_check=&pseudo=user2&password=REDACTED&cat=&page=1&config=hfr.inc&p=1&sondage=0&owntopic=0&post=&referer=&Valider=Valider",
+  "file": "W1420b-login-form1-fields-user2.html",
+  "private": false
+}

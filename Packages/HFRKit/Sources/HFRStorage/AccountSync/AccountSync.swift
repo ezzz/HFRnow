@@ -287,10 +287,11 @@ extension AccountSync {
         required: Bool = false
     ) throws -> AccountSyncReport {
         guard let enabledAt = state.enabledAt else { return AccountSyncReport() }
-        let snapshot = state
+        let (snapshot, now) = (state, clock())
         let mergeLocal: (AccountBook) -> AccountSyncMerge = { book in
             AccountSyncMerge(
-                local: book, stamps: snapshot.stamps, localRemoved: snapshot.removed, remote: remote.accounts, remoteRemoved: remote.removed
+                local: book, stamps: snapshot.stamps, localRemoved: snapshot.removed, remote: remote.accounts,
+                remoteRemoved: remote.removed, now: now
             )
         }
         // The item first, the device-only store only once the item holds the merge (or needed no write): a failed or raced
