@@ -20,7 +20,7 @@ enum TopicSource: Hashable, Sendable {
     }
 
     /// Title bar of the topic list: the Favoris tab's screen is "Favoris" whichever list it shows (legacy `MainWindow.swift:1821, 2406`,
-    /// `Favorites.swift:758` @ 87fe0d1c; #975). `title` stays the list's own name, for the list picker of the tab's menu.
+    /// `Favorites.swift:758` @ 87fe0d1c; #975). `title` is the favourites mode's name, for the list picker of the tab's menu.
     var navigationTitle: String {
         switch self {
         case .flagged, .favorites: "Favoris"

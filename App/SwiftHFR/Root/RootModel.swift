@@ -378,6 +378,6 @@ final class RootModel {
         return Task { await reselect(tab) }
     }
 
-    /// Sources the Favoris tab can show: the favourites and, where legacy shows them with the favourites, the flags.
-    static let favoritesSources: [TopicSource] = [.favorites, .flagged]
+    /// Sources the Favoris tab can show, in legacy's order (`AppSettingsView.swift:129-132` @ 87fe0d1c).
+    static let favoritesSources: [TopicSource] = [.flagged, .favorites]
 }
