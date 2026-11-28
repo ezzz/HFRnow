@@ -73,12 +73,13 @@ nonisolated enum SamainLayout {
     }
 
     /// The soft theme keeps its art out of the chrome and of the text (THEMES.md §4 rules 7 and 9): a web in the top trailing
-    /// corner just under the navigation bar's own row (clear of the status bar and of the toolbar buttons), and a candelabra with
-    /// a small bat standing on the home indicator's inset, below the tab bar. A screen without that inset has no candelabra.
+    /// corner under the navigation bar and its large title (clear of the status bar, the toolbar buttons and the title), and a
+    /// candelabra with a small bat standing on the home indicator's inset, below the tab bar. A screen without that inset has no
+    /// candelabra.
     private static func soft(in size: CGSize, topInset: CGFloat, bottomInset: CGFloat) -> [Piece] {
         let web = min(72, size.width * 0.2)
         var pieces = [
-            Piece(art: .web, frame: CGRect(x: size.width - web, y: topInset + navigationRow, width: web, height: web), mirrored: true)
+            Piece(art: .web, frame: CGRect(x: size.width - web, y: topInset + titleRows, width: web, height: web), mirrored: true)
         ]
         guard bottomInset >= minimumInset else { return pieces }
         let height = min(bottomInset, 34)
@@ -89,21 +90,23 @@ nonisolated enum SamainLayout {
         return pieces
     }
 
-    /// The height of a navigation bar's own row, under which the soft web hangs, and the smallest home indicator inset that can
-    /// hold the candelabra.
+    /// The height of a navigation bar's own row and of the large title under it: the soft web hangs below both, so a long title
+    /// never runs over its strands (review of #1441), and the smallest home indicator inset that can hold the candelabra.
     static let navigationRow: CGFloat = 44
+    static let largeTitleRow: CGFloat = 56
+    static let titleRows = navigationRow + largeTitleRow
     static let minimumInset: CGFloat = 24
 
-    /// Webs in both top corners, the moon behind the title with two bats, pumpkins and the candelabra standing on the home
-    /// indicator's inset.
+    /// Webs in both top corners (below the status bar), the moon behind the title with two bats, pumpkins and the candelabra
+    /// standing on the home indicator's inset.
     private static func full(in size: CGSize, topInset: CGFloat, bottomInset: CGFloat) -> [Piece] {
         let web = min(130, size.width * 0.34)
         let moon = min(170, size.width * 0.42)
         let moonFrame = CGRect(x: size.width * 0.5 - moon / 2, y: topInset + 24, width: moon, height: moon)
         let floor = size.height - bottomInset
         var pieces = [
-            Piece(art: .web, frame: CGRect(x: 0, y: 0, width: web, height: web)),
-            Piece(art: .web, frame: CGRect(x: size.width - web, y: 0, width: web, height: web), mirrored: true),
+            Piece(art: .web, frame: CGRect(x: 0, y: topInset, width: web, height: web)),
+            Piece(art: .web, frame: CGRect(x: size.width - web, y: topInset, width: web, height: web), mirrored: true),
             Piece(art: .moon, frame: moonFrame),
             Piece(art: .bat, frame: frame(.bat, height: 22, trailing: moonFrame.minX + 6, top: moonFrame.minY + moon * 0.2)),
             Piece(art: .bat, frame: frame(.bat, height: 16, trailing: moonFrame.maxX + 40, top: moonFrame.minY - 6))

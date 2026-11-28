@@ -3,6 +3,7 @@ import Foundation
 import HFRModels
 import HFRStorage
 @testable import SwiftHFR
+import SwiftUI
 import Testing
 import UIKit
 
@@ -84,58 +85,83 @@ struct SamainDecorationTests {
         #expect(typed.union(["SamainWitchSweep"]) == Set(Self.everyImage))
     }
 
-    /// The visible pixels of `name` that touch transparency (its silhouette), as colours.
-    private func edgeColours(of name: String) throws -> [ThemeRGB] {
-        let image = try #require(UIImage(named: name)?.cgImage)
+    /// `name` drawn by SwiftUI at 3x on `background`, in a square of `side` points, as raw RGBA pixels, `rim` applied or not.
+    private func render(_ name: String, on background: Color, rim: Bool) throws -> [UInt8] {
+        let side: CGFloat = 100
+        let art = Image(name).resizable().scaledToFit().frame(width: 60, height: 60)
+        let content = ZStack {
+            background
+            if rim { art.samainRim(.dark) } else { art }
+        }
+        .frame(width: side, height: side)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 3
+        let image = try #require(renderer.cgImage)
         let width = image.width
-        let height = image.height
-        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        var pixels = [UInt8](repeating: 0, count: width * image.height * 4)
         let context = try #require(CGContext(
-            data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+            data: &pixels, width: width, height: image.height, bitsPerComponent: 8, bytesPerRow: width * 4,
             space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ))
-        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        func alpha(_ column: Int, _ row: Int) -> UInt8 {
-            guard column >= 0, row >= 0, column < width, row < height else { return 0 }
-            return pixels[(row * width + column) * 4 + 3]
-        }
-        var edges: [ThemeRGB] = []
-        for row in 0..<height {
-            for column in 0..<width where alpha(column, row) > 8 {
-                let touches = [(1, 0), (-1, 0), (0, 1), (0, -1)].contains { alpha(column + $0.0, row + $0.1) <= 8 }
-                guard touches else { continue }
-                let index = (row * width + column) * 4
-                // The context holds premultiplied colours: undo it, so a faint edge pixel keeps the colour it was drawn in.
-                let opacity = Int(pixels[index + 3])
-                edges.append(ThemeRGB(
-                    red: Int(pixels[index]) * 255 / opacity, green: Int(pixels[index + 1]) * 255 / opacity,
-                    blue: Int(pixels[index + 2]) * 255 / opacity
-                ))
-            }
-        }
-        return edges
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: image.height))
+        return pixels
     }
 
-    /// WCAG 1.4.11 (the lot's acceptance criterion, rule 7): every decoration on the soft theme's dark variant keeps its
-    /// silhouette ≥ 3:1. The purple witch and vampire do not against the background (2.3:1), so on a dark scheme the art gets a
-    /// light rim (`SamainRim`): every edge pixel of every image reads ≥ 3:1 against the background or against the rim, whose colour
-    /// is the background under the halo's opacity of white.
+    /// WCAG 1.4.11 (the lot's acceptance criterion, rule 7), measured on what renders: every Samain image, drawn with its rim by
+    /// SwiftUI at 3x over the soft theme's dark background, has a halo whose pixels next to the art (rings 2 to 4 device pixels
+    /// out, up to 1.33 pt) read ≥ 3:1 against the background on average. The art's own pixels are found by drawing it on black
+    /// and on white (they differ by less than half where it is mostly opaque; the soft fringe is not art). A single 1.5 pt Gaussian
+    /// shadow is ≥ 3:1 on one device pixel only, and fails this.
     @Test(arguments: SamainDecorationTests.everyImage)
-    func everyImageKeepsItsSilhouetteThreeToOneOnTheDarkBackgroundWithItsRim(name: String) throws {
-        let background = try #require(try theme(.spooktoberSoft).variants?.dark.background)
-        let rim = background.mixed(with: ThemeRGB(red: 255, green: 255, blue: 255), amount: SamainRim.opacity)
-        #expect(rim.contrast(with: background) >= 3, "the rim \(rim) on \(background)")
-        let edges = try edgeColours(of: name)
-        try #require(!edges.isEmpty)
-        let readable = edges.filter { $0.contrast(with: background) >= 3 || $0.contrast(with: rim) >= 3 }
-        #expect(Double(readable.count) / Double(edges.count) >= 0.99, "\(name): \(readable.count) of \(edges.count) edge pixels")
+    func theRenderedRimKeepsEveryImagesSilhouetteThreeToOneOnTheDarkBackground(name: String) throws {
+        let bg = try #require(try theme(.spooktoberSoft).variants?.dark.background)
+        let backdrop = Color(red: Double(bg.red) / 255, green: Double(bg.green) / 255, blue: Double(bg.blue) / 255)
+        let onBlack = try render(name, on: .black, rim: false)
+        let onWhite = try render(name, on: .white, rim: false)
+        let rimmed = try render(name, on: backdrop, rim: true)
+        var haloContrast: [Int: [Double]] = [:]
+        let width = 300
+        let height = onBlack.count / 4 / width
+        // A pixel's two renders differ by what shows through it: less than half of the range where it is mostly opaque.
+        func isArt(_ index: Int) -> Bool { abs(Int(onBlack[index * 4]) - Int(onWhite[index * 4])) < 128 }
+        var ring = [Int?](repeating: nil, count: width * height)
+        var frontier: [Int] = []
+        for index in 0..<(width * height) where isArt(index) {
+            ring[index] = 0
+            frontier.append(index)
+        }
+        try #require(!frontier.isEmpty)
+        for distance in 1...4 {
+            var next: [Int] = []
+            for index in frontier {
+                let column = index % width
+                for step in [-width - 1, -width, -width + 1, -1, 1, width - 1, width, width + 1] {
+                    let neighbour = index + step
+                    let wraps = abs(neighbour % width - column) > 1
+                    guard neighbour >= 0, neighbour < width * height, !wraps, ring[neighbour] == nil else { continue }
+                    ring[neighbour] = distance
+                    next.append(neighbour)
+                }
+            }
+            for index in next {
+                // The halo's pixel as drawn, un-premultiplied: the render is opaque (it has a background), so as is.
+                let pixel = ThemeRGB(red: Int(rimmed[index * 4]), green: Int(rimmed[index * 4 + 1]), blue: Int(rimmed[index * 4 + 2]))
+                haloContrast[distance, default: []].append(pixel.contrast(with: bg))
+            }
+            frontier = next
+        }
+        // Ring 1 is the art's own soft fringe (partly transparent pixels over the halo): the halo is read from ring 2 on.
+        for distance in 2...4 {
+            let values = haloContrast[distance] ?? []
+            let mean = values.reduce(0, +) / Double(max(values.count, 1))
+            #expect(mean >= 3, "\(name): ring \(distance) averages \(mean):1 on \(bg)")
+        }
     }
 
-    /// The rim is real: the dark-scheme halo exists and the light scheme has none. (The witch's own purple, 2.3:1 on the
-    /// background, is why: the test above fails without it.)
+    /// The rim exists on a dark scheme only (the light one draws the art plainly: `samainRim(.light)` adds no shadow colour).
     @Test func theRimIsAWhiteHaloOnTheDarkSchemeOnly() {
-        #expect(SamainRim.opacity >= 0.5 && SamainRim.radius >= 1)
+        #expect(SamainRim.opacity >= 0.5 && SamainRim.outline >= 1)
     }
 
     /// The soft bat is drawn in the operator's colour for the scheme: ≥ 3:1 on the dark background (7.13:1 in the draft) and on
@@ -192,14 +218,14 @@ struct SamainDecorationTests {
         }
     }
 
-    /// Rules 7 and 9: no art behind the status bar, the toolbar buttons (the navigation bar's own row) or the large title's text
-    /// column; the candelabra and the bat stand on the home indicator's inset, below the tab bar.
+    /// Rules 7 and 9: no art behind the status bar, the toolbar buttons (the navigation bar's own row) or the large title; the
+    /// candelabra and the bat stand on the home indicator's inset, below the tab bar.
     @Test func theSoftArtStaysOutOfTheChromeAndOfTheText() throws {
         let size = CGSize(width: 402, height: 874)
         let pieces = SamainLayout.pieces(.soft, in: size, topInset: 59, bottomInset: 34)
         #expect(pieces.map(\.art) == [.web, .candelabra, .bat])
         let web = try #require(pieces.first)
-        #expect(web.mirrored && web.frame.maxX == size.width && web.frame.minY >= 59 + SamainLayout.navigationRow)
+        #expect(web.mirrored && web.frame.maxX == size.width && web.frame.minY >= 59 + SamainLayout.titleRows)
         for piece in pieces.dropFirst() { #expect(piece.frame.minY >= size.height - 34 && piece.frame.maxY <= size.height) }
         #expect(!pieces[1].frame.intersects(pieces[2].frame))
         // The web hangs in the trailing corner only; a leading column of title text is never under it.
@@ -209,6 +235,15 @@ struct SamainDecorationTests {
     @Test func aScreenWithoutAHomeIndicatorInsetHasTheWebAlone() {
         let pieces = SamainLayout.pieces(.soft, in: CGSize(width: 375, height: 667), topInset: 20, bottomInset: 0)
         #expect(pieces.map(\.art) == [.web])
+    }
+
+    /// Rule 9: nothing of either theme starts behind the status bar.
+    @Test(arguments: [SamainLayout.Kind.soft, .full])
+    func noPieceStartsBehindTheStatusBar(kind: SamainLayout.Kind) {
+        for device in Self.screens {
+            let pieces = SamainLayout.pieces(kind, in: device.size, topInset: device.top, bottomInset: device.bottom)
+            #expect(pieces.allSatisfy { $0.frame.minY >= device.top }, "\(kind) \(device.size)")
+        }
     }
 
     @Test func theAbuseThemeHasMoreArtAndItsPumpkinsStandOnTheHomeIndicatorInset() throws {
