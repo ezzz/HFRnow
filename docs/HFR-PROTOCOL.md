@@ -8,6 +8,15 @@ This document and the test fixtures are licensed under [CC BY 4.0](../LICENSE-do
 
 Host: `https://forum.hardware.fr` (`Classes/k.m:37-40`). Forum config `config=hfr.inc` on all pages except global search (`config=hardwarefr.inc`).
 
+## 0. Upstream: where HFR announces changes
+
+HFR's own code is being modernised from 2026-11 on (PHP 8.4 migration, then the API; a test environment for app developers is announced before production). Changes that can break a client are announced, best effort, in the forum topics below. **Read them first when the forum starts answering differently (new status codes, moved pages, changed HTML), and before any major protocol change.** What they establish about the protocol is recorded in this file with its usual source and status, never only there.
+
+| Topic | Role |
+|---|---|
+| [Evolutions code Forum HFR / Apps mobiles/webs/mods](https://forum.hardware.fr/hfr/Programmation/Divers-6/evolutions-forum-mobiles-sujet_148793_1.htm#t2547021) | Opened 2026-11-27 by the forum's developer to link server changes to the apps and mods. First announcements: profiles refused to logged-out visitors since 2026-11-25 (R9, #1349, #1363), forum moving to PHP 8.4 (php-fpm, HTTP/2), API part next |
+| [HFR: web, android, ios](https://forum.hardware.fr/hfr/Programmation/Divers-6/hfr-android-sujet_148745_1.htm#t2522894) | Coordination between the third-party clients (iOS, redface2 on Android, userscripts): shared features, MPStorage, REST/SOAP API notes |
+
 ## 1. Read endpoints
 
 | Id | Purpose | Method | URL | Notes | Source |
