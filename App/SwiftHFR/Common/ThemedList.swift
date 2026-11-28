@@ -49,7 +49,11 @@ extension View {
     /// row in both, since a row background replaces the system's own selection fill. A row's own `listRowBackground` set inside
     /// it wins (`listLookRows()`). `listLookRows()` and `listLookRow(isSelected:)` hand their rows to it under a theme. Legacy:
     /// nothing.
-    func themedListRow(isSelected: Bool = false) -> some View { modifier(ThemedListRow(isSelected: isSelected)) }
+    /// `position` (a section's rows, `ThemedSection` or `ThemedRows`) lets a flat theme outline the group (#1456,
+    /// `GroupOutline.swift`); a row with none draws no outline, so a list with no card (the iPad sidebar) is never boxed.
+    func themedListRow(isSelected: Bool = false, position: GroupRowPosition? = nil) -> some View {
+        modifier(ThemedListRow(isSelected: isSelected, position: position))
+    }
 
     /// A row's text under the theme (#842): `textPrimary` as the primary style and `textSecondary` as the secondary one, so
     /// `.primary` and `.secondary` text follow. For a row's own content (a topic, a conversation, a forum, a field), never
@@ -77,6 +81,7 @@ extension View {
 
 private struct ThemedListRow: ViewModifier {
     let isSelected: Bool
+    var position: GroupRowPosition?
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.listLook) private var look
 
@@ -86,11 +91,21 @@ private struct ThemedListRow: ViewModifier {
         if let colors = appearance.listColors {
             let separator = Color(uiColor: colors.separator)
             content
-                .listRowBackground(Self.background(colors, isSelected: isSelected, look: look))
+                .listRowBackground(rowBackground(colors))
                 .listRowSeparatorTint(separator)
                 .listSectionSeparatorTint(separator)
         } else {
             content
+        }
+    }
+
+    /// The row's fill, with the group outline (#1456) in the classic look, where a card exists to be outlined.
+    @ViewBuilder private func rowBackground(_ colors: ThemedListColors) -> some View {
+        let fill = Self.background(colors, isSelected: isSelected, look: look)
+        if look == .classic, let position, let outline = appearance.groupOutlineColor {
+            GroupOutlineRowBackground(fill: fill, outline: Color(uiColor: outline), position: position)
+        } else {
+            fill
         }
     }
 
@@ -152,6 +167,22 @@ private struct ThemedListScreen: ViewModifier {
     }
 }
 
+/// The rows of one section under the theme, as `Group { … }.themedListRow()` did, each told its place in the section so that a flat
+/// theme outlines the group as one shape (#1456, `GroupOutline.swift`). Put it directly in the `Section`, around every row.
+struct ThemedRows<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+
+    var body: some View {
+        Group(subviews: content) { rows in
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                row.themedListRow(position: GroupRowPosition(index: index, count: rows.count))
+            }
+        }
+    }
+}
+
 /// A list section with a text header, as `Section("…") { … }`, whose rows and header follow the theme (#842); Legacy draws what
 /// `Section("…")` draws.
 struct ThemedSection<Content: View>: View {
@@ -172,7 +203,7 @@ struct ThemedSection<Content: View>: View {
 
     var body: some View {
         Section {
-            Group { content }.themedListRow()
+            ThemedRows { content }
         } header: {
             title.themedSectionHeader()
         }

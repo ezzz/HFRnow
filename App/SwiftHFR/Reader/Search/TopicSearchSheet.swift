@@ -16,7 +16,7 @@ struct TopicSearchSheet: View {
         ThemedNavigationStack {
             Form {
                 Section {
-                    Group {
+                    ThemedRows {
                         TextField("Mot-clé", text: $model.word)
                             .focused($focus, equals: .word)
                             .submitLabel(.next)
@@ -25,14 +25,15 @@ struct TopicSearchSheet: View {
                             .focused($focus, equals: .author)
                             .submitLabel(.search)
                             .onSubmit(submit)
-                    }.themedListRow()
+                    }
                 } footer: {
                     Text("Renseigne un mot-clé, un pseudo, ou les deux.").themedSectionHeader()
                 }
                 if case .failed(let message) = model.state {
                     Section {
-                        Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.themedError).font(.footnote)
-                            .themedListRow()
+                        ThemedRows {
+                            Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.themedError).font(.footnote)
+                        }
                     }
                 }
             }

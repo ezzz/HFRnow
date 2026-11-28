@@ -20,10 +20,10 @@ struct LegacyImportSummaryView: View {
         NavigationStack {
             List {
                 Section {
-                    Text(Self.intro).foregroundStyle(.secondary).themedListRow()
+                    ThemedRows { Text(Self.intro).foregroundStyle(.secondary) }
                 }
                 Section {
-                    Group {
+                    ThemedRows {
                         ForEach(summary.rows) { row in
                             LabeledContent {
                                 Text(row.detail)
@@ -36,14 +36,14 @@ struct LegacyImportSummaryView: View {
                         if let rejected = summary.rejectedLine {
                             Text(rejected).foregroundStyle(.secondary)
                         }
-                    }.themedListRow()
+                    }
                 }
                 if summary.canRetry {
                     Section {
-                        Group {
+                        ThemedRows {
                             Button("Réessayer", action: retry)
                                 .disabled(model.isRunning)
-                        }.themedListRow()
+                        }
                     }
                 }
             }

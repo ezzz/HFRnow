@@ -60,6 +60,9 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     public let onHeaderBand: ThemeRGB?
     /// Optional: text on `pageBar`; `textPrimary` when absent.
     public let onPageBar: ThemeRGB?
+    /// Optional: the 1 pt outline of a grouped section whose card does not stand out from the page (#1456); `separator` when
+    /// absent.
+    public let groupOutline: ThemeRGB?
 
     /// Decodes every token; a name that is not a token (a typo of an optional one would otherwise be ignored) is an error.
     public init(from decoder: any Decoder) throws {
@@ -100,6 +103,7 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         counter = try optional("counter")
         onHeaderBand = try optional("onHeaderBand")
         onPageBar = try optional("onPageBar")
+        groupOutline = try optional("groupOutline")
     }
 
     /// The names of the required tokens, in the order of THEMES.md §3.
@@ -110,7 +114,9 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     ]
 
     /// The names of the optional tokens.
-    public static let optionalNames = ["headerBand", "alternateCell", "meta", "pageBar", "counter", "onHeaderBand", "onPageBar"]
+    public static let optionalNames = [
+        "headerBand", "alternateCell", "meta", "pageBar", "counter", "onHeaderBand", "onPageBar", "groupOutline"
+    ]
 
     /// `headerBand`, or its fallback.
     public var resolvedHeaderBand: ThemeRGB { headerBand ?? surfaceRaised }
@@ -126,6 +132,20 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     public var resolvedOnHeaderBand: ThemeRGB { onHeaderBand ?? textPrimary }
     /// `onPageBar`, or its fallback.
     public var resolvedOnPageBar: ThemeRGB { onPageBar ?? textPrimary }
+
+    /// `groupOutline`, or its fallback.
+    public var resolvedGroupOutline: ThemeRGB { groupOutline ?? separator }
+
+    /// The contrast of `surface` against `background` under which a grouped section's card does not stand out from the page
+    /// (#1456): below it the list draws `resolvedGroupOutline` around the group. Measured: Rétro 1.0:1, OG clair
+    /// (#F7F7F7 on #FFFFFF) and OG gris 1.07:1, Swift 1.11:1, Noël 1.16:1. The value is a choice (operator 2026-11-28, #1456),
+    /// not a perceptibility standard: at 1.10 the flat and faint cards are outlined and Swift's and Noël's are left as they are.
+    public static let groupOutlineThreshold = 1.10
+    /// The WCAG 1.4.11 minimum for a UI component boundary: the outline against `background` when it is drawn.
+    public static let groupOutlineMinimumContrast = 3.0
+
+    /// Whether a grouped section's card is told from the page by its fill alone; when not, the group is outlined.
+    public var cardStandsOut: Bool { surface.contrast(with: background) >= Self.groupOutlineThreshold }
 
     private static let black = ThemeRGB(red: 0, green: 0, blue: 0)
     private static let white = ThemeRGB(red: 255, green: 255, blue: 255)
@@ -211,7 +231,7 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         "codeText": \.codeText, "spoilerBackground": \.spoilerBackground, "spoilerText": \.spoilerText, "unread": \.unread,
         "onUnread": \.onUnread, "headerBand": \.resolvedHeaderBand, "alternateCell": \.resolvedAlternateCell,
         "meta": \.resolvedMeta, "pageBar": \.resolvedPageBar, "counter": \.resolvedCounter,
-        "onHeaderBand": \.resolvedOnHeaderBand, "onPageBar": \.resolvedOnPageBar
+        "onHeaderBand": \.resolvedOnHeaderBand, "onPageBar": \.resolvedOnPageBar, "groupOutline": \.resolvedGroupOutline
     ]
 
     /// The colour of the token `name`, or of a derived name of `contrastRules`, for a variant shown in light (`inLight`) or
@@ -227,10 +247,20 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         }
     }
 
+    /// The outline rule (#1456): when the card does not stand out, `groupOutline` (or its fallback) must reach 3:1 on `background`.
+    private var outlineViolation: [Violation] {
+        guard !cardStandsOut else { return [] }
+        let rule = ContrastRule(foreground: "groupOutline", background: "background", minimum: Self.groupOutlineMinimumContrast)
+        let outline = resolvedGroupOutline
+        guard outline.isOpaque else { return [Violation(rule: rule, ratio: 0)] }
+        let ratio = outline.contrast(with: background)
+        return ratio >= rule.minimum ? [] : [Violation(rule: rule, ratio: ratio)]
+    }
+
     /// The rules this variant breaks, shown in light (`inLight`, a `light` slot or a light single variant) or in dark; empty when
     /// it meets them all.
     public func contrastViolations(inLight: Bool) -> [Violation] {
-        Self.contrastRules.compactMap { rule in
+        outlineViolation + Self.contrastRules.compactMap { rule in
             guard let foreground = color(named: rule.foreground, inLight: inLight),
                   let background = color(named: rule.background, inLight: inLight) else {
                 return Violation(rule: rule, ratio: 0)

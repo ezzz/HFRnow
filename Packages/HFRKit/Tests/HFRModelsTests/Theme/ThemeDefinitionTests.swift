@@ -121,6 +121,59 @@ import Testing
         #expect(rules.contains { $0.foreground == "link" && $0.background == "alternateCell" })
     }
 
+    /// #1456: a theme whose card does not stand out from the page (Rétro 5250, OG clair) ships a `groupOutline` that reaches 3:1 on the
+    /// page; one whose card stands out (Swift) needs none, and the token falls back to `separator`.
+    @Test func theGroupOutlineIsCheckedOnlyWhereTheCardDoesNotStandOut() throws {
+        let catalog = ThemeCatalog(files: try Self.bundledFiles())
+        let retro = try #require(catalog.themes.first { $0.id == "retro-5250" })
+        guard case .single(let flat)? = retro.variants else {
+            Issue.record("Rétro 5250 is a single variant")
+            return
+        }
+        #expect(!flat.cardStandsOut && flat.groupOutline != nil)
+        #expect(flat.resolvedGroupOutline.contrast(with: flat.background) >= ThemeTokens.groupOutlineMinimumContrast)
+        #expect(flat.contrastViolations(inLight: false).isEmpty)
+        let swift = try #require(catalog.themes.first { $0.id == "swift" }?.variants?.light)
+        #expect(swift.cardStandsOut && swift.groupOutline == nil && swift.resolvedGroupOutline == swift.separator)
+        #expect(ThemeTokens.optionalNames.contains("groupOutline"))
+        // OG clair (1.07:1) is outlined too: its `separator` (#C0C0C0, 1.8:1) is too faint, so it carries a 3:1 `groupOutline`.
+        let og = try #require(catalog.themes.first { $0.id == "og-clair" })
+        guard case .single(let faint)? = og.variants else {
+            Issue.record("OG clair is a single variant")
+            return
+        }
+        #expect(!faint.cardStandsOut && faint.groupOutline == ThemeRGB(hex: "#949494"))
+        #expect(faint.resolvedGroupOutline.contrast(with: faint.background) >= ThemeTokens.groupOutlineMinimumContrast)
+        #expect(ThemeTokens.groupOutlineThreshold == 1.10)
+    }
+
+    /// #1456 (review): on a flat card the outline must reach 3:1 on the page: a dim one, a translucent one and a missing one whose
+    /// `separator` fallback is too dim are each refused; a card that stands out is not checked.
+    @Test func aFlatCardNeedsAnOutlineOf3To1() throws {
+        func dark(_ edit: (inout [String: Any]) -> Void) throws -> ThemeTokens {
+            var json = try #require(try JSONSerialization.jsonObject(with: Self.fixture("test-theme")) as? [String: Any])
+            var variants = try #require(json["variants"] as? [String: Any])
+            var variant = try #require(variants["dark"] as? [String: Any])
+            variant["background"] = "#000000"
+            variant["surface"] = "#000000"
+            edit(&variant)
+            variants["dark"] = variant
+            json["variants"] = variants
+            let theme = try JSONDecoder().decode(ThemeDefinition.self, from: JSONSerialization.data(withJSONObject: json))
+            return try #require(theme.variants?.dark)
+        }
+        func outlineRefusals(_ tokens: ThemeTokens) -> [String] {
+            tokens.contrastViolations(inLight: false).filter { $0.rule.foreground == "groupOutline" }.map(\.description)
+        }
+        // A 3.6:1 outline passes; a 2:1 one, a translucent one and a dim `separator` fallback (the fixture's #3A4656) are refused.
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = "#177517" }).isEmpty)
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = "#0D5A0D" }).count == 1)
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = "#17751780" }).count == 1)
+        #expect(outlineRefusals(try dark { $0["groupOutline"] = nil }).count == 1)
+        // A card that stands out needs no outline: a dim one is not checked.
+        #expect(outlineRefusals(try dark { $0["surface"] = "#3A4A60"; $0["groupOutline"] = "#0D5A0D" }).isEmpty)
+    }
+
     /// The contrast test fails on a broken bundled theme: the same check, given the broken fixture among the bundled files.
     @Test func theBundledCheckFailsWhenABrokenThemeIsAdded() throws {
         let catalog = ThemeCatalog(files: try Self.bundledFiles() + [("broken-theme.theme.json", Self.fixture("broken-theme"))])

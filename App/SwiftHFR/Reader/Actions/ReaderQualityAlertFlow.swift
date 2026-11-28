@@ -65,14 +65,14 @@ private struct QualityAlertTitleSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Group {
+                    ThemedRows {
                         Text("Créer une Alerte Qualitay sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
                         TextField("Titre de l'alerte", text: $title)
                             .textInputAutocapitalization(.sentences)
                             .focused($focused)
                             .submitLabel(.done)
                             .onSubmit(submit)
-                    }.themedListRow()
+                    }
                 }
             }
             .themedListScreen()

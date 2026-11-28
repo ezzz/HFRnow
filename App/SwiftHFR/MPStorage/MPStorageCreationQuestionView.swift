@@ -12,14 +12,14 @@ struct MPStorageCreationQuestionView: View {
         NavigationStack {
             Form {
                 Section {
-                    Group {
+                    ThemedRows {
                         Text(MPStorageSyncModel.creationQuestion)
                         Picker("Réponse", selection: $choice.answer) {
                             ForEach(MPStorageCreationChoice.Answer.allCases) { Text($0.label).tag($0) }
                         }
                         .pickerStyle(.inline)
                         .labelsHidden()
-                    }.themedListRow()
+                    }
                 }
             }
             .themedListScreen()

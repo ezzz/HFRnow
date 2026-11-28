@@ -13,7 +13,7 @@ struct AccountDeletionView: View {
     var body: some View {
         Form {
             Section {
-                Group {
+                ThemedRows {
                     Text(
                         "Ton compte appartient au forum Hardware.fr, pas à cette app : l’app ne peut pas le supprimer à ta place."
                     )
@@ -26,12 +26,12 @@ struct AccountDeletionView: View {
                             Label("Ouvrir la page Données personnelles", systemImage: "safari")
                         }
                     }
-                }.themedListRow()
+                }
             } header: {
                 Text("Ton compte HFR").themedSectionHeader()
             }
             Section {
-                Group {
+                ThemedRows {
                     if accounts.rows.isEmpty {
                         Text("Aucun compte n’est enregistré sur cet appareil.")
                             .foregroundStyle(.secondary)
@@ -52,7 +52,7 @@ struct AccountDeletionView: View {
                         .disabled(deletion.isErasing)
                     }
                     result
-                }.themedListRow()
+                }
             } header: {
                 Text("Cet appareil").themedSectionHeader()
             } footer: {

@@ -12,7 +12,7 @@ struct SecuritySettingsSections: View {
     var body: some View {
         @Bindable var lock = lock
         Section {
-            Group {
+            ThemedRows {
                 HStack {
                     Toggle(AccountSyncMessages.title, isOn: Binding(
                         get: { accounts.isAccountSyncOn },
@@ -40,12 +40,12 @@ struct SecuritySettingsSections: View {
                             Text(AccountSyncMessages.resetMessage)
                         }
                 }
-            }.themedListRow()
+            }
         } header: {
             Text("Comptes").themedSectionHeader()
         }
         Section {
-            Group {
+            ThemedRows {
                 Toggle(lock.switchTitle, isOn: Binding(
                     get: { lock.isEnabled },
                     set: { lock.setEnabled($0) }
@@ -59,7 +59,7 @@ struct SecuritySettingsSections: View {
                     Text(message)
                         .scaledFont(.footnote)
                 }
-            }.themedListRow()
+            }
         } header: {
             Text("Sécurité").themedSectionHeader()
         }

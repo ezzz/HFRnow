@@ -35,7 +35,7 @@ struct LoginView: View {
         LoginStack(presentation: presentation) {
             Form {
                 Section {
-                    Group {
+                    ThemedRows {
                         TextField("Pseudo", text: $model.pseudo)
                             .textContentType(.username)
                             .textInputAutocapitalization(.never)
@@ -49,7 +49,7 @@ struct LoginView: View {
                             .focused($focusedField, equals: .password)
                             .submitLabel(.go)
                             .onSubmit { model.submit() }
-                    }.themedListRow()
+                    }
                 } footer: {
                     Group {
                         if case .existing = model.target {
@@ -60,12 +60,12 @@ struct LoginView: View {
 
                 if let message = model.errorMessage {
                     Section {
-                        StatusLabel(text: message, symbol: "exclamationmark.triangle.fill", tint: .red).themedListRow()
+                        ThemedRows { StatusLabel(text: message, symbol: "exclamationmark.triangle.fill", tint: .red) }
                     }
                 }
 
                 Section {
-                    Group {
+                    ThemedRows {
                         Button {
                             model.submit()
                         } label: {
@@ -80,7 +80,7 @@ struct LoginView: View {
                             }
                         }
                         .disabled(!model.canSubmit)
-                    }.themedListRow()
+                    }
                 }
             }
             .navigationTitle(model.canEditPseudo ? "Ajouter un compte" : "Se reconnecter")

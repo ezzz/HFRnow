@@ -53,10 +53,10 @@ struct MaintenanceSection: View {
 
     var body: some View {
         Section {
-            Group {
+            ThemedRows {
                 CacheRows(snapshot: model.cacheStorage)
                 Button("Ouvrir les réglages système") { model.openSystemSettings() }
-            }.themedListRow()
+            }
         } header: {
             Text("Maintenance").themedSectionHeader()
         } footer: {

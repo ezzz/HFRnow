@@ -45,14 +45,14 @@ private struct BookmarkTitleSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Group {
+                    ThemedRows {
                         Text("Créer un bookmark sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
                         TextField("Ajoute un titre", text: $title)
                             .textInputAutocapitalization(.sentences)
                             .focused($focused)
                             .submitLabel(.done)
                             .onSubmit(submit)
-                    }.themedListRow()
+                    }
                 } footer: {
                     Group {
                         // Said before « Créer », so the title is never lost to a refused write (LOT-062).
