@@ -126,6 +126,33 @@ struct TopicFavoriteAddTests {
         #expect(!model.isAddingFavorite(row) && model.isFavorite(row))
     }
 
+    /// Drapeaux: an addition confirmed after a removal of the same row wins, so the row stays listed, a favourite (#869 review).
+    @Test(.timeLimit(.minutes(1))) func anAdditionConfirmedAfterARemovalKeepsTheRowListed() async {
+        let writer = FakeFlagWriter()
+        let removal = AsyncGate()
+        let addition = AsyncGate()
+        writer.removeHandler = { topic in
+            await removal.wait()
+            return confirmed(.removeFavoriteFromList, topic, "Drapeaux effacés avec succès")
+        }
+        writer.listAddHandler = { topic, _ in
+            await addition.wait()
+            return confirmed(.addFavorite, topic, "Favori positionné avec succès")
+        }
+        let row = flaggedTopic(1, flag: .blue)
+        let (model, _) = await list(.flagged, [row], writer: writer)
+        let remove = Task { await model.removeFlag(row) }
+        let add = Task { await model.addFavorite(row) }
+        while writer.removed.isEmpty || writer.addedFromList.isEmpty { await Task.yield() }
+        await removal.open()
+        await remove.value
+        #expect(model.displayedGroups.flatMap(\.topics).isEmpty)
+        await addition.open()
+        await add.value
+        #expect(model.displayedGroups.flatMap(\.topics) == [row])
+        #expect(model.isFavorite(row) && model.removeFlagTitle(row) == "Retirer des favoris")
+    }
+
     /// The confirmed addition lasts until a load that starts after it; that load shows HFR's own state again.
     @Test func theNextLoadShowsHFRsStateAgain() async {
         let row = flaggedTopic(1, flag: nil)

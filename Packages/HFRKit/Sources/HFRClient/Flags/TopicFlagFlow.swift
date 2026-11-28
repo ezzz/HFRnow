@@ -44,7 +44,7 @@ public struct TopicFlagFlow: Sendable {
     /// GET, `R21`; HFR redirects a page past the end to the last one, `R24`) and the `addflag.php` link of its last message
     /// is followed, as `addFavorite(link:in:)` does, fenced on the login checked before.
     ///
-    /// Reading the page moves the account's read flag to its last message (HFR-PROTOCOL §6c, `:580`): the operator
+    /// Reading the page moves the account's read flag to its last message (HFR-PROTOCOL §6c "Flag facts from the same run"): the operator
     /// accepted it. A page without that link sends no write (`favoriteLinkMissing`).
     /// - Throws: `invalidTopic`, `sessionNotConfirmed`, `sessionChanged`, `favoriteLinkMissing`, `notLoggedIn`, `rejected`,
     ///   `unconfirmed`, `network`.
@@ -128,13 +128,16 @@ public struct TopicFlagFlow: Sendable {
     ) async throws(TopicFlagError) -> TopicFlagResult {
         guard case .forum(let category) = topic.category, category > 0, topic.topic > 0, page >= 1 else { throw .invalidTopic }
         let seed = try await Self.confirm(check, in: session)
-        let link = try await favoriteLink(of: topic, page: page, through: session)
+        let link = try await favoriteLink(of: topic, page: page, through: session, since: seed)
         return try await follow(.addFavorite, link: link, through: session, since: seed)
     }
 
     /// The `addflag.php` link of the last message of `page`, read with the session (a read: a failure sends no write, so it
-    /// is `network`). Only a link of this very topic counts.
-    func favoriteLink(of topic: TopicID, page: Int, through session: any PostingSession) async throws(TopicFlagError) -> URL {
+    /// is `network`). Only a link of this very topic counts. With a `seed`, the read leaves only while the session holds
+    /// `seed`'s login: another account's read flag is never moved (#869 review).
+    func favoriteLink(
+        of topic: TopicID, page: Int, through session: any PostingSession, since seed: HashCheckSeed? = nil
+    ) async throws(TopicFlagError) -> URL {
         let request: HTTPRequest
         do {
             request = try HFREndpoint.topicPage(topic: topic, page: page)
@@ -143,10 +146,25 @@ public struct TopicFlagFlow: Sendable {
         }
         if Task.isCancelled { throw .network(.cancelled) }
         let response: HTTPResponse
-        do {
-            response = try await session.send(request)
-        } catch {
-            throw .network(error)
+        if let seed {
+            let outcome: FencedSend
+            do {
+                outcome = try await session.send(since: seed, requiringToken: false) { _ in request }
+            } catch {
+                throw .network(error)
+            }
+            switch outcome {
+            case .sent(let answer): response = answer
+            // No token is asked (`requiringToken: false`), so only a login landing since the check stops the read.
+            case .loginChanged, .missingToken: throw .sessionChanged
+            case .cancelled: throw .network(.cancelled)
+            }
+        } else {
+            do {
+                response = try await session.send(request)
+            } catch {
+                throw .network(error)
+            }
         }
         guard PostingFlow.isForumPage(response.url),
               let actions = try? MessageActionsParser.actions(in: response.decodedText().text),

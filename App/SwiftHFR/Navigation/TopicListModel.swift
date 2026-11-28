@@ -175,7 +175,8 @@ final class TopicListModel {
         guard source.isFavoritesList, !removedFlags.isEmpty else { return groups }
         return groups.map { group in
             var group = group
-            group.topics.removeAll { removedFlags[$0.id] != nil }
+            // The later of a removal and an addition HFR confirmed decides (#869): a row added back stays.
+            group.topics.removeAll { confirmedFlagChange($0) == .flagRemoved }
             if group.topics.isEmpty { group.isCollapsible = false }
             return group
         }
@@ -190,7 +191,9 @@ final class TopicListModel {
     /// A row of the favourites page shows unread pages and still has its flag (#1058): « Non lus » can have something to show.
     var hasUnreadFavoriteRows: Bool {
         guard let page = loader.value?.favoritesPage else { return false }
-        return page.sections.contains { $0.topics.contains { FavoritesPresentation.isUnread($0) && removedFlags[$0.id] == nil } }
+        return page.sections.contains { section in
+            section.topics.contains { FavoritesPresentation.isUnread($0) && confirmedFlagChange($0) != .flagRemoved }
+        }
     }
 
     /// « Non lus » is on, the page has favourites and none is unread (#1058): the screen says so instead of listing nothing or

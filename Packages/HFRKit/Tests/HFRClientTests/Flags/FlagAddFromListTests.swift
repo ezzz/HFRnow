@@ -88,6 +88,27 @@ struct FlagAddFromListTests {
         #expect(await session.requests.count == 1)
     }
 
+    @Test("A login landing during the check reads no page either: another account's read flag never moves (#869 review)")
+    func loginDuringTheCheckReadsNoPage() async throws {
+        let session = ScriptedFlagSession([try FlagCapture.page("R21"), try FlagCapture.page("P03a")], hashCheck: Self.token)
+        let result = await Self.run(session) { () async throws(NetworkError) -> SessionHealth in
+            await session.adoptLogin(ConcurrentLogin(identity: "user2", hashCheck: "fake-token-other"))
+            return .valid
+        }
+        #expect(result.failure == .sessionChanged)
+        #expect(await session.requests.isEmpty)
+    }
+
+    @Test("A topic page served off the forum host (another hardware.fr host the session may follow) gives no link: no write")
+    func aPageOffTheForumHostIsNotRead() async throws {
+        let offForum = try #require(URL(string: "https://www.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm"))
+        let page = try Capture.response("R21-topic-p1-logged-in", url: offForum)
+        let session = ScriptedFlagSession([.success(page), try FlagCapture.page("P03a")], hashCheck: Self.token)
+        let result = await Self.run(session)
+        #expect(result.failure == .favoriteLinkMissing)
+        #expect(await session.requests.count == 1)
+    }
+
     @Test("A login landing during the page read sends no write (#1200 P2)")
     func loginDuringThePageReadSendsNoWrite() async throws {
         let session = ScriptedFlagSession([try FlagCapture.page("R21"), try FlagCapture.page("P03a")], hashCheck: Self.token)

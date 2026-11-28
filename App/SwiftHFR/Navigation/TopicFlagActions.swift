@@ -129,7 +129,7 @@ struct TopicFlagActions: Sendable {
             // A login landed between the check and the write (#1200 P2): the same words as a check that saw it.
             session(.unconfirmed(.sessionChanged))
         case .favoriteLinkMissing:
-            "La dernière page du sujet ne propose pas l'ajout aux favoris : rien n'a été envoyé. Actualisez la liste puis réessayez."
+            "La dernière page du sujet ne propose pas l'ajout aux favoris : rien n'a été envoyé. Actualise la liste puis réessaie."
         case .missingToken:
             "Session incomplète : rien n'a été envoyé. Actualise la liste puis réessaie."
         case .notLoggedIn:
