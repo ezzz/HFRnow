@@ -156,10 +156,11 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-116 | Mark unread | "Marquer comme non lu" in the thread's message menu (ObjC, shared by MP threads). Not in the MP list at `2440d79`; at `2fe43da3` (`4a4f493f`) the MP list row menu has "Marquer non lu" on read rows, a GET of `user/nonlu.php` built from the topic id. | OnlineMessagesTableViewController.m:807, 888; MPListView.swift:85-111, 800-812 @ 2fe43da3 | Same entry in the reader's secondary menu, back to the list on HFR's confirmation (LOT-127); in the MP list row menu on read rows (#676, M4). | LOT-058, LOT-127, #676 | ported with changes | port: legacy ObjC | a |
 | GAP-117 | Delete MP thread | None at `2440d79`. At `2fe43da3` (`4a4f493f`) "Supprimer" in the MP list row menu, with a confirmation, POST `modo/manageaction.php` with `action_reaction=valid_eff_prive`; the row is removed on any 2xx answer. | MPListView.swift:114-158, 711-722, 815-822 @ 2fe43da3 | Thread delete from the MP list row menu, with a confirmation, through LOT-094's flow, on HFR's confirmation (#676, M4). | LOT-094, #676 | ported with changes | port: ezzz Swift layer | a·master |
 | GAP-118 | Group members | Only the tooltip names in the HTML. | MPListView.swift:171-173 | Members action. | LOT-058, LOT-181 | new | new UX: spec | b |
-| GAP-119 | MPStorage flags on MP rows | Group rows show the stored flag page. | MPListView.swift:150-165 | `mpFlags` label on group rows while the account syncs; opening at the flag comes with the reader's flag write (follow-up). | LOT-062, LOT-130 | ported with changes | port: ezzz Swift layer | a |
+| GAP-119 | MPStorage flags on MP rows | Group rows show the stored flag page. | MPListView.swift:150-165 | `mpFlags` label on group rows while the account syncs; with « MP multiples → dark topic » on (#1014), the reader moves the flag forward to each page's last message, sent once when the conversation is left, and the row opens at it (#858). | LOT-062, LOT-130, #858 | ported with changes | port: ezzz Swift layer | a |
 | GAP-120 | MP list logged out | "Connectez-vous pour accéder aux MP". | MPListView.swift:289-296 | "Connexion requise", no request sent. | LOT-126 | same | port: ezzz Swift layer | a |
 | GAP-230 | MP avatar | Cache filled while parsing topic pages (download when missing or older than 24 h); grey disc when absent. | ParseMessagesOperation.m:176, 430-446; MPListView.swift (MPAvatarView) @ 2440d79 | `AvatarStore` fills the cache from every page read (cookie-less, forum image host only, 256 KiB cap, 24 h; not gated by any image setting (there is no « Images externes » setting since #902, and the experimental « Chargement des images » choice does not apply to avatars): forum avatars are first-party (LOT-071 D-071-1 point 3), as in the reader and legacy); the avatar files the legacy app cached (`MD5(lowercased pseudo)`) are adopted on first read after an update (#714); a one-to-one correspondent still missing is looked up while the row is shown (`profilebdd.php` redirect without cookies, `R716a`-`R716d`, then the public profile with the account's session, which HFR requires since 2026-11-26, `R1363a`, `R1363b`, #1363; one lookup at a time, each pseudo once per session) and the avatar stored by `AvatarStore` (#714); monogram (initials, stable hue, ≥ 4.5:1) replaces the grey disc when there is none; groups keep their icon. | LOT-126, LOT-066, #569, #714, #1363 | ported with changes | port: ezzz Swift layer | a |
 | GAP-1074 | MPStorage thread in the MP list | Shown as a normal MP row and bumped « non lu » by every client write; no filter. | MPListView.swift (no filter); MPStorage.m:713 @ 87fe0d1c | Only the account's own storage threads (subject `a2bcc09b…`) are hidden once at the list source, from « MP », « MP multiples » and the counts derived from the rows: the thread the storage sync located (its first message carries the account's edit link) and any one-to-one thread with the storage recipient `MultiMP`. Another member's MP with that subject stays visible (#1200). MPStorage still finds the thread. HFR's own badge number is unchanged. | #1074, #1200 | new | operator feedback 2026-11-17, #1074, #1075; captures R13u1, R333b | b |
+| GAP-858 | Group MP position kept in the app | None: the position exists only in MPStorage (`mpstorage_active`, default off). | AppSettingsView.swift:112-113 | With « MP multiples → dark topic » on, the app keeps where each group MP was left (last message of the furthest page shown), MP storage off too: `⚑ page / pages`, the row stays unread until its last page is reached and opens there. | #858 | new | new UX: operator (#858) | b·operator |
 
 ## Search
 
@@ -317,10 +318,10 @@ Gap issues: #1309 state views (needs a decision), #1310 haptics, #1311 row menus
 | ported with changes | 70 |
 | ported with changes (engine only) | 1 |
 | UX change | 64 |
-| new | 29 |
+| new | 30 |
 | dropped | 3 |
 | not planned | 2 |
-| **Total** | **199** |
+| **Total** | **200** |
 
 ## Convergence notes
 
@@ -350,14 +351,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (163)
+### GAP rows of type `ported with changes`, `UX change` or `new` (164)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 005, 007, 020, 021, 022, 023, 026, 027, 032, 033, 035, 037, 038, 040, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595, 1039, 1420 | 54 |
 | a·master | 002, 093, 117, 150, 152, 210, 217, 219, 682, 713 | 10 |
 | b·needed | 024, 036, 056, 058, 070, 089, 133, 181, 192 | 9 |
-| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 735, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297, 1347 | 47 |
+| b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 735, 750, 799, 807, 858, 903, 978, 1035, 1037, 1058, 1172, 1178, 1207, 1213, 1297, 1347 | 48 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 912, 1073, 1074, 1107, 1374, 1450 | 43 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
