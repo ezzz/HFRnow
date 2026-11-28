@@ -194,9 +194,11 @@ struct TopicReaderView: View {
         let page = model.page
         let pages = page.map { $0.maxPage > 1 } ?? false
         let offered = !model.suspendsPageInteractions
+        let reply = model.overflowReply(behavior: settings.replyButton, hasComposer: composer != nil)
         ReaderOverflowToolbar(
             entries: ReaderOverflow.entries(
                 search: ReaderSearchFlow.isOffered(model: model, composer: composer, services: services),
+                reply: reply.offered,
                 offline: ReaderOfflineSave.isOffered(model: model, saver: saver),
                 filter: onFilterPosts != nil && offered,
                 pages: pages && offered),
@@ -207,9 +209,8 @@ struct TopicReaderView: View {
                 case nil: break
                 }
             },
-            offline: AnyView(Group {
-                if let saver, let page { ReaderOfflineMenuItems(saver: saver, model: model, page: page) }
-            }),
+            reply: reply,
+            offline: AnyView(Group { if let saver, let page { ReaderOfflineMenuItems(saver: saver, model: model, page: page) } }),
             filter: { onFilterPosts?() },
             filterIsBusy: filterIsBusy,
             pages: AnyView(Group {
